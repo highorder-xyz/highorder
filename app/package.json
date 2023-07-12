@@ -1,0 +1,50 @@
+{
+  "name": "@highorder/app",
+  "private": true,
+  "version": "0.1.0",
+  "files": [
+    "src",
+    "public"
+  ],
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "npx jest"
+  },
+  "dependencies": {
+    "@fontsource/nunito": "^4.5.10",
+    "@videojs-player/vue": "^1.0.0",
+    "animate.css": "^4.1.1",
+    "canvas-confetti": "^1.5.1",
+    "crypto-js": "^4.1.1",
+    "gsap": "^3.11.0",
+    "howler": "^2.2.3",
+    "idb": "^7.0.2",
+    "ky": "^0.33.2",
+    "phaser": "^3.55.2",
+    "swiper": "^8.4.2",
+    "tslib": "^2.3.1",
+    "video.js": "^7.21.4",
+    "vue": "^3.2.37"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.4.3",
+    "@types/crypto-js": "^4.1.1",
+    "@types/jest": "^28.1.1",
+    "@vitejs/plugin-vue": "^3.1.0",
+    "jest": "^28.1.1",
+    "jest-environment-jsdom": "^29.5.0",
+    "sass": "^1.58.0",
+    "ts-jest": "^28.0.5",
+    "typescript": "^4.6.4",
+    "vite": "^3.1.0",
+    "vue-tsc": "^0.40.4"
+  }
+}

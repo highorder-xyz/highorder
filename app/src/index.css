@@ -1,0 +1,157 @@
+:root {
+    --text-color: #111;
+    --inverse-text-color: #fff;
+    --bg-color: #fff;
+    --border-color: #ccc;
+    --green-color: green;
+    --gray-color: gray;
+    --primary-color: var(--green-color);
+    --primary-bg-color: rgba(0, 128, 0, 0.178);
+    --primary-active-bg-color: rgba(0, 128, 0, 0.432);
+    --text-strong-color: #000;
+    --text-strong-decoration-color: rgba(0, 0, 0, 0.2);
+    --letter-border-color: var(--border-color);
+    --letter-border-active-color: #666;
+    --letter-error-border-color: lightcoral;
+    --correct-color: var(--green-color);
+    --present-color: orange;
+    --absent-color: var(--gray-color);
+    --letter-state-text-color: var(--inverse-text-color);
+    --letter-state-border-color: rgba(0, 0, 0, 0.2);
+    --keyboard-bg-color: #fafafa;
+    --keyboard-border-color: var(--border-color);
+    --key-bg-color: #d3d6da;
+    --key-shadow-color: rgba(0, 0, 0, 0.25);
+    --key-state-text-color: var(--inverse-text-color);
+    --key-active-text-color: var(--inverse-text-color);
+    --key-active-bg-color: #686868;
+    --block-border-color: rgba(0, 0, 0, 0.1);
+    --results-bg-color: #eee;
+    --button-text-color: var(--primary-color);
+    --button-bg-color: var(--primary-bg-color);
+    --button-active-bg-color: var(--primary-active-bg-color);
+    --button-strong-text-color: var(--inverse-text-color);
+    --button-strong-bg-color: var(--green-color);
+    --text-field-bg-color: var(--bg-color);
+    --text-field-border-color: var(--primary-active-bg-color);
+    --text-insignificant-color: rgba(0, 0, 0, 0.5);
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    transition: background-color 0.2s ease-in-out;
+    font-size: 16px;
+}
+
+body,
+button,
+input {
+    font-family: "Nunito", "Helvetica Neue", "Helvetica", "Arial", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+}
+
+a {
+    color: var(--primary-color);
+    font-weight: bold;
+    text-underline-offset: 0.15em;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ruby {
+    font-family: 'Ma Shan Zheng', cursive;
+  }
+  ruby rt {
+    font-family: 'Nunito', sans-serif;
+  } */
+div,
+img,
+a,
+select,
+input,
+button {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+input {
+    accent-color: var(--green-color);
+}
+
+button,
+input[type="text"] {
+    touch-action: manipulation;
+    color: inherit;
+    appearance: none;
+}
+
+button {
+    user-select: none;
+}
+
+button,
+svg,
+label,
+label * {
+    vertical-align: middle;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+
+.page {
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    position: absolute;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.mobile {
+    max-width: 30em;
+}
+
+.motion_canvas {
+    top: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 100;
+    pointer-events: none;
+}
+
+
+#playable-container {
+    min-width: 360px;
+    max-height: 640px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
