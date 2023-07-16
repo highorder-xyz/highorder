@@ -49,10 +49,9 @@ import { NavBar, Footer, Button, ActionDefinition,
 import { app_platform } from './platform';
 import { HolaCommand, ShowAlertCommandArg, ShowMotionCommandArg } from './client';
 
-import { showConfetti } from './motion/confetti'
 import { AdHelper, AdShowOptions } from './ad';
 import { randomString } from './db';
-import { ApplyableInstance, ConditionResponse } from './playable/defines'
+import { ApplyableInstance, ConditionResponse } from './defines'
 
 type PlayableComponent = ApplyableInstance;
 
@@ -88,7 +87,7 @@ export function showMotion(name: string, args: object): void {
     const _name = name.toLowerCase().replace(/_/g, '-')
 
     if(_name === 'confetti'){
-        showConfetti(args)
+        // showConfetti(args)
     }
 }
 

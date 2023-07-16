@@ -2,7 +2,7 @@
 from basepy.config import settings
 from basepy.asynclog import logger
 
-debug = settings.app.get('debug', False)
+debug = settings.server.get('debug', False)
 if debug:
     from basepy.more.rich_console import install_rich_console
     install_rich_console()
@@ -25,8 +25,10 @@ async def index(request):
     return 'highorder server ok'
 
 
-content_location = settings.app.get('content_location', None)
+content_location = settings.server.get('content_location', None)
 if content_location:
+    if not os.path.exists(content_location):
+        os.makedirs(content_location, exist_ok=True)
     app.static('/static', os.path.abspath(content_location))
 
 
@@ -69,5 +71,5 @@ app.register_blueprint(hola_bp)
 
 
 def main():
-    debug = settings.app.get('debug', False)
+    debug = settings.server.get('debug', False)
     app.run(host='0.0.0.0', port=5000, debug=debug)

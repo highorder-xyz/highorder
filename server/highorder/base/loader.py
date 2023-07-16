@@ -101,7 +101,7 @@ class FileCache:
 class ConfigLoader:
     def __init__(self, app_id):
         self.app_id = app_id
-        self.config_dir = os.path.abspath(os.path.join(settings.app.config_dir, f'APP_{app_id}'))
+        self.config_dir = os.path.abspath(os.path.join(settings.server.config_dir, f'APP_{app_id}'))
         self.config_file = None
         self.max_cached = -1
         self._account = None

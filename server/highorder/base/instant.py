@@ -16,7 +16,7 @@ def parse_redis_url(url):
 def get_redis():
     global g_sentinel, g_redis
     if g_sentinel == None or g_redis == None:
-        urls = list(map(lambda x: parse_redis_url(x), settings.app.redis_urls))
+        urls = list(map(lambda x: parse_redis_url(x), settings.server.redis_urls))
         if len(urls) >= 2:
             g_sentinel = Sentinel(urls)
         else:

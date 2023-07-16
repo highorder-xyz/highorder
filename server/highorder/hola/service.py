@@ -313,7 +313,7 @@ class HolaService:
         self.playable_challenges_def = hola_def.playable.challenges
 
     def get_content_url_root(self):
-        root_url = settings.app.get('content_url', '').strip('/')
+        root_url = settings.server.get('content_url', '').strip('/')
         return f'{root_url}/static/APP_{self.app_id}/content'
 
     def get_object_by_name(self, name):
@@ -530,7 +530,7 @@ class HolaService:
 
 
     async def _create_context(self, page_context):
-        root_url = settings.app.get('content_url', '').strip('/')
+        root_url = settings.server.get('content_url', '').strip('/')
         profile = await self.user.get_profile()
         core = {"attribute":{}, "currency":{}}
         context = munchify({
@@ -1464,7 +1464,7 @@ class HolaService:
 
     def transform_playable(self, playable_config):
         def transform_config_object(config):
-            root_url = settings.app.get('content_url', '').strip('/')
+            root_url = settings.server.get('content_url', '').strip('/')
             if not isinstance(config, dict):
                 return
             for k, v in config.items():
