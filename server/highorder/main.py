@@ -22,7 +22,7 @@ app = CallFlow('highorder')
 
 @app.route('/')
 async def index(request):
-    return 'ok'
+    return 'highorder server ok'
 
 
 content_location = settings.app.get('content_location', None)
@@ -64,11 +64,8 @@ async def app_before_request(request):
 async def app_error_handler(request, exc):
     return error.server_error(type(exc).__name__, exc.description, exc.code)
 
-from .account.view import bp as account_bp
-app.register_blueprint(account_bp)
-
-from .quest.view import bp as quest_bp
-app.register_blueprint(quest_bp)
+from .hola.view import bp as hola_bp
+app.register_blueprint(hola_bp)
 
 
 def main():

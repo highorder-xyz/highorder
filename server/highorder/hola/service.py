@@ -1,6 +1,6 @@
 
 import importlib.resources
-from highorder.account.service import SocialAccountService
+from highorder.account.service import AccountService, SocialAccountService
 from highorder.base.utils import time_random_id
 from highorder.base.munch import munchify
 from highorder.base.router import Router
@@ -12,20 +12,19 @@ from datetime import date, timedelta, datetime
 from typing import List, Any, Mapping, Sequence
 from .data import (
     ClientRequestContext, InitAdCommand, LimitObject, PlayableApplyCommand, PlayableApplyCommandArg, PlayableCompletedArg, PlayableConfig,
-    QuestInterfaceDefine, PageInterface,
+    HolaInterfaceDefine, PageInterface,
     SetPlayer, SetPlayerArg, SetSessionCommand, SetSessionCommandArg, ShowAdCommand, ShowAdCommandArg, ShowAlertCommand, ShowAlertCommandArg, ShowModalCommand,
     ShowModalCommandArg, ShowMotionCommand, ShowMotionCommandArg,
     ShowNarrationCommand, ShowNarrationCommandArg,
     ShowPageCommand, ShowPageCommandArg,
-    QuestCoreDefine, UpdatePageCommand, UpdatePageCommandArg, UpdatePageInterface,
-    QuestAdvertisementDefine
+    UpdatePageCommand, UpdatePageCommandArg, UpdatePageInterface,
 )
 from .model import (
-    QuestPageState,
-    QuestPlayableState,
-    QuestPlayer,
-    QuestPlayerItembox,
-    QuestVariable,
+    HolaPageState,
+    HolaPlayableState,
+    HolaPlayer,
+    HolaPlayerItembox,
+    HolaVariable,
 )
 import json
 
@@ -49,7 +48,7 @@ class CurrencyValueNotEnoughError(ValueNotEnoughError):
     def __init__(self, name):
         self.name = name
 
-class QuestBulitin:
+class HolaBulitin:
     @staticmethod
     def random(start, end):
         if isinstance(start, int):
@@ -77,7 +76,7 @@ class QuestBulitin:
         return v1 > v2
 
 
-builtin = QuestBulitin()
+builtin = HolaBulitin()
 
 class AutoList(list):
     def add(self, list_or_obj):
@@ -111,12 +110,12 @@ class ShowMessageService:
             confirm=confirm
         ))
 
-class QuestPageStateService:
+class HolaPageStateService:
     @classmethod
     async def load(cls, app_id, user_id):
-        page_state = await QuestPageState.load(app_id=app_id, user_id=user_id)
+        page_state = await HolaPageState.load(app_id=app_id, user_id=user_id)
         if page_state == None:
-            page_state = await QuestPageState.create(app_id=app_id, user_id=user_id, page_state = {})
+            page_state = await HolaPageState.create(app_id=app_id, user_id=user_id, page_state = {})
         return cls(page_state)
 
     def __init__(self, model):
@@ -181,17 +180,17 @@ def short_hash(value):
 
 class ChallengeService:
     @classmethod
-    def create(cls, quest_svc, name, challenges):
+    def create(cls, hola_svc, name, challenges):
         filtered = filter(lambda x: x.name == name, challenges)
         if filtered:
             challenge_def = filtered[0]
-            return cls(quest_svc, challenge_def)
+            return cls(hola_svc, challenge_def)
         return None
 
-    def __init__(self, quest_svc, challenge_def):
-        self.quest_svc = quest_svc
-        self.app_id = quest_svc.app_id
-        self.user_id = quest_svc.user_id
+    def __init__(self, hola_svc, challenge_def):
+        self.hola_svc = hola_svc
+        self.app_id = hola_svc.app_id
+        self.user_id = hola_svc.user_id
         self.challenge_def = challenge_def
         self.name = challenge_def.name
         self.limit = challenge_def.limit
@@ -223,7 +222,7 @@ class ChallengeService:
     async def random_select(self, collection):
         if collection.type == 'playable-collection':
             name = collection.name
-            levels = await self.quest_svc.get_playable_levels(name)
+            levels = await self.hola_svc.get_playable_levels(name)
             return random.choice(levels)
 
 
@@ -269,7 +268,7 @@ class ChallengeService:
 
 
 
-class QuestService:
+class HolaService:
 
     @classmethod
     async def create(cls, user, session, config_loader, **kwargs):
@@ -287,33 +286,31 @@ class QuestService:
         self.router = Router()
 
     async def load(self):
-        quest_dict = await self.config_loader.get_config("quest-interface")
-        quest_def = factory.load(quest_dict, QuestInterfaceDefine)
-        self.widgets = quest_def.widgets
-        self.interfaces = quest_def.interfaces
+        hola_dict = await self.config_loader.get_config("hola")
+        hola_def = factory.load(hola_dict, HolaInterfaceDefine)
+        self.widgets = hola_def.widgets
+        self.interfaces = hola_def.interfaces
         for interface_def in self.interfaces:
             self.router.add(interface_def.route, interface_def.name)
-        self.components = quest_def.components
-        core_dict = await self.config_loader.get_config("quest-core")
-        core_def = factory.load(core_dict, QuestCoreDefine)
-        self.variables_def = core_def.variables
-        self.objects_def = core_def.objects
-        self.attribute_def = core_def.attribute
-        self.item_def = core_def.item
-        self.itembox_def = core_def.itembox
-        self.currency_def = core_def.currency
+        self.components = hola_def.components
+        self.variables_def = hola_def.variables
+        self.objects_def = hola_def.objects
+        self.attribute_def = hola_def.attribute
+        self.item_def = hola_def.item
+        self.itembox_def = hola_def.itembox
+        self.currency_def = hola_def.currency
         self.action_def = {}
-        self.task_def = core_def.task
-        for action in core_def.action:
+        self.task_def = hola_def.task
+        for action in hola_def.action:
             name = action['name']
             if name in self.action_def:
                 raise Exception(f'duplicated name {name} in action define.')
             self.action_def[name] = action
 
-        ad_dict = await self.config_loader.get_config("quest-ad")
-        ad_def = factory.load(ad_dict, QuestAdvertisementDefine)
-        self.ad_init_def = ad_def.init
-        self.ad_objects_def = ad_def.objects
+        self.ad_init_def = hola_def.advertisement.init
+        self.ad_objects_def = hola_def.advertisement.objects
+        self.playable_collections_def = hola_def.playable.collections
+        self.playable_challenges_def = hola_def.playable.challenges
 
     def get_content_url_root(self):
         root_url = settings.app.get('content_url', '').strip('/')
@@ -347,10 +344,10 @@ class QuestService:
         return init
 
     async def load_variables(self, context):
-        var = await QuestVariable.load(app_id=self.app_id, user_id=self.user_id)
+        var = await HolaVariable.load(app_id=self.app_id, user_id=self.user_id)
         if not var:
             v = self.init_variables(context)
-            var = await QuestVariable.create(app_id=self.app_id, user_id=self.user_id, variable=v)
+            var = await HolaVariable.create(app_id=self.app_id, user_id=self.user_id, variable=v)
         else:
             for vardef in self.variables_def:
                 if vardef['name'] not in var.variable:
@@ -403,9 +400,9 @@ class QuestService:
             raise Exception(f'no attribute define with name {name}')
 
     async def load_attributes(self):
-        player = await QuestPlayer.load(app_id=self.app_id, user_id=self.user_id)
+        player = await HolaPlayer.load(app_id=self.app_id, user_id=self.user_id)
         if not player:
-            player = await QuestPlayer.create(app_id=self.app_id, user_id=self.user_id,
+            player = await HolaPlayer.create(app_id=self.app_id, user_id=self.user_id,
                 attribute=self.get_attribute_initial(), currency=self.get_currency_initial())
         else:
             for attr_def in self.attribute_def:
@@ -438,9 +435,9 @@ class QuestService:
         return item_initial
 
     async def load_itembox(self, name="default"):
-        item = await QuestPlayerItembox.load(app_id=self.app_id, user_id=self.user_id, name=name)
+        item = await HolaPlayerItembox.load(app_id=self.app_id, user_id=self.user_id, name=name)
         if not item:
-            item = await QuestPlayerItembox.create(app_id=self.app_id, user_id=self.user_id,
+            item = await HolaPlayerItembox.create(app_id=self.app_id, user_id=self.user_id,
                 name = name, attrs = {},
                 detail={"items": self.get_item_initial()})
         return item
@@ -1490,17 +1487,13 @@ class QuestService:
         return transformed
 
     async def get_playable_collection_define(self, collection):
-        playable_dict = await self.config_loader.get_config("quest-playable")
-        playable_config = factory.load(playable_dict, PlayableConfig)
-        for conf in playable_config.collections:
+        for conf in self.playable_collections_def:
             if conf.name == collection:
                 return conf
         raise Exception(f'no playable collection {collection} found.')
 
     async def get_playable_challenge_define(self, name):
-        playable_dict = await self.config_loader.get_config("quest-playable")
-        playable_config = factory.load(playable_dict, PlayableConfig)
-        for conf in playable_config.challenges:
+        for conf in self.playable_challenges_def:
             if conf.name == name:
                 return conf
         raise Exception(f'no playable challenge {name} found.')
@@ -1625,7 +1618,7 @@ class QuestService:
     async def get_show_page_command(self, page_def, context, include_elements=True):
         origin_context = context
         context = copy.copy(origin_context)
-        svc = await QuestPageStateService.load(self.app_id, self.user_id)
+        svc = await HolaPageStateService.load(self.app_id, self.user_id)
 
         page_route = page_def.route
         if context.get('route_args'):
@@ -1674,9 +1667,9 @@ class QuestService:
         return command
 
     async def load_playable_state(self):
-        state = await QuestPlayableState.load(app_id=self.app_id, user_id=self.user_id)
+        state = await HolaPlayableState.load(app_id=self.app_id, user_id=self.user_id)
         if not state:
-            state = await QuestPlayableState.create(app_id=self.app_id, user_id=self.user_id,
+            state = await HolaPlayableState.create(app_id=self.app_id, user_id=self.user_id,
                 playable_state = {})
         return state
 
@@ -2463,7 +2456,7 @@ class QuestService:
         exit_hooks = list(filter(lambda x: x.name == 'before_exit', page_def.hooks))
         if exit_hooks:
             commands = AutoList()
-            svc = await QuestPageStateService.load(self.app_id, self.user_id)
+            svc = await HolaPageStateService.load(self.app_id, self.user_id)
             hook = exit_hooks[0]
             if hook.limit:
                 showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
@@ -2483,7 +2476,7 @@ class QuestService:
             context = copy.copy(origin_context)
             context.route_args = munchify(route_args)
 
-        svc = await QuestPageStateService.load(self.app_id, self.user_id)
+        svc = await HolaPageStateService.load(self.app_id, self.user_id)
 
         commands = AutoList()
         if page_def.triggers != None:
@@ -2605,6 +2598,27 @@ class QuestService:
             user = user
         ))
 
+    async def login(self, args, context):
+        commands = AutoList()
+        if self.user:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='already logged in， please logout first.', title='logout first.')
+            ))
+            return commands
+        if 'anonymous' not in args:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='only anonymous login supported.', title='')
+            ))
+            return commands
+        user, session = await AccountService.create(self.app_id)
+        if user and session:
+            commands.add(self.create_set_session_command(user, session))
+        else:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
+            ))
+        return commands
+
     async def auth_weixin(self, code, context):
         commands = AutoList()
         # if self.session.weixin_login:
@@ -2633,6 +2647,8 @@ class QuestService:
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
                 ret_commands.add(await self.get_session_start(context=context))
+            elif request_cmd.command == 'login':
+                ret_commands.add(await self.login(args, context=context))
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))

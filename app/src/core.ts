@@ -1,11 +1,11 @@
 import { reactive, UnwrapNestedRefs } from "vue"
-import { ShowPageCommand, ServiceOperation, QuestCommand,
+import { ShowPageCommand, ServiceOperation, HolaCommand,
     ShowNarrationCommand,
     ServiceConfig,
     UpdatePageCommand,
     ErrorResponse,
     StartNewSessionCommand,
-    QuestCommonCommand,
+    HolaCommonCommand,
     SetSessionCommand} from "./client";
 import { PlayableResult } from './client'
 import { DataStore, randomString } from "./db";
@@ -60,7 +60,7 @@ export interface HeaderElement {
     show_home: boolean
     show_profile: boolean
     show_back: boolean
-    elements?: QuestElement[];
+    elements?: HolaElement[];
 }
 
 export interface AnnotationTextObject {
@@ -306,7 +306,7 @@ export interface ActionBarElement {
 export interface TableViewElement {
     type: string
     columns: string[];
-    rows: QuestElement[][];
+    rows: HolaElement[][];
     show?: {
         header?: boolean,
         inner_column?: boolean,
@@ -318,32 +318,32 @@ export interface CardElement{
     type: string
     title: string
     show_border: boolean
-    elements: QuestElement[]
+    elements: HolaElement[]
 }
 
 export interface CardSwiperElement {
     type: string
     title: string
-    elements: QuestElement[]
+    elements: HolaElement[]
 }
 
-export type QuestElement = (HeaderElement | FooterElement
+export type HolaElement = (HeaderElement | FooterElement
     | HeroElement | NavMenuElement | DecorationElement
     | MotionElement | PlayableElement | ActionBarElement
     | TableViewElement | ModalWidgetElement);
 
-export interface QuestPage {
+export interface HolaPage {
     type: string
     name: string
     route: string
-    elements: QuestElement[]
+    elements: HolaElement[]
 }
 
 
 export interface UpdatePageObject {
     name: string
     route: string
-    changed_elements: Record<string, QuestElement>
+    changed_elements: Record<string, HolaElement>
 }
 
 
@@ -351,7 +351,7 @@ export interface NarrationParagraph {
     text: string | string[]
 }
 
-export interface QuestNarration {
+export interface HolaNarration {
     type: string
     name: string
     style?: Record<string, any>
@@ -364,8 +364,8 @@ export class Page {
     app_id: string
     name: string
     route: string
-    elements: Array<QuestElement>
-    narration: QuestNarration
+    elements: Array<HolaElement>
+    narration: HolaNarration
     narration_idx: number
     version: number
 
@@ -557,7 +557,7 @@ export class AppCore {
         await app_platform.initialize(app_platform.init_options)
     }
 
-    async loginWeixin(): Promise<QuestCommand[]>{
+    async loginWeixin(): Promise<HolaCommand[]>{
         try {
             const wechat = app_platform.getWeChatPluginInstance()
             if(!wechat){
@@ -565,7 +565,7 @@ export class AppCore {
             }
             const state = "HIGHORDER" + randomString(12)
             const ret = await wechat!.sendAuthRequest({scope:"snsapi_userinfo", state: state})
-            const commands = await this.svc.questAuthWeixin({code:ret.code}, this.getPageContext())
+            const commands = await this.svc.holaAuthWeixin({code:ret.code}, this.getPageContext())
             await this.setPlatformUser()
             return await this.handleCommandList(commands)
         } catch(err: any) {
@@ -573,9 +573,9 @@ export class AppCore {
         }
     }
 
-    async sessionStart(): Promise<QuestCommand[]> {
+    async sessionStart(): Promise<HolaCommand[]> {
         try{
-            const commands = await this.svc.questSessionStart(this.getPageContext())
+            const commands = await this.svc.holaSessionStart(this.getPageContext())
             this.session_started = true
             await this.setPlatformUser()
             return await this.handleCommandList(commands)
@@ -584,9 +584,9 @@ export class AppCore {
         }
     }
 
-    async callAction(args: Record<string, any>): Promise<QuestCommand[]> {
+    async callAction(args: Record<string, any>): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questCallAction(args, this.getPageContext())
+            const commands = await this.svc.holaCallAction(args, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -594,9 +594,9 @@ export class AppCore {
 
     }
 
-    async navigateTo(route: string): Promise<QuestCommand[]> {
+    async navigateTo(route: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questNavigateTo(route, this.getPageContext())
+            const commands = await this.svc.holaNavigateTo(route, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -604,9 +604,9 @@ export class AppCore {
 
     }
 
-    async narrationShowed(name: string): Promise<QuestCommand[]> {
+    async narrationShowed(name: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questNarrationShowed(name, this.getPageContext())
+            const commands = await this.svc.holaNarrationShowed(name, this.getPageContext())
             const ret_commands = await this.handleCommandList(commands)
             this.app_page.emptyNarration()
             return ret_commands
@@ -616,10 +616,10 @@ export class AppCore {
 
     }
 
-    async playableCompleted(played: PlayableResult): Promise<QuestCommand[]> {
+    async playableCompleted(played: PlayableResult): Promise<HolaCommand[]> {
         console.log('playable completed.', played)
         try {
-            const commands = await this.svc.questPlayableCompleted(played, this.getPageContext())
+            const commands = await this.svc.holaPlayableCompleted(played, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -627,9 +627,9 @@ export class AppCore {
 
     }
 
-    async playableNext(level_id: string): Promise<QuestCommand[]> {
+    async playableNext(level_id: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questPlayableNext(level_id, this.getPageContext())
+            const commands = await this.svc.holaPlayableNext(level_id, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -637,9 +637,9 @@ export class AppCore {
 
     }
 
-    async playableRetry(level_id: string): Promise<QuestCommand[]> {
+    async playableRetry(level_id: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questPlayableRetry(level_id, this.getPageContext())
+            const commands = await this.svc.holaPlayableRetry(level_id, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -647,9 +647,9 @@ export class AppCore {
 
     }
 
-    async itemUse(item_name: string): Promise<QuestCommand[]> {
+    async itemUse(item_name: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questItemUse(item_name, this.getPageContext())
+            const commands = await this.svc.holaItemUse(item_name, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -657,9 +657,9 @@ export class AppCore {
 
     }
 
-    async itemBuy(item_name: string): Promise<QuestCommand[]> {
+    async itemBuy(item_name: string): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questItemBuy(item_name, this.getPageContext())
+            const commands = await this.svc.holaItemBuy(item_name, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -667,9 +667,9 @@ export class AppCore {
 
     }
 
-    async adShowed(ad_args: Record<string, any>): Promise<QuestCommand[]> {
+    async adShowed(ad_args: Record<string, any>): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.questAdShowed(ad_args, this.getPageContext())
+            const commands = await this.svc.holaAdShowed(ad_args, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -677,7 +677,7 @@ export class AppCore {
 
     }
 
-    async handleUnknownError(err: any): Promise<QuestCommand[]> {
+    async handleUnknownError(err: any): Promise<HolaCommand[]> {
         return []
     }
 
@@ -686,11 +686,11 @@ export class AppCore {
             "type": "command",
             "name": "show_modal",
             "args": modal
-        } as QuestCommonCommand
+        } as HolaCommonCommand
     }
 
-    async handleErrorResponse(err: ErrorResponse): Promise<QuestCommand[]> {
-        const commands:QuestCommand[] = []
+    async handleErrorResponse(err: ErrorResponse): Promise<HolaCommand[]> {
+        const commands:HolaCommand[] = []
         const error_type = err.error.error_type
         const code_category = Math.floor(err.code/100)
         if(error_type === 'SessionInvalid' || error_type === 'AuthorizeRequired'){
@@ -702,7 +702,7 @@ export class AppCore {
             }
             commands.push(command)
         } else if(error_type === 'ServerNoResponse') {
-            const command: QuestCommonCommand = this.buildShowModalCommand({
+            const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
                 content:"无法进行网络连接，请检查网络状况，或者给App连接网络的权限。",
                 confirm:{
@@ -720,7 +720,7 @@ export class AppCore {
             }
             commands.push(command)
         } else if(error_type === 'InternalServerError' || code_category === 5) {
-            const command: QuestCommonCommand = this.buildShowModalCommand({
+            const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
                 content:"服务器可能正在升级，请6秒后重试。",
                 confirm:{
@@ -738,7 +738,7 @@ export class AppCore {
             }
             commands.push(command)
         } else if(error_type === 'RequestInvalidError' || code_category === 4){
-            const command: QuestCommonCommand = this.buildShowModalCommand({
+            const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
                 content:"请检查App版本，确保已经是最新的版本了。",
                 confirm:{
@@ -756,7 +756,7 @@ export class AppCore {
             }
             commands.push(command)
         } else {
-            const command: QuestCommonCommand = this.buildShowModalCommand({
+            const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
                 content:"发现了问题，努力自救中。。。",
                 confirm:{
@@ -777,7 +777,7 @@ export class AppCore {
         return commands
     }
 
-    async handleError(err: any): Promise<QuestCommand[]> {
+    async handleError(err: any): Promise<HolaCommand[]> {
         if(this.error_recovering === false){
             this.error_recovering = true
             this.errors = []
@@ -799,7 +799,7 @@ export class AppCore {
         this.errors = []
     }
 
-    async handleCommandList(commands: QuestCommand[]): Promise<QuestCommand[]> {
+    async handleCommandList(commands: HolaCommand[]): Promise<HolaCommand[]> {
         this.reset_recover_state()
         const ret_commands = []
         for (const command of commands) {
@@ -811,11 +811,11 @@ export class AppCore {
         return ret_commands
     }
 
-    async handleCommand(command: QuestCommand): Promise<QuestCommand | undefined> {
+    async handleCommand(command: HolaCommand): Promise<HolaCommand | undefined> {
         console.debug('handleCommand', command.name)
         if (command.name === 'show_page') {
             let showpage_cmd = command as ShowPageCommand
-            const page = showpage_cmd.args.page as QuestPage
+            const page = showpage_cmd.args.page as HolaPage
             this.app_page.reset()
             this.app_page.name = page.name
             this.app_page.route = page.route
@@ -841,7 +841,7 @@ export class AppCore {
                 console.log(`update page with wrong route ${changed_page.route}, app_page route is ${this.app_page.route}`)
             }
         } else if (command.name === 'show_narration') {
-            const narration = (command as ShowNarrationCommand).args.narration as QuestNarration
+            const narration = (command as ShowNarrationCommand).args.narration as HolaNarration
             this.app_page.narration = narration
         } else if (command.name === 'set_player') {
         } else if (command.name === 'update_player') {

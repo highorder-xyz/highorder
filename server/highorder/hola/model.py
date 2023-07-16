@@ -3,9 +3,9 @@ from highorder.base.model import MetaverModel
 from postmodel import models
 from highorder.base.utils import random_id, time_random_id
 
-class QuestVariable(MetaverModel):
+class HolaVariable(MetaverModel):
     class Meta:
-        table = 'quest_variable'
+        table = 'hola_variable'
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
@@ -13,27 +13,27 @@ class QuestVariable(MetaverModel):
     variable = models.JSONField()
 
 
-class QuestPageState(MetaverModel):
+class HolaPageState(MetaverModel):
     class Meta:
-        table = 'quest_page_state'
+        table = 'hola_page_state'
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
     page_state = models.JSONField()
 
-class QuestPlayableState(MetaverModel):
+class HolaPlayableState(MetaverModel):
     class Meta:
-        table = 'quest_playable_state'
+        table = 'hola_playable_state'
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
     playable_state = models.JSONField()
 
-class QuestPlayer(MetaverModel):
+class HolaPlayer(MetaverModel):
     class Meta:
-        table = 'quest_player'
+        table = 'hola_player'
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
@@ -41,9 +41,9 @@ class QuestPlayer(MetaverModel):
     attribute = models.JSONField()
     currency = models.JSONField()
 
-class QuestPlayerItembox(MetaverModel):
+class HolaPlayerItembox(MetaverModel):
     class Meta:
-        table = 'quest_player_itembox'
+        table = 'hola_player_itembox'
         primary_key = ('app_id', 'user_id', 'name')
 
     app_id = models.CharField(max_length=128)
@@ -53,9 +53,9 @@ class QuestPlayerItembox(MetaverModel):
     detail = models.JSONField()
 
 
-class QuestPlayerTask(MetaverModel):
+class HolaPlayerTask(MetaverModel):
     class Meta:
-        table = 'quest_player_task'
+        table = 'hola_player_task'
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
@@ -63,9 +63,9 @@ class QuestPlayerTask(MetaverModel):
     task = models.JSONField()
 
 
-class QuestArena(MetaverModel):
+class HolaArena(MetaverModel):
     class Meta:
-        table = 'quest_arena'
+        table = 'hola_arena'
         primary_key = ('app_id', 'arena_id')
 
     app_id = models.CharField(max_length=128)

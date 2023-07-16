@@ -162,7 +162,7 @@ export interface SessionDetail {
     session_token: string
 }
 
-export interface QuestCommonCommand{
+export interface HolaCommonCommand{
     type: string,
     name: string,
     args: object,
@@ -269,9 +269,9 @@ export interface ShowNarrationCommand{
     }
 }
 
-export type QuestCommand = ShowPageCommand | ShowNarrationCommand
+export type HolaCommand = ShowPageCommand | ShowNarrationCommand
     | ShowAlertCommand | ShowMotionCommand | StartNewSessionCommand
-    | QuestCommonCommand;
+    | HolaCommonCommand;
 
 export interface PageContext{
     platform: string,
@@ -452,10 +452,10 @@ export class ServiceOperation {
         this.client.setSessionToken("")
     }
 
-    async questRequest(args: RequestArgs): Promise<QuestCommand[]> {
+    async holaRequest(args: RequestArgs): Promise<HolaCommand[]> {
         try {
             await this.checkAndCreateSession()
-            let resp = await this.client.post('/service/quest/main', args);
+            let resp = await this.client.post('/service/hola/main', args);
             let body = (await resp.json()) as any;
             const commands = body.data.commands
             return commands
@@ -465,7 +465,7 @@ export class ServiceOperation {
 
     }
 
-    async questSessionStart(context: PageContext): Promise<QuestCommand[]> {
+    async holaSessionStart(context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {
                 "command":"session_start",
@@ -473,11 +473,11 @@ export class ServiceOperation {
             },
 
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
 
     }
 
-    async questAuthWeixin(args: {code: string}, context: PageContext): Promise<QuestCommand[]> {
+    async holaAuthWeixin(args: {code: string}, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {
                 "command":"auth_weixin",
@@ -485,70 +485,70 @@ export class ServiceOperation {
                 "context": context
             },
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questCallAction(args: object, context: PageContext): Promise<QuestCommand[]> {
+    async holaCallAction(args: object, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"call_action", "args":args, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questNavigateTo(route: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaNavigateTo(route: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"navigate_to", "args":{"route": route}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
 
-    async questNarrationShowed(name: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaNarrationShowed(name: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"narration_showed", "args":{"name": name}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questPlayableCompleted(played: PlayableResult, context: PageContext): Promise<QuestCommand[]> {
+    async holaPlayableCompleted(played: PlayableResult, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"playable_completed", "args":{...played}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questPlayableNext(level_id: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaPlayableNext(level_id: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"playable_next", "args":{level_id:level_id}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questPlayableRetry(level_id: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaPlayableRetry(level_id: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"playable_retry", "args":{level_id:level_id}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questItemUse(item_name: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaItemUse(item_name: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"item_use", "args":{item_name:item_name}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questItemBuy(item_name: string, context: PageContext): Promise<QuestCommand[]> {
+    async holaItemBuy(item_name: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"item_buy", "args":{item_name:item_name}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 
-    async questAdShowed(ad_args: object, context: PageContext): Promise<QuestCommand[]> {
+    async holaAdShowed(ad_args: object, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
             "data": {"command":"ad_showed", "args":{ad_args:ad_args}, "context":context}
         }
-        return await this.questRequest(reqArg)
+        return await this.holaRequest(reqArg)
     }
 }

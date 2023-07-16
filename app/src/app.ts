@@ -19,7 +19,7 @@ import {
     RowLineElement,
     IconTitleElement,
     TableViewElement,
-    QuestElement,
+    HolaElement,
     CardElement,
     CardSwiperElement,
     ColumnElement,
@@ -47,7 +47,7 @@ import { NavBar, Footer, Button, ActionDefinition,
 } from './styles/retro/retro'
 
 import { app_platform } from './platform';
-import { QuestCommand, ShowAlertCommandArg, ShowMotionCommandArg } from './client';
+import { HolaCommand, ShowAlertCommandArg, ShowMotionCommandArg } from './client';
 
 import { showConfetti } from './motion/confetti'
 import { AdHelper, AdShowOptions } from './ad';
@@ -458,7 +458,7 @@ export const App = defineComponent({
                 this.loading = true;
             }, 1000)
             const app_core = AppCore.getCore(this.app_id)
-            app_core.sessionStart().then((commands: QuestCommand[]) => {
+            app_core.sessionStart().then((commands: HolaCommand[]) => {
                 console.log('session start.')
                 clearTimeout(timerId)
                 this.loading = false
@@ -486,7 +486,7 @@ export const App = defineComponent({
 
         callAction(args:Record<string, any>, context: RenderContext){
             const app_core = AppCore.getCore(this.app_id)
-            app_core.callAction(args).then((commands: QuestCommand[]) => {
+            app_core.callAction(args).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -495,7 +495,7 @@ export const App = defineComponent({
 
         loginWeixin(context: RenderContext) {
             const app_core = AppCore.getCore(this.app_id)
-            app_core.loginWeixin().then((commands: QuestCommand[]) => {
+            app_core.loginWeixin().then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -507,7 +507,7 @@ export const App = defineComponent({
                 this.loading = true;
             }, 1000)
             const app_core = AppCore.getCore(this.app_id)
-            app_core.navigateTo(route).then((commands: QuestCommand[]) => {
+            app_core.navigateTo(route).then((commands: HolaCommand[]) => {
                 clearTimeout(timerId)
                 this.loading = false
                 this.handleImmediateCommands(commands, context)
@@ -533,7 +533,7 @@ export const App = defineComponent({
 
         playableNext(level_id:string, context: RenderContext) {
             const app_core = AppCore.getCore(this.app_id)
-            app_core.playableNext(level_id).then((commands: QuestCommand[]) => {
+            app_core.playableNext(level_id).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -542,7 +542,7 @@ export const App = defineComponent({
 
         playableRetry(level_id:string, context: RenderContext) {
             const app_core = AppCore.getCore(this.app_id)
-            app_core.playableRetry(level_id).then((commands: QuestCommand[]) => {
+            app_core.playableRetry(level_id).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -551,7 +551,7 @@ export const App = defineComponent({
 
         playableCompleted(played: PlayableResult, context: RenderContext) {
             const app_core = AppCore.getCore(this.app_id)
-            app_core.playableCompleted(played).then((commands: QuestCommand[]) => {
+            app_core.playableCompleted(played).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -567,7 +567,7 @@ export const App = defineComponent({
 
         executeUseItem(item_name: string, context:RenderContext){
             const app_core = AppCore.getCore(this.app_id)
-            app_core.itemUse(item_name).then((commands: QuestCommand[]) => {
+            app_core.itemUse(item_name).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -576,7 +576,7 @@ export const App = defineComponent({
 
         executeBuyItem(item_name: string, context:RenderContext){
             const app_core = AppCore.getCore(this.app_id)
-            app_core.itemBuy(item_name).then((commands: QuestCommand[]) => {
+            app_core.itemBuy(item_name).then((commands: HolaCommand[]) => {
                 this.handleImmediateCommands(commands, context)
             }).catch((err: Error) => {
                 throw err;
@@ -599,7 +599,7 @@ export const App = defineComponent({
             })
         },
 
-        async handleImmediateCommands(commands: QuestCommand[], context: RenderContext){
+        async handleImmediateCommands(commands: HolaCommand[], context: RenderContext){
             for(const [idx, command] of commands.entries()){
                 if(command.name === 'start_new_session'){
                     this.sessionStart()
@@ -1379,7 +1379,7 @@ export const App = defineComponent({
                 showInnerRow: element.show?.inner_row || false,
                 rows: element.rows,
                 cellRender: (cell:any) => {
-                    const cell_element = cell as QuestElement;
+                    const cell_element = cell as HolaElement;
                     return this.renderElementOrList(cell_element, context)
                 }
             })
@@ -1484,7 +1484,7 @@ export const App = defineComponent({
             })
         },
 
-        renderElementOrList(element: QuestElement | QuestElement[], context: RenderContext): VNode | VNode[] | undefined{
+        renderElementOrList(element: HolaElement | HolaElement[], context: RenderContext): VNode | VNode[] | undefined{
             if(Array.isArray(element)){
                 const elements:VNode[] = []
                 for(const el of element){
@@ -1499,7 +1499,7 @@ export const App = defineComponent({
             }
         },
 
-        renderElement(element: QuestElement, context: RenderContext): VNode | undefined {
+        renderElement(element: HolaElement, context: RenderContext): VNode | undefined {
             if (element.type === "header") {
                 return this.renderHeader(element as HeaderElement, context)
             } else if (element.type === "footer") {

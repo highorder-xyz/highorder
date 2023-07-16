@@ -117,7 +117,7 @@ class PlayableChallengeConfig:
 
 @dataclass
 class PlayableConfig:
-    collections: List[PlayableCollectionConfig]
+    collections: List[PlayableCollectionConfig] = field(default_factory=list)
     challenges: Optional[List[PlayableChallengeConfig]] = None
 
 
@@ -133,7 +133,15 @@ class ItemDefine:
     effect_name: str = ''
 
 @dataclass
-class QuestCoreDefine:
+class HolaAdvertisementDefine:
+    init: List[dict] = field(default_factory=list)
+    show: List[dict] = field(default_factory=list)
+
+@dataclass
+class HolaInterfaceDefine:
+    widgets: List[dict] = field(default_factory=list)
+    components: List[ComponentDefine] = field(default_factory=list)
+    interfaces: List[PageDefine] = field(default_factory=list)
     variables: List[dict] = field(default_factory=list)
     objects: List[dict] = field(default_factory=list)
     attribute: List[dict] = field(default_factory=list)
@@ -142,19 +150,9 @@ class QuestCoreDefine:
     action: List[dict] = field(default_factory=list)
     task: List[dict] = field(default_factory=list)
     currency: List[dict] = field(default_factory=list)
+    playable: Optional[PlayableConfig] = field(default_factory=PlayableConfig)
+    advertisement: Optional[HolaAdvertisementDefine] = field(default_factory=HolaAdvertisementDefine)
 
-
-@dataclass
-class QuestInterfaceDefine:
-    widgets: List[dict] = field(default_factory=list)
-    components: List[ComponentDefine] = field(default_factory=list)
-    interfaces: List[PageDefine] = field(default_factory=list)
-
-@dataclass
-class QuestAdvertisementDefine:
-    init: List[dict]
-    objects: List[dict] = field(default_factory=list)
-# Command and Protocol Send to Client
 
 @dataclass
 class ShowPageCommandArg:
@@ -351,7 +349,7 @@ class ClientRequestContext:
 
 
 @dataclass
-class ClientRequestCommand:
+class ClientReHolaCommand:
     command: str
     args: dict = field(default_factory=dict)
     context: ClientRequestContext = field(default_factory=dict)
