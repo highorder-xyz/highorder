@@ -1,0 +1,249 @@
+<script lang="ts">
+import { defineComponent, reactive} from 'vue'
+export default defineComponent({
+    props: {
+        scale: { type: Number, default: 0.75}
+    }
+})
+
+</script>
+
+<template>
+    <div>
+        <div class="imgLoader"></div>
+
+        <div class="container" :style="`width:${scale*360}px;height:${scale*260}px`">
+
+            <div class="book" :style="`transform: scale(${0.8*scale})`">
+                <div class="gap"></div>
+                <div class="pages">
+                    <div class="page"></div>
+                    <div class="page"></div>
+                    <div class="page"></div>
+                    <div class="page"></div>
+                    <div class="page"></div>
+                    <div class="page"></div>
+                </div>
+                <div class="flips">
+                    <div class="flip flip1">
+                        <div class="flip flip2">
+                            <div class="flip flip3">
+                                <div class="flip flip4">
+                                    <div class="flip flip5">
+                                        <div class="flip flip6">
+                                            <div class="flip flip7"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</template>
+
+<style  lang="scss" scoped>
+$bookAngle: 60deg;
+$speed: 5s;
+$borderColor: #555;
+
+$images:
+    url('/assets/book_flip/image-000.jpg'),
+    url('/assets/book_flip/image-001.jpg'),
+    url('/assets/book_flip/image-002.jpg'),
+    url('/assets/book_flip/image-003.jpg'),
+    url('/assets/book_flip/image-004.jpg'),
+    url('/assets/book_flip/image-000.jpg');
+
+.imgLoader {
+    position: fixed;
+    animation: preLoad 1s steps(1);
+    width: 1px;
+    height: 1px;
+
+    @keyframes preLoad {
+        @for $i from 0 through 4 {
+            #{$i * 10}% { background-image: nth($images, ($i + 1)); }
+        }
+        100% { display: none; }
+    }
+}
+
+.container {
+    position: relative;
+    width: 360px;
+    border: #fff solid 2px;
+    border-radius: 4px;
+    height: 260px;
+}
+
+.book {
+    position: relative;
+    perspective: 630px;
+    perspective-origin: center 50px;
+    transform: scale(0.8);
+    filter: drop-shadow(0px 10px 5px rgba(0,0,0,0.25));
+}
+
+.page {
+    width: 210px;
+    height: 300px;
+    background-color: #bbb;
+    position: absolute;
+    top: 0px; right: 50%;
+    transform-origin: 100% 100%;
+    border: solid $borderColor 2px;
+    background-size: 420px 300px;
+    background-position: center;
+    transform-style: preserve-3d;
+
+    &:nth-child(1) {transform: rotateX($bookAngle) rotateY(3deg); }
+    &:nth-child(2) { transform: rotateX($bookAngle) rotateY(4.5deg); }
+    &:nth-child(3) {
+        transform: rotateX($bookAngle) rotateY(6deg);
+        animation: nextPage $speed*5 infinite $speed*-4.8 steps(1);
+        background-size: 420px 300px;
+        background-position: -2px -2px;
+    }
+
+    &:nth-child(4) { transform: rotateX($bookAngle) rotateY(177deg); }
+    &:nth-child(5) { transform: rotateX($bookAngle) rotateY(175.5deg); }
+    &:nth-child(6) {
+        transform: rotateX($bookAngle) rotateY(174deg);
+        overflow: hidden;
+
+        &::after {
+            content: '';
+            width: 210px;
+            height: 300px;
+            position: absolute;
+            top: 0px; right: 0%;
+            transform-origin: center;
+            transform: rotateY(180deg);
+            animation: nextPage $speed*5 $speed*-4 infinite steps(1);
+            background-size: 420px 300px;
+            background-position: 100% -2px;
+        }
+    }
+
+    @keyframes nextPage {
+        @for $i from 0 through 4 {
+            #{$i * 20}% { background-image: nth($images, ($i + 1)); }
+        }
+    }
+}
+
+.gap {
+    width: 10px;
+    height: 300px;
+    background: none;
+    transform: rotateX($bookAngle);
+    transform-origin: bottom;
+    position: absolute;
+    top: 0px; left: calc(50% - 5px);
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translate(-50%, 50%);
+        background-color: $borderColor;
+        width: 10px;
+        height: 5px;
+        border-radius: 50%;
+    }
+}
+
+.pages, .flips {
+  transform-style: preserve-3d;
+}
+
+.flip {
+    width: 32px;
+    height: 300px;
+    position: absolute;
+    top: 0px;
+    transform-origin: 100% 100%;
+    right: 100%;
+    border: solid $borderColor;
+    border-width: 2px 0px;
+    perspective: 4200px;
+    perspective-origin: center;
+    transform-style: preserve-3d;
+    background-size: 420px 300px;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0px; right: 0%;
+        width: 100%; height: 100%;
+        transform-origin: center;
+        background-size: 420px 300px;
+    }
+
+    &.flip1 {
+        right: 50%;
+        animation: flip1 $speed infinite ease-in-out;
+        border-width: 2px 2px 2px 0;
+
+        &::after {
+            animation: nextFlip1 $speed*5 $speed*-4 infinite steps(1);
+        }
+    }
+
+    &:not(.flip1) {
+        right: calc(100% - 2px);
+        top: -2px;
+        transform-origin: right;
+        animation: flip2 $speed ease-in-out infinite;
+    }
+
+    @for $i from 2 through 7 {
+        &.flip#{$i}::after { animation: nextFlip#{$i} $speed*5 $speed*-4 infinite steps(1); }
+    }
+
+    &.flip7 {
+        width: 30px;
+        border-width: 2px 0px 2px 2px;
+        &::after { animation: nextFlip7 $speed*5 $speed*-4 infinite steps(1); }
+    }
+
+    @keyframes flip1 {
+        0%, 20% { transform: rotateX($bookAngle) rotateY(6deg); }
+        80%, 100% { transform: rotateX($bookAngle) rotateY(174deg); }
+    }
+
+    @keyframes flip2 {
+        0%, 20% { transform: rotateY(0deg) translateY(0px); }
+        50% { transform: rotateY(-15deg) translateY(0px); }
+    }
+}
+
+@keyframes nextFlip1 {
+    @for $i from 0 through 4 {
+        #{$i * 20}% { background-image: nth($images, ($i + 1)); background-position: -178px -2px; transform: rotateY(0deg); }
+        #{10 + ($i * 20)}% { background-image: nth($images, ($i + 2)); background-position: -210px -2px; transform: rotateY(180deg); }
+    }
+}
+
+@for $i from 2 through 6 {
+    @keyframes nextFlip#{$i} {
+        @for $j from 0 through 4 {
+            #{$j * 20}% { background-image: nth($images, ($j + 1)); background-position: #{-148 + (($i - 2) * 30)}px -2px; transform: rotateY(0deg); }
+            #{((10 + ($j * 20)) + (($i - 1) * 0.5))}% { background-image: nth($images, ($j + 2)); background-position: #{-238 - (($i - 2) * 30)}px -2px; transform: rotateY(180deg); }
+        }
+    }
+}
+
+@keyframes nextFlip7 {
+    @for $i from 0 through 4 {
+        #{$i * 20}% { background-image: nth($images, ($i + 1)); background-position: -2px -2px; transform: rotateY(0deg); }
+        #{13 + ($i * 20)}% { background-image: nth($images, ($i + 2)); background-position: -388px -2px; transform: rotateY(180deg); }
+    }
+}
+
+</style>

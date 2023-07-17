@@ -171,6 +171,42 @@ class HolaPageStateService:
         await self.set_instant_view_viewed(route, f'{hook}_{tag}',  limitobj)
         return viewed
 
+class HolaAccountService:
+    def __init__(self, app_id, config_loader):
+        self.app_id = app_id
+        self.config_loader = config_loader
+
+    async def handle_request(self, request_cmd):
+        ret_commands = AutoList()
+        if request_cmd:
+            args = request_cmd.args
+            req_context = request_cmd.context
+            if request_cmd.command == 'login':
+                ret_commands.add(await self.login(args))
+            else:
+                raise Exception(f'no handler for request command {request_cmd.command}')
+        return ret_commands
+
+    async def login(self, args):
+        commands = AutoList()
+        if 'anonymous' not in args:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='only anonymous login supported.', title='')
+            ))
+            return commands
+        user, session = await AccountService.create(self.app_id)
+        print(user)
+        print(session)
+        if user and session:
+            commands.add(SetSessionCommand(args=SetSessionCommandArg(
+                session = session.get_data_dict(),
+                user = user.get_data_dict()
+            )))
+        else:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
+            ))
+        return commands
 
 def short_hash(value):
     if type(value) in (str,):
@@ -308,7 +344,7 @@ class HolaService:
             self.action_def[name] = action
 
         self.ad_init_def = hola_def.advertisement.init
-        self.ad_objects_def = hola_def.advertisement.objects
+        self.ad_objects_def = hola_def.advertisement.show
         self.playable_collections_def = hola_def.playable.collections
         self.playable_challenges_def = hola_def.playable.challenges
 
@@ -2589,7 +2625,7 @@ class HolaService:
         commands = AutoList()
         commands.add(await self.get_init_ad(context=context))
         # commands.add(await self.get_player_all(context=context))
-        commands.add(await self.get_page('/home', context=context))
+        commands.add(await self.get_page('/', context=context))
         return commands
 
     def create_set_session_command(self, user, session):
@@ -2597,27 +2633,6 @@ class HolaService:
             session = session,
             user = user
         ))
-
-    async def login(self, args, context):
-        commands = AutoList()
-        if self.user:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='already logged in， please logout first.', title='logout first.')
-            ))
-            return commands
-        if 'anonymous' not in args:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='only anonymous login supported.', title='')
-            ))
-            return commands
-        user, session = await AccountService.create(self.app_id)
-        if user and session:
-            commands.add(self.create_set_session_command(user, session))
-        else:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
-            ))
-        return commands
 
     async def auth_weixin(self, code, context):
         commands = AutoList()
@@ -2647,8 +2662,6 @@ class HolaService:
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
                 ret_commands.add(await self.get_session_start(context=context))
-            elif request_cmd.command == 'login':
-                ret_commands.add(await self.login(args, context=context))
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))
@@ -2662,7 +2675,7 @@ class HolaService:
                 if commands:
                     ret_commands.add(commands)
                     return ret_commands
-                ret_commands.add(await self.get_page(args.get('route', '/home'),
+                ret_commands.add(await self.get_page(args.get('route', '/'),
                     context=context))
             elif request_cmd.command == 'narration_showed':
                 ret_commands.add(await self.narration_showed(args['name'],
@@ -2696,5 +2709,5 @@ class HolaService:
                 version='0.5.0'
             )
             context = await self._create_context(page_context)
-            ret_commands.add(await self.get_page('/home', context=context))
+            ret_commands.add(await self.get_page('/', context=context))
         return ret_commands

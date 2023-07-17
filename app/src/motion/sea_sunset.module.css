@@ -1,0 +1,60 @@
+
+
+.sea_sunset {
+    width: 10em;
+    height: 6em;
+    z-index: -10;
+}
+
+.sea_sunset .sun {
+    position: absolute;
+    width: 6em;
+    height: 3em;
+    margin-left: 2em;
+    border-radius: 6em 6em 0 0;
+    background: red;
+    z-index: 999;
+    filter: blur(0px) contrast(10);
+}
+.sea_sunset .sea {
+    position: absolute;
+    width: 10em;
+    height: 6em;
+    background: #fff;
+    filter: blur(0.2em) contrast(30);
+}
+.sea_sunset .sea .wave {
+    position: absolute;
+    width: 6.8em;
+    height: 0.8em;
+    margin: 2.6em 0 0 1.6em;
+    background: red;
+    border-radius: 100%;
+}
+.sea_sunset .sea .wave:nth-child(2) {
+    animation: wave 2000ms infinite linear -500ms;
+}
+.sea_sunset .sea .wave:nth-child(3) {
+    animation: wave 2000ms infinite linear -1000ms;
+}
+.sea_sunset .sea .wave:nth-child(4) {
+    animation: wave 2000ms infinite linear -1500ms;
+}
+.sea_sunset .sea .wave:nth-child(5) {
+    animation: wave 2000ms infinite linear -1500ms;
+}
+.sea_sunset .sea .wave:nth-child(6) {
+    animation: wave 2000ms infinite linear -2000ms;
+}
+
+@keyframes wave {
+    0% {
+        transform: translateY(0) sclae(1) rotateZ(0);
+    }
+    50% {
+        transform: translateY(1.6em) scale(0.5) rotateZ(5deg);
+    }
+    100% {
+        transform: translateY(2.4em) scale(0) rotateZ(-40deg);
+    }
+}

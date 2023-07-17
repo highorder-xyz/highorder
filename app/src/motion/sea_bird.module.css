@@ -1,0 +1,220 @@
+
+.sea_bird_scene {
+    perspective: 600px;
+    width: 100%;
+    max-width: 30em;
+    height: 35vh;
+    position: absolute;
+    top: 0%;
+    overflow: visible;
+    pointer-events: none;
+}
+.sea_bird_scene > div{
+    transform-style: preserve-3d;
+}
+
+.birdposition {
+    position: absolute;
+    top: calc(50% + 60px);
+    left: calc(50%);
+}
+.birdposition:nth-of-type(0) {
+    transform: translate(256px, 6px) rotateZ(-19deg);
+}
+.birdposition:nth-of-type(0) .bird {
+    animation-duration: 6973ms;
+    animation-delay: -9238ms;
+}
+.birdposition:nth-of-type(0) .bird .wing {
+    animation-delay: -12236ms;
+}
+.birdposition:nth-of-type(1) {
+    transform: translate(-250px, -30px) rotateZ(8deg);
+}
+.birdposition:nth-of-type(1) .bird {
+    animation-duration: 12073ms;
+    animation-delay: -1624ms;
+}
+.birdposition:nth-of-type(1) .bird .wing {
+    animation-delay: -19048ms;
+}
+.birdposition:nth-of-type(2) {
+    transform: translate(181px, -111px) rotateZ(5deg);
+}
+.birdposition:nth-of-type(2) .bird {
+    animation-duration: 9899ms;
+    animation-delay: -265ms;
+}
+.birdposition:nth-of-type(2) .bird .wing {
+    animation-delay: -4403ms;
+}
+.birdposition:nth-of-type(3) {
+    transform: translate(294px, 32px) rotateZ(-3deg);
+}
+.birdposition:nth-of-type(3) .bird {
+    animation-duration: 12157ms;
+    animation-delay: -12819ms;
+}
+.birdposition:nth-of-type(3) .bird .wing {
+    animation-delay: -7946ms;
+}
+.birdposition:nth-of-type(4) {
+    transform: translate(-19px, -11px) rotateZ(6deg);
+}
+.birdposition:nth-of-type(4) .bird {
+    animation-duration: 13651ms;
+    animation-delay: -1424ms;
+}
+.birdposition:nth-of-type(4) .bird .wing {
+    animation-delay: -15414ms;
+}
+.birdposition:nth-of-type(5) {
+    transform: translate(-84px, -110px) rotateZ(-3deg);
+}
+.birdposition:nth-of-type(5) .bird {
+    animation-duration: 13224ms;
+    animation-delay: -4340ms;
+}
+.birdposition:nth-of-type(5) .bird .wing {
+    animation-delay: -14653ms;
+}
+.birdposition:nth-of-type(6) {
+    transform: translate(-215px, 28px) rotateZ(9deg);
+}
+.birdposition:nth-of-type(6) .bird {
+    animation-duration: 14542ms;
+    animation-delay: -9762ms;
+}
+.birdposition:nth-of-type(6) .bird .wing {
+    animation-delay: -2047ms;
+}
+.birdposition:nth-of-type(7) {
+    transform: translate(57px, -80px) rotateZ(-12deg);
+}
+.birdposition:nth-of-type(7) .bird {
+    animation-duration: 13957ms;
+    animation-delay: -11418ms;
+}
+.birdposition:nth-of-type(7) .bird .wing {
+    animation-delay: -9583ms;
+}
+.birdposition:nth-of-type(8) {
+    transform: translate(-221px, -39px) rotateZ(19deg);
+}
+.birdposition:nth-of-type(8) .bird {
+    animation-duration: 7450ms;
+    animation-delay: -9451ms;
+}
+.birdposition:nth-of-type(8) .bird .wing {
+    animation-delay: -18647ms;
+}
+.birdposition:nth-of-type(9) {
+    transform: translate(-105px, -76px) rotateZ(-10deg);
+}
+.birdposition:nth-of-type(9) .bird {
+    animation-duration: 5919ms;
+    animation-delay: -18910ms;
+}
+.birdposition:nth-of-type(9) .bird .wing {
+    animation-delay: -5024ms;
+}
+.birdposition:nth-of-type(10) {
+    transform: translate(270px, -22px) rotateZ(4deg);
+}
+.birdposition:nth-of-type(10) .bird {
+    animation-duration: 9029ms;
+    animation-delay: -8115ms;
+}
+.birdposition:nth-of-type(10) .bird .wing {
+    animation-delay: -17026ms;
+}
+.birdposition:nth-of-type(11) {
+    transform: translate(108px, -35px) rotateZ(15deg);
+}
+.birdposition:nth-of-type(11) .bird {
+    animation-duration: 12752ms;
+    animation-delay: -1631ms;
+}
+.birdposition:nth-of-type(11) .bird .wing {
+    animation-delay: -279ms;
+}
+.birdposition:nth-of-type(12) {
+    transform: translate(71px, 21px) rotateZ(-5deg);
+}
+.birdposition:nth-of-type(12) .bird {
+    animation-duration: 13775ms;
+    animation-delay: -9557ms;
+}
+.birdposition:nth-of-type(12) .bird .wing {
+    animation-delay: -11679ms;
+}
+
+.bird {
+    position: absolute;
+    width: 80px;
+    animation: fly 8s linear infinite;
+}
+.bird .wing {
+    position: absolute;
+    width: 50%;
+    height: 20px;
+    border-top: 4px solid black;
+    border-radius: 100% 100% 0 0;
+}
+.bird .wing.-left {
+    transform-origin: 100% 50%;
+    animation: wingLeft 0.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite
+        alternate;
+}
+.bird .wing.-right {
+    right: 0;
+    transform-origin: 0 50%;
+    animation: wingRight 0.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite
+        alternate;
+}
+
+@keyframes fly {
+    0% {
+        opacity: 0;
+        transform: translateZ(500px);
+    }
+    20% {
+        opacity: 1;
+        transform: translateZ(400px);
+    }
+    100% {
+        transform: translateZ(10px) scale(0.1);
+    }
+}
+@-webkit-keyframes wingLeft {
+    0% {
+        transform: rotateZ(30deg);
+    }
+    100% {
+        transform: rotateZ(-20deg);
+    }
+}
+@keyframes wingLeft {
+    0% {
+        transform: rotateZ(30deg);
+    }
+    100% {
+        transform: rotateZ(-20deg);
+    }
+}
+@-webkit-keyframes wingRight {
+    0% {
+        transform: rotateZ(-30deg);
+    }
+    100% {
+        transform: rotateZ(20deg);
+    }
+}
+@keyframes wingRight {
+    0% {
+        transform: rotateZ(-30deg);
+    }
+    100% {
+        transform: rotateZ(20deg);
+    }
+}

@@ -11,7 +11,7 @@ import { PlayableResult } from './client'
 import { DataStore, randomString } from "./db";
 import { app_platform } from "./platform";
 
-const CORE_VERSION = '0.1.0'
+const APP_VERSION = '0.1.0'
 
 export enum  AnalyticsEventKind {
     page_show = 'PageShow',
@@ -462,7 +462,7 @@ export class AppCore {
     error_recovering: boolean = false
     errors: any[] = []
     max_recover_retries: number = 6
-    version: string = CORE_VERSION
+    version: string = APP_VERSION
 
     constructor(config:AppConfig) {
         this.config = config
@@ -715,7 +715,7 @@ export class AppCore {
                 const confirm = (command.args as ModalElement).confirm
                 if(confirm){
                     confirm.action = "route.navigate_to"
-                    confirm.args = {route: "/home"}
+                    confirm.args = {route: "/"}
                 }
             }
             commands.push(command)
@@ -733,7 +733,7 @@ export class AppCore {
                 const confirm = (command.args as ModalElement).confirm
                 if(confirm){
                     confirm.action = "route.navigate_to"
-                    confirm.args = {route: "/home"}
+                    confirm.args = {route: "/"}
                 }
             }
             commands.push(command)
@@ -751,7 +751,7 @@ export class AppCore {
                 const confirm = (command.args as ModalElement).confirm
                 if(confirm){
                     confirm.action = "route.navigate_to"
-                    confirm.args = {route: "/home"}
+                    confirm.args = {route: "/"}
                 }
             }
             commands.push(command)
@@ -769,7 +769,7 @@ export class AppCore {
                 const confirm = (command.args as ModalElement).confirm
                 if(confirm){
                     confirm.action = "route.navigate_to"
-                    confirm.args = {route: "/home"}
+                    confirm.args = {route: "/"}
                 }
             }
             commands.push(command)

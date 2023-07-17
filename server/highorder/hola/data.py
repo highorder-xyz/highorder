@@ -349,7 +349,7 @@ class ClientRequestContext:
 
 
 @dataclass
-class ClientReHolaCommand:
+class ClientRequestCommand:
     command: str
     args: dict = field(default_factory=dict)
     context: ClientRequestContext = field(default_factory=dict)

@@ -8,6 +8,8 @@ if debug:
     install_rich_console()
 
 from callpy import CallFlow
+from callpy.web import response
+from callpy.web.response import FileResponse
 from .servicedef import (
     validate_client,
     validate_session_token
@@ -20,10 +22,24 @@ from .boot import boot_components
 
 app = CallFlow('highorder')
 
+webapp_root = settings.server.get('webapp_root', None)
+
 @app.route('/')
 async def index(request):
+    args = request.args
+    if 'app_id' in args and 'client_key' in args:
+        return FileResponse(os.path.join(settings.server.webapp_root, 'index.html'))
     return 'highorder server ok'
 
+@app.route('/favicon.ico')
+async def favicon(request):
+    favicon_path = os.path.join(webapp_root, 'favicon.ico')
+    if webapp_root and os.path.exists(favicon_path):
+        return FileResponse(os.path.join(settings.server.webapp_root, 'favicon.ico'))
+    return response.abort(404)
+
+if webapp_root:
+    app.static('/assets', os.path.abspath(os.path.join(webapp_root, 'assets')))
 
 content_location = settings.server.get('content_location', None)
 if content_location:
@@ -42,7 +58,7 @@ async def app_before_start():
 
 @app.before_request
 async def app_before_request(request):
-    if request.path == '/' or request.path.startswith('/static/'):
+    if not request.path.startswith('/service/'):
         return
     sign = request.headers.get('X-HighOrder-Sign')
     app_id = request.headers.get('X-HighOrder-Application-Id')

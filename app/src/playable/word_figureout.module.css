@@ -1,0 +1,535 @@
+
+#playable {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    justify-content: space-between;
+}
+
+#board {
+    line-height: 1;
+    font-size: 1.75em;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: auto;
+    animation: board-appear 0.5s ease-in-out both;
+    overflow-x: hidden;
+}
+
+@keyframes board-appear {
+    0% {
+        opacity: 0;
+        transform: scale(1.2) translateY(5%);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+#board .row {
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    max-height: 3em;
+}
+
+#board .row.current ~ .row {
+    opacity: 0.5;
+}
+
+#board .row.error {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    10%,
+    90% {
+        transform: translateX(-2px);
+    }
+
+    20%,
+    80% {
+        transform: translateX(4px);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translateX(-8px);
+    }
+
+    40%,
+    60% {
+        transform: translateX(8px);
+    }
+}
+
+.letter {
+    border: 2px solid var(--letter-border-color);
+    display: inline-block;
+    min-width: 2em;
+    max-width: 2.25em;
+    min-height: 2em;
+    max-height: 2.25em;
+    text-align: center;
+    line-height: 1.5em;
+    margin: 2px;
+    aspect-ratio: 1 / 1;
+    justify-content: center;
+    flex-grow: 1;
+    align-items: center;
+    display: flex;
+    position: relative;
+}
+
+.row.error .letter {
+    animation: erroring 0.5s;
+    animation-delay: 0s !important;
+}
+
+.row.error .letter.absent,
+.row.error .letter.correct,
+.row.error .letter.present,
+.row.error .letter.disabled {
+    animation-name: none;
+}
+
+.row.error .letter.absent > *,
+.row.error .letter.correct > *,
+.row.error .letter.present > *,
+.row.error .letter.disabled > * {
+    animation-name: none;
+}
+
+@keyframes erroring {
+    0% {
+        border-color: var(--letter-border-color);
+    }
+
+    50% {
+        border-color: var(--letter-error-border-color);
+    }
+
+    100% {
+        border-color: var(--letter-border-color);
+    }
+}
+
+.letter ruby,
+.letter ruby * {
+    line-height: 1em;
+}
+
+.letter.lettered {
+    animation: appear 0.2s ease-in-out;
+}
+
+@keyframes appear {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+
+#board .current_tile:after {
+    display: block;
+    content: "";
+    position: absolute;
+    bottom: 0.3em;
+    left: 0.3em;
+    right: 0.3em;
+    background-color: var(--letter-border-color);
+    height: 3px;
+    animation: blink 2s linear infinite alternate;
+    border-radius: 3px;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.letter.lettered.initial {
+    border-color: var(--letter-border-active-color);
+}
+
+.letter.correct {
+    background-color: var(--correct-color);
+}
+
+.letter.present {
+    background-color: var(--present-color);
+}
+
+.letter.absent,
+.letter.disabled {
+    background-color: var(--absent-color);
+}
+
+.letter.correct,
+.letter.present,
+.letter.absent,
+.letter.disabled {
+    color: var(--letter-state-text-color);
+    border-color: var(--letter-state-border-color);
+    transition: all 0.3s 0.15s;
+    animation: flip 0.3s ease-in-out forwards;
+}
+
+@keyframes flip {
+    0% {
+        transform: rotateX(0deg);
+    }
+
+    100% {
+        transform: rotateX(180deg);
+    }
+}
+
+.letter.correct > *,
+.letter.present > *,
+.letter.absent > *,
+.letter.disabled > * {
+    animation: flip-back 0.3s ease-in-out both;
+}
+
+@keyframes flip-back {
+    0% {
+        transform: rotateX(0deg);
+    }
+
+    100% {
+        transform: rotateX(-180deg);
+    }
+}
+
+.letter.letter-anim + .letter.letter-anim,
+.letter.letter-anim + .letter.letter-anim > * {
+    animation-delay: 0.1s;
+}
+
+.letter.letter-anim + .letter.letter-anim + .letter.letter-anim,
+.letter.letter-anim + .letter.letter-anim + .letter.letter-anim > * {
+    animation-delay: 0.2s;
+}
+
+.letter.letter-anim
+    + .letter.letter-anim
+    + .letter.letter-anim
+    + .letter.letter-anim,
+.letter.letter-anim
+    + .letter.letter-anim
+    + .letter.letter-anim
+    + .letter.letter-anim
+    > * {
+    animation-delay: 0.3s;
+}
+
+#board.won .letter.letter-anim,
+#board.won .letter.letter-anim > *,
+#board.lost .letter.letter-anim,
+#board.lost .letter.letter-anim > * {
+    animation-name: none;
+}
+
+#board.won .correctrow .letter.lettered {
+    animation-name: win;
+}
+
+#board.won .correctrow .letter.lettered > * {
+    animation-name: none;
+}
+
+@keyframes win {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+#keyboard {
+    background-color: var(--keyboard-bg-color);
+    border-top: 1px solid var(--keyboard-border-color);
+    animation: keyboard-appear 0.5s ease-in-out both;
+    min-height: 6em;
+    display: flex;
+    justify-content: center;
+    width: 96%;
+}
+
+@keyframes keyboard-appear {
+    0% {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#keyboard .inner {
+    padding: 2px;
+    margin-bottom: env(safe-area-inset-bottom);
+    margin-left: env(safe-area-inset-left);
+    margin-right: env(safe-area-inset-right);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: 30em;
+    width: 100%;
+}
+
+#keyboard.won .inner,
+#keyboard.lost .inner {
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+#keyboard button {
+    font-size: 1.5em;
+    margin: 0.1em;
+    border: 0;
+    padding: 0.2em;
+    background-color: var(--key-bg-color);
+    border-radius: 0.2em;
+    cursor: pointer;
+    box-shadow: inset 0 -2px 0px -1px var(--key-shadow-color);
+}
+
+#keyboard button.absent {
+    background-color: var(--absent-color);
+    color: var(--key-state-text-color);
+}
+
+#keyboard button.present {
+    background-color: var(--present-color);
+    color: var(--key-state-text-color);
+}
+
+#keyboard button.correct {
+    background-color: var(--correct-color);
+    color: var(--key-state-text-color);
+}
+
+#keyboard button.disabled {
+    color: var(--key-bg-color);
+    background-color: var(--key-bg-color);
+    box-shadow: none;
+}
+
+#keyboard button.disabled:active {
+    color: var(--key-bg-color);
+    background-color: var(--key-bg-color);
+    box-shadow: none;
+}
+
+#keyboard button:active {
+    color: var(--key-active-text-color);
+    background-color: var(--key-active-bg-color);
+}
+
+#keyboard .row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    max-width: 30em;
+    margin: 0 8px;
+    width: 100%;
+}
+
+#keyboard .row button {
+    flex-grow: 0;
+    padding: 0.3em 1em;
+    font-size: 1em;
+    text-transform: uppercase;
+    font-weight: bold;
+    min-width: 5em;
+}
+
+#keyboard .space {
+    flex-grow: 1;
+}
+
+a.button {
+    display: inline-block;
+    text-decoration: none;
+}
+
+a.button.strong {
+    font-size: 1em !important;
+    border: 2px dashed !important;
+}
+
+@media (max-height: 480px) {
+    #board {
+        font-size: 1.25em;
+    }
+
+    #keyboard .keys {
+        white-space: nowrap;
+        overflow-x: auto;
+    }
+
+    #keyboard .row button {
+        font-size: 0.8em;
+        padding: 0.1em 1em;
+    }
+
+    #keyboard .row button svg {
+        transform: scale(0.8);
+    }
+}
+
+@media (max-height: 500px) {
+    #board {
+        font-size: 1.5em;
+    }
+
+    #keyboard button {
+        font-size: 1.25em;
+        padding: 0.15em;
+    }
+
+    #keyboard .row button {
+        font-size: 0.9em;
+        padding: 0.2em 1em;
+    }
+
+    #keyboard .row button svg {
+        transform: scale(0.9);
+    }
+}
+
+@media (min-height: 700px) {
+    #board {
+        justify-content: center;
+        font-size: 1.85em;
+    }
+
+    header a,
+    header button {
+        font-size: 1em;
+    }
+
+    header h1 {
+        font-size: 1.2em;
+    }
+
+    .letter {
+        min-width: 2.25em;
+        min-height: 2.25em;
+        max-height: 2.5em;
+        max-width: 2.5em;
+    }
+}
+
+@media (min-height: 750px) {
+    #board {
+        font-size: 1.95em;
+    }
+}
+
+@media (min-height: 800px) {
+    #keyboard .inner {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    #keyboard button {
+        padding-top: 0.3em;
+        padding-bottom: 0.3em;
+    }
+
+    .letter {
+        min-width: 2.5em;
+        min-height: 2.5em;
+        max-height: 2.75em;
+        max-width: 2.75em;
+    }
+}
+
+@media (min-height: 850px) {
+    #keyboard .inner {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    #keyboard button {
+        padding-top: 0.4em;
+        padding-bottom: 0.4em;
+    }
+}
+
+@media (min-width: 500px) {
+    #keyboard .inner {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+    #keyboard button {
+        padding-left: 0.35em;
+        padding-right: 0.35em;
+    }
+}
+
+@media (min-width: 600px) {
+    #keyboard .inner {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    #keyboard button {
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+    }
+}
+
+.word-figureout-root {
+    width: 100%;
+    flex-grow: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.blank-button {
+    width: 5em;
+    flex-grow: 0;
+}
+
+#keyboard .row .howto-button {
+    background-color: transparent;
+    opacity: .6;
+    font-size: .9em;
+    margin-top: 1em;
+    padding: 0;
+}

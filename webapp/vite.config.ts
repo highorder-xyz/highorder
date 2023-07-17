@@ -6,12 +6,15 @@ export default defineConfig({
     server: {
         proxy: {
             // string shorthand
-            '/service': 'http://building.dev.highorder.xyz',
-            '/static': 'http://building.dev.highorder.xyz',
+            '/service': 'http://127.0.0.1:5000',
+            '/static': 'http://127.0.0.1:5000',
         }
     },
     publicDir: '../app/public',
     plugins: [
         vue()
-    ]
+    ],
+    define: {
+        '__WEBAPP_VERSION__': JSON.stringify(process.env.npm_package_version),
+    },
 })

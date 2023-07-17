@@ -19,9 +19,9 @@ class WebAdSimulationPlugin {
         if (this.modal_helper) {
             await new Promise<void>((resolve, reject) => {
                 this.modal_helper.open_any({
-                    title: "这是一个广告",
-                    text: "开发App，点这里，点这里，点这里。 妈妈再也不用担心我不会开发App了！",
-                    actionConfirmText: "关闭",
+                    title: "Interstitial Ad",
+                    text: "Ad not supported in webapp. This is a fake interstitial Ad.",
+                    actionConfirmText: "close",
                     onModalConfirmed: () => {
                         resolve()
                     }
@@ -45,9 +45,9 @@ class WebAdSimulationPlugin {
         if (this.modal_helper) {
             await new Promise<void>((resolve, reject) => {
                 this.modal_helper.open_any({
-                    title: "这是一个广告",
-                    text: "开发App，点这里，点这里，点这里。 妈妈再也不用担心我不会开发App了！",
-                    actionConfirmText: "关闭",
+                    title: "Reward Ad",
+                    text: "Ad not supported in webapp. This is a fake interstitial Ad.",
+                    actionConfirmText: "close",
                     onModalConfirmed: () => {
                         resolve()
                     }
@@ -246,6 +246,6 @@ async function cap_fetch(resource: RequestInfo,  options?: RequestInit){
 
 // app_platform.setCustomFetch(cap_fetch)
 
-createHighOrderApp(app_configs, {}).then((app) => {
+createHighOrderApp(app_configs, {}).then((app: any) => {
     app.mount('#app')
 })

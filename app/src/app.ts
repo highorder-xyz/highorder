@@ -51,7 +51,8 @@ import { HolaCommand, ShowAlertCommandArg, ShowMotionCommandArg } from './client
 
 import { AdHelper, AdShowOptions } from './ad';
 import { randomString } from './db';
-import { ApplyableInstance, ConditionResponse } from './defines'
+import { ApplyableInstance, ConditionResponse } from './playable/defines'
+import { showConfetti } from './motion/confetti';
 
 type PlayableComponent = ApplyableInstance;
 
@@ -87,7 +88,7 @@ export function showMotion(name: string, args: object): void {
     const _name = name.toLowerCase().replace(/_/g, '-')
 
     if(_name === 'confetti'){
-        // showConfetti(args)
+        showConfetti(args)
     }
 }
 
@@ -394,6 +395,7 @@ export const App = defineComponent({
             this.navigateTo(window.location.hash.slice(1), context)
         } else {
             if (app_core.privacy_agreed){
+                console.log('session start')
                 this.sessionStart()
             } else {
                 this.showPrivacyModal()
@@ -684,7 +686,7 @@ export const App = defineComponent({
                 if ( func === 'back'){
                     window.history.back()
                 } else if ( func === 'navigate_to'){
-                    const target = args.route ?? '/home'
+                    const target = args.route ?? '/'
                     this.navigateTo(target, context)
                 } else if ( func === 'refresh'){
                     const target = this.page.route
@@ -829,18 +831,10 @@ export const App = defineComponent({
                 showHome:element.show_home || false,
                 showBack: element.show_back || false,
                 onHomeClicked: () => {
-                    this.navigateTo('/home', context);
+                    this.navigateTo('/', context);
                     app_platform.logEvent(AnalyticsEventKind.button_event, {
                         route: this.page.route,
                         text: 'home'
-                    })
-                },
-                showPerson: element.show_profile || false,
-                onPersonClicked: () => {
-                    this.navigateTo('/profile', context);
-                    app_platform.logEvent(AnalyticsEventKind.button_event, {
-                        route: this.page.route,
-                        text: 'profile'
                     })
                 },
                 onBackClicked: () => {

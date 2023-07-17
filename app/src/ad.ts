@@ -287,7 +287,7 @@ export class AdHelper {
     showAdNow(options:AdShowOptions, nextfn: Function){
         const ad_hint = options.ad_hint
         if(ad_hint !== undefined && ad_hint.length > 0){
-            const ad_confirm = options.ad_confirm ?? '勇敢向前'
+            const ad_confirm = options.ad_confirm ?? 'confirm'
             const ad_hint_text = ad_hint.join('\n')
             const modal_id = this.modal_helper.new_modal_id()
             this.modal_helper.open_any({

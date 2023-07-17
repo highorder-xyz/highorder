@@ -1,5 +1,5 @@
 
-import * as crypto from "crypto-js";
+import CryptoJS from "crypto-js";
 import { DataStore, AppDataStore } from "./db";
 import ky, { HTTPError, KyResponse, Options, TimeoutError } from 'ky';
 import { app_platform } from "./platform";
@@ -71,8 +71,8 @@ export class ServiceClient {
     getSign(body: string): string {
         let timestamp = Math.floor(Date.now() / 1000);
         let message = this.config.appId + timestamp + body;
-        let hash = crypto.HmacSHA256(message, this.config.clientSecret);
-        let sign = [hash.toString(crypto.enc.Hex), timestamp, this.config.clientKey].join(',');
+        let hash = CryptoJS.HmacSHA256(message, this.config.clientSecret);
+        let sign = [CryptoJS.enc.Hex.stringify(hash), timestamp, this.config.clientKey].join(',');
         return sign
     }
 
@@ -142,14 +142,8 @@ export class ServiceClient {
         return await this.request(url, "OPTIONS", data || {})
     }
 
-
-
 }
 
-interface AnonymousLoginRequest {
-    local_uid: string
-    custom_uid?: string
-}
 
 export interface UserDetail {
     user_id: string
@@ -390,25 +384,30 @@ export class ServiceOperation {
 
     }
 
-    async anonymousLogin(custom_uid: string = ''): Promise<{user: UserDetail, session:SessionDetail}> {
+    async anonymousLogin(context: PageContext) {
         const local_uid = await this.getLocalUid()
-        const reqData: AnonymousLoginRequest = { local_uid: local_uid, custom_uid: custom_uid}
+        console.log('anonymousLogin')
+
         let reqArg: RequestArgs = {
-            "data": reqData
+            "data": {
+                "command":"login",
+                "args": {
+                    "anonymous": true,
+                    "local_uid": local_uid
+                },
+                "context": context
+            }
         }
         try {
-            let resp = await this.client.post('/service/account/login/anonymous', reqArg)
+            let resp = await this.client.post('/service/hola/main', reqArg);
             let body = (await resp.json()) as any;
-            const user =  body.data.user
-            const session = body.data.session
-            const data_store = await AppDataStore.get_store(this.app_id)
-            await data_store.saveCustomUid(custom_uid)
-            await data_store.saveUser(user)
-            await data_store.saveSession(session)
-            this.user = user
-            this.session = session
-            this.client.setSessionToken(session.session_token)
-            return { user: user, session: session }
+            const commands = body.data.commands
+            for(const command of commands){
+                if(command.name == 'set_session'){
+                    let _cmd = command as SetSessionCommand
+                    await this.setSession(_cmd.args.user, _cmd.args.session)
+                }
+            }
         } catch (error) {
             this.handleError(error as Error)
         }
@@ -430,18 +429,14 @@ export class ServiceOperation {
 
     }
 
-    async checkAndCreateSession(){
+    async checkAndCreateSession(context: PageContext){
         if (this.user === undefined || this.user.user_id === undefined
             || this.user.user_id.length === 0
             || this.session === undefined
             || this.session.session_token === undefined
             || this.session.session_token.length === 0){
             const data_store = await AppDataStore.get_store(this.app_id)
-            let custom_uid = await data_store.getCustomUid()
-            if(custom_uid === undefined){
-                custom_uid = ''
-            }
-            await this.anonymousLogin(custom_uid as string)
+            await this.anonymousLogin(context)
         }
     }
 
@@ -454,7 +449,7 @@ export class ServiceOperation {
 
     async holaRequest(args: RequestArgs): Promise<HolaCommand[]> {
         try {
-            await this.checkAndCreateSession()
+            await this.checkAndCreateSession(args.data.context)
             let resp = await this.client.post('/service/hola/main', args);
             let body = (await resp.json()) as any;
             const commands = body.data.commands
