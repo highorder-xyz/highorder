@@ -1,0 +1,16 @@
+{
+    "en": {
+        "translation": {
+            "agree": "Agree",
+            "disagree": "Disagree",
+            "view_privacy_detail": "View Privacy Detail"
+        }
+    },
+    "zh-CN": {
+        "translation": {
+            "agree": "同意",
+            "disagree": "不同意",
+            "view_privacy_detail": "查看隐私政策详情"
+        }
+    }
+}
