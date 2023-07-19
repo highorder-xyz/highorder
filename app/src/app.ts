@@ -884,11 +884,6 @@ export const App = defineComponent({
                     const commands = await app_core.playableCompleted(played)
                     this.handleImmediateCommands(commands, context)
                 },
-                onShowModal: (content_render: Function) => {
-                    const modal_id = this.modal_helper.new_modal_id()
-                    this.modal_helper.open(modal_id, {}, content_render
-                    )
-                },
                 onPlayed: () => {
                     app_platform.logEvent(AnalyticsEventKind.played_event, {
                         name: element.name,

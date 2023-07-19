@@ -98,8 +98,7 @@ export const KeyBoard = defineComponent({
     props: {
         letters: { type: Array as PropType<Array<Letter>>, required: true },
         showEnter: { Type: Boolean, default: true },
-        showBackspace: { Type: Boolean, default: true },
-        showHowto: {Type:Boolean, default: true}
+        showBackspace: { Type: Boolean, default: true }
     },
     methods: {
         renderKey(letter: Letter): VNode {
@@ -134,10 +133,6 @@ export const KeyBoard = defineComponent({
                 controls.push(h('div', { 'class': styles['blank-button'] }))
             }
 
-            if (this.$props.showHowto){
-                controls.push(h('button', { 'class': styles['howto-button'], onClick: () => { this.$emit("howto") } }, '如何玩'))
-            }
-
             if (this.$props.showBackspace) {
                 controls.push(h('button', { onClick: () => { this.$emit("backspace") } }, this.renderBackspace()))
             } else {
@@ -149,8 +144,7 @@ export const KeyBoard = defineComponent({
     emits: {
         letterTouched: (letter: string) => { return true },
         enter: null,
-        backspace: null,
-        howto: null
+        backspace: null
     },
     render() {
         return h('div', { 'id': styles['keyboard'] },
@@ -425,8 +419,7 @@ export const WordFigureOut = defineComponent({
     emits: {
         succeed: (played: PlayableResult) => { return true },
         failed: (played: PlayableResult) => { return true },
-        played: () => { return true },
-        showModal: (content_render: Function) => { return true}
+        played: () => { return true }
     },
     computed: {
         status(): string {
@@ -515,16 +508,7 @@ export const WordFigureOut = defineComponent({
                 onLetterTouched: (key: string) => {
                     this.scene.handleKeyInput(key);
                 },
-                onBackspace: () => { this.scene.handleBackspace() },
-                onHowto: () => {
-                    this.$emit("showModal", () => {
-                        return h('div', {}, [
-                            h('p', '选择正确的字，补充完整成语。'),
-                            h('p', '四个字都是绿色时，就选对了～～～'),
-                            h('p', '选对了，就有会有金币奖励的，有时还会有道具物品，要注意收集呦！')
-                        ])
-                    })
-                }
+                onBackspace: () => { this.scene.handleBackspace() }
             })
         ])
     }

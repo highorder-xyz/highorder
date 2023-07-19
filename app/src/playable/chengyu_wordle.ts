@@ -147,8 +147,7 @@ export const KeyBoard = defineComponent({
     props: {
         letters: { type: Array as PropType<Array<Letter>>, required: true },
         showEnter: { Type: Boolean, default: true },
-        showBackspace: { Type: Boolean, default: true },
-        showHowto: { Type: Boolean, default: false }
+        showBackspace: { Type: Boolean, default: true }
     },
     methods: {
         renderKey(letter: Letter): VNode {
@@ -183,10 +182,6 @@ export const KeyBoard = defineComponent({
                 controls.push(h('div', { 'class': styles['blank-button'] }))
             }
 
-            if (this.$props.showHowto) {
-                controls.push(h('button', { 'class': styles['howto-button'], onClick: () => { this.$emit("howto") } }, '如何玩'))
-            }
-
             if (this.$props.showBackspace) {
                 controls.push(h('button', { onClick: () => { this.$emit("backspace") } }, this.renderBackspace()))
             } else {
@@ -198,8 +193,7 @@ export const KeyBoard = defineComponent({
     emits: {
         letterTouched: (letter: string) => { return true },
         enter: null,
-        backspace: null,
-        howto: null
+        backspace: null
     },
     render() {
         return h('div', { 'id': styles['keyboard'] },
@@ -644,8 +638,7 @@ export const ChengYuWordle = defineComponent({
     emits: {
         succeed: (played: PlayableResult) => { return true },
         failed: (played: PlayableResult) => { return true },
-        played: () => { return true },
-        showModal: (content_render: Function) => { return true }
+        played: () => { return true }
     },
     data() {
         return {
