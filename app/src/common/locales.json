@@ -3,14 +3,50 @@
         "translation": {
             "agree": "Agree",
             "disagree": "Disagree",
-            "view_privacy_detail": "View Privacy Detail"
+            "view_privacy_detail": "View Privacy Detail",
+            "privacy_cancelled_content": "<h3 style=\"color:red\">You need to agree to the Privacy Policy in order to use the services of this application</h3>\n<p>The Application will use and disclose your personal information as described in this Privacy Policy. Click the button below to view the detailed privacy policy.</p>",
+            "privacy_html_summary": "<h1>Privacy Policy</h1>\n<p>The Application respects and protects the personal privacy of all users of the Service. In order to provide you with a more accurate service, the Application will use and disclose your personal information in accordance with this Privacy Policy. Click the button below to view the detailed privacy policy.</p>",
+            "privacy_disagree_confirm": "disagree? please close this app~~",
+            "privacy_disagree_confirm_android": "disagree？ please click \"Disagree\" button twice to exit~~",
+            "loading_and_wait": "Loading... Please wait...",
+            "unable_connect_to_server": "Couldn't connect to server, please retry after network is OK",
+            "makesure_network_and_latest_version": "Please make sure network is OK, and upgraded to latest version",
+            "retry_text": "Retry",
+            "retring_and_waiting": "Retring, please waiting...",
+            "unsupported_condition": "Unsupported Condition",
+            "nomore_ads": "No More Advertisement!",
+            "check_network": "Network is down，or make sure app can use network",
+            "network_ok": "Network OK",
+            "server_upgrading": "The server is upgrading，please retry after 10 more seconds.",
+            "check_client_version": "Please upgrade app to latest version",
+            "client_version_ok": "Is Latest Version",
+            "problem_recovering": "Found problem, Recovering...",
+            "fine_ok": "OK"
         }
     },
     "zh-CN": {
         "translation": {
             "agree": "同意",
             "disagree": "不同意",
-            "view_privacy_detail": "查看隐私政策详情"
+            "view_privacy_detail": "查看隐私政策详情",
+            "privacy_cancelled_content": "<h3 style=\"color:red\">您需要同意隐私策略，才能使用本应用的服务</h3>\n<p>本应用会按照本隐私权政策的规定使用和披露您的个人信息。点击下面的按钮查看详细的隐私政策。</p>",
+            "privacy_html_summary": "<h1>隐私政策</h1>\n<p>本应用尊重并保护所有使用服务用户的个人隐私权。为了给您提供更准确的服务，本应用会按照本隐私权政策的规定使用和披露您的个人信息。点击下面的按钮查看详细的隐私政策。</p>",
+            "privacy_disagree_confirm": "是不是，点错了？ 请自行退出APP~~",
+            "privacy_disagree_confirm_android": "是不是，点错了？ 请再点击“不同意”两次确认退出~~",
+            "loading_and_wait": "正在加载，请稍等······",
+            "unable_connect_to_server": "能连接到服务器! 请确保网络连通后，再尝试",
+            "makesure_network_and_latest_version": "请确保网络通畅，并使用App的最新版本",
+            "retry_text": "好的，重试",
+            "retring_and_waiting": "正在重试，请稍等······",
+            "unsupported_condition": "不支持的条件行为",
+            "nomore_ads": "广告都被抢光了，请稍微尝试。多点击广告才能有更多广告！",
+            "check_network": "无法进行网络连接，请检查网络状况，或者给App连接网络的权限",
+            "network_ok": "好的，网络好了",
+            "server_upgrading": "服务器可能正在升级，请10秒后重试",
+            "check_client_version": "请检查App版本，确保已经是最新的版本了",
+            "client_version_ok": "好的，是最新版本",
+            "problem_recovering": "发现了问题，努力自救中·····",
+            "fine_ok": "好的，加油"
         }
     }
 }

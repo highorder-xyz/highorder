@@ -1,6 +1,7 @@
 
 import { ModalHelper } from './app'
 import { AdOptions, AdPlugin, app_platform } from './platform';
+import i18next from 'i18next';
 
 
 export interface AdUnitConfigInterface{
@@ -267,7 +268,7 @@ export class AdManager {
                 console.error(`showAdNow error: ${err}`)
             }
         }
-        next_fn({ok:false, message: "广告都被抢光了，请稍微尝试。多点击广告才能有更多广告！"})
+        next_fn({ok:false, message: i18next.t('nomore_ads')})
     }
 
 }

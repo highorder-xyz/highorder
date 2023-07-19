@@ -10,6 +10,7 @@ import { ShowPageCommand, ServiceOperation, HolaCommand,
 import { PlayableResult } from './client'
 import { DataStore, randomString } from "./db";
 import { app_platform } from "./platform";
+import i18next from 'i18next';
 
 const APP_VERSION = '0.1.0'
 
@@ -704,9 +705,9 @@ export class AppCore {
         } else if(error_type === 'ServerNoResponse') {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
-                content:"无法进行网络连接，请检查网络状况，或者给App连接网络的权限。",
+                content: i18next.t('check_network'),
                 confirm:{
-                    text: "好的，网络好了",
+                    text: i18next.t('network_ok'),
                     action: "",
                     args: {}
                 }
@@ -722,9 +723,9 @@ export class AppCore {
         } else if(error_type === 'InternalServerError' || code_category === 5) {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
-                content:"服务器可能正在升级，请6秒后重试。",
+                content: i18next.t('server_upgrading'),
                 confirm:{
-                    text: "好的，重试",
+                    text: i18next.t('retry_text'),
                     action: "",
                     args: {}
                 }
@@ -740,9 +741,9 @@ export class AppCore {
         } else if(error_type === 'RequestInvalidError' || code_category === 4){
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
-                content:"请检查App版本，确保已经是最新的版本了。",
+                content: i18next.t('check_client_version'),
                 confirm:{
-                    text: "好的，是最新版本",
+                    text: i18next.t('client_version_ok'),
                     action: "",
                     args: {}
                 }
@@ -758,9 +759,9 @@ export class AppCore {
         } else {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
-                content:"发现了问题，努力自救中。。。",
+                content: i18next.t('problem_recovering'),
                 confirm:{
-                    text: "好的，加油",
+                    text: i18next.t('fine_ok'),
                     action: "",
                     args: {}
                 }

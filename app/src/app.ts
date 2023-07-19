@@ -328,19 +328,6 @@ export class ModalHelper {
 
 let privacy_cancelled_times = 0
 
-const privacy_cancelled_content = `
-<h3 style="color:red">
-您需要同意隐私策略，才能使用本应用的服务
-</h3>
-<p>本应用会按照本隐私权政策的规定使用和披露您的个人信息。点击下面的按钮查看详细的隐私政策。</p>`
-
-const privacy_html_summary = `<h1>隐私政策</h1>
-<p>
-本应用尊重并保护所有使用服务用户的个人隐私权。为了给您提供更准确的服务，本应用会按照本隐私权政策的规定使用和披露您的个人信息。点击下面的按钮查看详细的隐私政策。
-</p>`
-
-// export const modal_helper = reactive(new ModalHelper())
-
 export const helpers = reactive({
     modal_helper: new ModalHelper()
 })
@@ -421,27 +408,27 @@ export const App = defineComponent({
                                     content_html: html_content
                                 })
                             } catch (err){
-                                this.alert_helper.show("不能连接到服务器! 请确保网络连通后，再尝试")
+                                this.alert_helper.show(i18next.t('unable_connect_to_server'))
                             }
                         }
                     }
                 }],
-                content_html: content_html ?? privacy_html_summary,
+                content_html: content_html ?? i18next.t('privacy_html_summary'),
                 actionsVertical: true,
                 actionConfirmText: i18next.t('agree'),
                 actionCancelText: i18next.t('disagree'),
                 onModalConfirmed: () => {
                     app_core.savePrivacyAgreed()
-                    this.alert_helper.show("正在加载，请稍等...")
+                    this.alert_helper.show(i18next.t('loading_and_wait'))
                     this.sessionStart()
                 },
                 onModalCancelled: () => {
                     const p = app_platform.getPlatform()
                     const name = p.name.toLowerCase()
                     if (name == 'android'){
-                        this.alert_helper.show("是不是，点错了？ 请再点击“不同意”两次确认退出~~")
+                        this.alert_helper.show(i18next.t('privacy_disagree_confirm_android'))
                     } else {
-                        this.alert_helper.show("是不是，点错了？ 请自行退出APP~~")
+                        this.alert_helper.show(i18next.t('privacy_disagree_confirm'))
                     }
 
                     privacy_cancelled_times += 1
@@ -449,7 +436,7 @@ export const App = defineComponent({
                         app_platform.exitApp()
                     }
                     setTimeout(() => {
-                        this.showPrivacyModal(privacy_cancelled_content);
+                        this.showPrivacyModal(i18next.t('privacy_cancelled_content'));
                     }, 1000);
                 }
             })
@@ -471,11 +458,11 @@ export const App = defineComponent({
                 this.loading = false
                 const modal_id = this.modal_helper.new_modal_id()
                 this.modal_helper.open(modal_id, {
-                    text: "请确保网络通畅，并使用App的最新版本。",
+                    text: i18next.t('makesure_network_and_latest_version'),
                     actionsVertical: true,
-                    actionConfirmText: "好的，重试",
+                    actionConfirmText: i18next.t('retry_text'),
                     onModalConfirmed: () => {
-                        this.alert_helper.show("正在重试，请稍等...")
+                        this.alert_helper.show(i18next.t('retring_and_waiting'))
                         app_platform.logEvent(AnalyticsEventKind.button_event, {
                             route: this.page.route,
                             text: "errdlg_confirm"
@@ -518,11 +505,11 @@ export const App = defineComponent({
                 this.loading = false
                 const modal_id = this.modal_helper.new_modal_id()
                 this.modal_helper.open(modal_id, {
-                    text: "请确保网络通畅，并使用App的最新版本。",
+                    text: i18next.t('makesure_network_and_latest_version'),
                     actionsVertical: true,
-                    actionConfirmText: "好的，重试",
+                    actionConfirmText: i18next.t('retry_text'),
                     onModalConfirmed: () => {
-                        this.alert_helper.show("正在重试，请稍等...")
+                        this.alert_helper.show(i18next.t('retring_and_waiting'))
                         app_platform.logEvent(AnalyticsEventKind.button_event, {
                             route: this.page.route,
                             text: "errdlg_confirm"
@@ -794,7 +781,7 @@ export const App = defineComponent({
                         callback({ok: ret.ok, message: ret.error})
                     }
                 } else {
-                    callback({ok: false, message: "不支持的条件行为"})
+                    callback({ok: false, message: i18next.t('unsupported_condition')})
                 }
 
             } else if (ns === 'ad') {
@@ -806,10 +793,10 @@ export const App = defineComponent({
                     })
 
                 } else {
-                    callback({ok: false, message: "不支持的条件行为"})
+                    callback({ok: false, message: i18next.t('unsupported_condition')})
                 }
             } else {
-                callback({ok: false, message: "不支持的条件行为"})
+                callback({ok: false, message: i18next.t('unsupported_condition')})
             }
         },
 
@@ -899,7 +886,7 @@ export const App = defineComponent({
                 },
                 onShowModal: (content_render: Function) => {
                     const modal_id = this.modal_helper.new_modal_id()
-                    this.modal_helper.open(modal_id, {title:"如何玩", actionConfirmText: "明白了"}, content_render
+                    this.modal_helper.open(modal_id, {}, content_render
                     )
                 },
                 onPlayed: () => {
@@ -1434,7 +1421,7 @@ export const App = defineComponent({
                                     modal_updater.update({content_html: html_content})
                                 } catch {
                                     console.log('fetch html error.')
-                                    this.alert_helper.show("不能连接到服务器! 请确保网络连通后，再尝试")
+                                    this.alert_helper.show(i18next.t('unable_connect_to_server'))
                                 }
                             }
 
