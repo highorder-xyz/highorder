@@ -1,26 +1,38 @@
 import {createApp, defineAsyncComponent} from 'vue'
+import i18next from 'i18next';
+import resources from './common/locales.json'
 import {App} from './app'
 import './index.css'
 import { AppCore, AppConfig} from "./core"
 import { app_platform } from './platform'
 
 export type { AppConfig } from './core'
-export { app_platform } from './platform'
 export { modal_helper } from './app'
 export type { AppPlatformInterface, AdReady, AdOptions, AdPlugin, WeChatPlugin} from './platform'
+export { app_platform } from './platform'
 
 export async function bootup(app_configs: AppConfig[], init_options:Record<string, any>): Promise<void> {
     for(const config of app_configs){
         AppCore.addAppConfig(config)
     }
+    const platform_info = app_platform.getPlatform()
+    const language = init_options.language || platform_info['language'] || 'en'
+    console.log(language)
+    console.log(resources)
+    await i18next.init({
+        lng: language,
+        debug: false,
+        resources: resources
+    });
     await AppCore.init()
     const app_id = app_configs[0].appId
     await AppCore.switchTo(app_id)
     const app_core = AppCore.getCore(app_id)
-    if(app_core.privacy_agreed){
-        await app_platform.initialize(init_options)
-    } else {
+
+    if(app_platform.mustAgreePrivacy() && !app_core.privacy_agreed){
         app_platform.init_options = init_options
+    } else {
+        await app_platform.initialize(init_options)
     }
 }
 

@@ -715,7 +715,7 @@ class HolaService:
     def get_item_widget_defines(self, item_name, widget_name):
         widget_defines = []
         for el in self.widgets:
-            if el["type"] == 'item-widget-define' and \
+            if el["type"] == 'item-widget' and \
                 el['name'] == widget_name and item_name in el['item']:
                 widget_defines.append(el)
         return widget_defines
@@ -747,7 +747,7 @@ class HolaService:
         item_name = context.item.name
         widget_defines = self.get_item_widget_defines(item_name, widget_name)
         if len(widget_defines) == 0:
-            raise Exception(f'not item-widget-define for item: {item_name} and widget: {widget_name}')
+            raise Exception(f'not item-widget for item: {item_name} and widget: {widget_name}')
 
         widget_define =  widget_defines[0]
         elements = AutoList()
@@ -781,7 +781,7 @@ class HolaService:
     def get_change_list_defines(self, widget_name):
         widget_defines = []
         for el in self.widgets:
-            if el["type"] == 'change-list-define' and \
+            if el["type"] == 'change-list' and \
                 el['name'] == widget_name:
                 widget_defines.append(el)
         return widget_defines
@@ -789,7 +789,7 @@ class HolaService:
     def get_change_widget_define(self, change_type, widget_name):
         widget_defines = []
         for el in self.widgets:
-            if el["type"] == 'change-widget-define' and el["name"] == widget_name:
+            if el["type"] == 'change-widget' and el["name"] == widget_name:
                 if el["change_type"] == change_type:
                     widget_defines.append(el)
                 elif isinstance(el["change_type"], (list, tuple)) and change_type in el['change_type']:
@@ -820,7 +820,7 @@ class HolaService:
 
         widget_defines = self.get_change_list_defines(widget_name)
         if len(widget_defines) == 0:
-            raise Exception(f'not change-list-define with widget name: {widget_name}')
+            raise Exception(f'not change-list with widget name: {widget_name}')
 
         widget_define =  widget_defines[0]
         elements = AutoList()

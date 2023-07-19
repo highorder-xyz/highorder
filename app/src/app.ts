@@ -1,4 +1,5 @@
 import { defineComponent, h, reactive, VNode, resolveComponent} from 'vue'
+import i18next from 'i18next';
 import {
     PlainTextObject,
     HeaderElement, FooterElement, HeroElement, NavMenuElement, MenuItemElement,
@@ -394,11 +395,11 @@ export const App = defineComponent({
         if( window.location.hash.length > 1){
             this.navigateTo(window.location.hash.slice(1), context)
         } else {
-            if (app_core.privacy_agreed){
+            if (app_platform.mustAgreePrivacy() && !app_core.privacy_agreed){
+                this.showPrivacyModal()
+            } else {
                 console.log('session start')
                 this.sessionStart()
-            } else {
-                this.showPrivacyModal()
             }
 
         }
@@ -409,7 +410,7 @@ export const App = defineComponent({
             const modal_id = this.modal_helper.new_modal_id()
             const modal_updater = this.modal_helper.open(modal_id, {
                 actions: [{
-                    "text": "查看隐私政策详情",
+                    "text": i18next.t('view_privacy_detail'),
                     clicked: async () => {
                         const content_link = app_core.config.privacyUrl
                         if(content_link){
@@ -427,8 +428,8 @@ export const App = defineComponent({
                 }],
                 content_html: content_html ?? privacy_html_summary,
                 actionsVertical: true,
-                actionConfirmText: "同意",
-                actionCancelText: "不同意",
+                actionConfirmText: i18next.t('agree'),
+                actionCancelText: i18next.t('disagree'),
                 onModalConfirmed: () => {
                     app_core.savePrivacyAgreed()
                     this.alert_helper.show("正在加载，请稍等...")

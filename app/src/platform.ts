@@ -3,6 +3,7 @@ export interface AppPlatformInterface {
     initialize: (options: Record<string, any>) => Promise<void>
     exitApp: () => void
     openUrl: (url:string) => void
+    mustAgreePrivacy: () => boolean
     getPlatform: () => Record<string | 'name', any>
     getAdPluginInstance: (vendor: string) => AdPlugin | undefined
     getWeChatPluginInstance:() => WeChatPlugin | undefined
@@ -84,6 +85,10 @@ class AppHostPlatform {
 
     getPlatform() {
         return this.host.getPlatform()
+    }
+
+    mustAgreePrivacy() {
+        return this.host.mustAgreePrivacy()
     }
 
     getFetch() {
