@@ -1,5 +1,4 @@
 import { createHighOrderApp, app_platform, modal_helper, AdReady, AdOptions, AdPlugin, WeChatPlugin} from '@highorder/app'
-import { CapacitorHttp, HttpHeaders, HttpResponse } from '@capacitor/core';
 
 declare global {
     interface Navigator {
@@ -349,66 +348,6 @@ const highorder_app_config = {
 console.log(highorder_app_config)
 
 app_configs.push(highorder_app_config)
-
-async function cap_fetch(resource: RequestInfo, options?: RequestInit) {
-    let originFetch = window.fetch;
-    let url: string = resource.toString();
-    let method = options?.method ? options.method : undefined
-    let body = options?.body ? options.body : undefined
-    let headers = options?.headers;
-    if (options?.headers instanceof Headers) {
-        headers = Object.fromEntries((options.headers as any).entries());
-    }
-
-    if (resource instanceof Request) {
-        let req = resource as Request
-        console.log('request', req)
-        url = req.url;
-        method = req.method
-        body = await req.text()
-        headers = Object.fromEntries((req.headers as any).entries())
-    }
-
-    if (
-        !(
-            url.startsWith('http:') ||
-            url.startsWith('https:')
-        )
-    ) {
-        return originFetch(resource, options);
-    }
-
-    const tag = `CapacitorHttp fetch ${Date.now()} ${resource}`;
-    console.time(tag);
-    try {
-        const nativeResponse: HttpResponse = await CapacitorHttp.request(
-            {
-                url: url,
-                method: method,
-                data: body,
-                headers: headers as HttpHeaders,
-            }
-        );
-
-        const data =
-            typeof nativeResponse.data === 'string'
-                ? nativeResponse.data
-                : JSON.stringify(nativeResponse.data);
-        // intercept & parse response before returning
-        const response = new Response(data, {
-            headers: nativeResponse.headers,
-            status: nativeResponse.status,
-        });
-
-        console.timeEnd(tag);
-        return response;
-    } catch (error) {
-        console.timeEnd(tag);
-        return Promise.reject(error);
-    }
-};
-
-// app_platform.setCustomFetch(cap_fetch)
 
 createHighOrderApp(app_configs, {}).then((app: any) => {
     app.mount('#app')

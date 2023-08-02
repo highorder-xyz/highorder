@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/core": "^4.7.0",
     "@highorder/app": "file:../app",
     "vue": "^3.2.37"
   },
