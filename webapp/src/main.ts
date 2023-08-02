@@ -76,7 +76,7 @@ class WebAdSimulationPlugin {
     }
 }
 
-class DefaultWebWeCahtSimulationPlugin {
+class DefaultWebWeChatSimulationPlugin {
 
     async initialize(options: { appId: string, merchantId?: string }): Promise<void> {
     }
@@ -261,7 +261,7 @@ export class WebAppHostPlatform {
     wechatPlugin: WeChatPlugin
 
     constructor() {
-        this.wechatPlugin = new DefaultWebWeCahtSimulationPlugin();
+        this.wechatPlugin = new DefaultWebWeChatSimulationPlugin();
     }
 
     async initialize(options: Record<string, any>): Promise<void> {
