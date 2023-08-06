@@ -1,6 +1,7 @@
 
 import { defineComponent, ComponentInternalInstance, h, VNode, PropType, DefineComponent, renderSlot, withModifiers } from 'vue';
 import gsap from 'gsap'
+import styles from './components.module.css'
 import 'animate.css';
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
@@ -11,7 +12,7 @@ import 'video.js/dist/video-js.css'
 import { RichTextCompiler, RichTextPart, RichTextTag } from './common/richtext';
 import PrimeButton from 'primevue/button';
 import { PrimeIcons } from 'primevue/api';
-import styles from './components.module.css'
+
 
 gsap.ticker.fps(10);
 
@@ -20,9 +21,7 @@ const icon_components: Record<string, string> = {
 
 export function init_components() {
     for (let [key, value] of Object.entries(PrimeIcons)) {
-        console.log(key, value);
         const new_key = key.toLowerCase().replaceAll('_', '-')
-        console.log(new_key, value)
         icon_components[new_key] = value
     }
 }
@@ -147,7 +146,7 @@ export const Button = defineComponent({
             textClasses.push(styles[sizeName])
             if (this.$props.text) {
                 return h('div', { "class": textClasses }, h(RichText, { text: this.$props.text}))
-            } else {
+            } else if(this.$slots.default !== undefined) {
                 return renderSlot(this.$slots, "default", {})
             }
         },
@@ -167,6 +166,35 @@ export const Button = defineComponent({
                 return h('div', { "class": textClasses })
             }
 
+        },
+
+        renderChildren() {
+            const children: (VNode | undefined)[] = []
+            let row_children: (VNode | undefined)[] = []
+            if (this.$props.icon) {
+                if (!(this.$props.icon in icon_components) && (this.icon_pos === 'left' || this.icon_pos === 'top')){
+                    row_children.push(this.renderIcon())
+                }
+            }
+            if (this.$props.text) {
+                row_children.push(this.renderInner())
+            }
+
+            if (this.$props.icon) {
+                if (this.icon_pos === 'right' || this.icon_pos === 'bottom') {
+                    row_children.push(this.renderIcon())
+                }
+
+            }
+
+            children.push(h('div', { class: [styles["text-row"]] }, row_children))
+
+            if (this.$props.sub_text) {
+                row_children = []
+                row_children.push(this.renderSubText())
+                children.push(h('div', { class: [styles["text-row"]] }, row_children))
+            }
+            return children
         }
     },
     render() {
@@ -188,43 +216,22 @@ export const Button = defineComponent({
             btnClasses.push(styles[`h_${hSizeName}`])
         }
 
-        const children: (VNode | undefined)[] = []
-        let row_children: (VNode | undefined)[] = []
-        if (this.$props.icon) {
-            if (this.$props.icon in icon_components){
-                icon = icon_components[this.$props.icon]
-            } else if (this.icon_pos === 'left' || this.icon_pos === 'top') {
-                row_children.push(this.renderIcon())
-            }
-
-        }
-        if (this.$props.text) {
-            row_children.push(this.renderInner())
-        }
-
-        if (this.$props.icon) {
-            if (this.icon_pos === 'right' || this.icon_pos === 'bottom') {
-                row_children.push(this.renderIcon())
-            }
-
-        }
-
-        children.push(h('div', { class: [styles["text-row"]] }, row_children))
-
-        if (this.$props.sub_text) {
-            row_children = []
-            row_children.push(this.renderSubText())
-            children.push(h('div', { class: [styles["text-row"]] }, row_children))
+        if (this.$props.icon && this.$props.icon in icon_components) {
+            icon = icon_components[this.$props.icon]
         }
 
         return h(PrimeButton, {
-            icon: icon,
-            "class": btnClasses,
-            style: btnStyle,
-            disabled: this.disable,
-            onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
-        },
-            children
+                icon: icon,
+                "class": btnClasses,
+                style: btnStyle,
+                disabled: this.disable,
+                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
+            },
+            {
+                "default": () => {
+                    return this.renderChildren()
+                }
+            }
         )
     }
 });
@@ -256,7 +263,13 @@ export const IconButton = defineComponent({
                 icon: icon, "class": styles["icon-button"],
                 onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
             },
-            sub_nodes
+            {
+                "default": () => {
+                    if(!(this.$props.icon in icon_components)){
+                        return this.renderIcon()
+                    }
+                }
+            }
         )
     }
 });
@@ -758,6 +771,20 @@ export interface IconActionDefinition {
     count?: number,
     clicked?: Function
 }
+
+export const Header = defineComponent({
+    name: 'Header',
+    methods: {
+    },
+    render() {
+        const items: VNode[] = []
+        return h('div', { "class": styles["header"] }, [
+            h('div', { "class": styles["header-start"] }, renderSlot(this.$slots, "start", {})),
+            h('div', { "class": styles["header-center"] }, renderSlot(this.$slots, "center", {})),
+            h('div', { "class": styles["header-end"] }, renderSlot(this.$slots, "end", {})),
+        ])
+    }
+})
 
 export const Footer = defineComponent({
     name: 'Footer',
