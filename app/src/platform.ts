@@ -87,6 +87,10 @@ class AppHostPlatform {
         return this.host.getPlatform()
     }
 
+    getTheme() {
+        return this.init_options.theme ?? "prime"
+    }
+
     mustAgreePrivacy() {
         return this.host.mustAgreePrivacy()
     }

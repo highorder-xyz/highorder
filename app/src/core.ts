@@ -457,6 +457,7 @@ export class AppCore {
     app_id: string
     svc: ServiceOperation
     config: AppConfig
+    platform: Record<string, any>
     privacy_agreed: boolean = false
     app_page: UnwrapNestedRefs<Page>
     session_started: boolean = false
@@ -475,6 +476,7 @@ export class AppCore {
         this.app_id = config.appId
         this.svc = new ServiceOperation(this.config as ServiceConfig)
         this.app_page = Page.getPage(this.app_id)
+        this.platform = app_platform.getPlatform()
     }
 
     static async switchTo(app_id:string){
@@ -501,11 +503,13 @@ export class AppCore {
 
     getPageContext() {
         const p = app_platform.getPlatform()
+        const platform = p.name
+        delete p.name
         return {
-            platform: p.name,
-            vendor: p.vendor ?? "unknown",
+            platform: platform,
             route: this.app_page.route,
-            version: this.version
+            version: this.version,
+            ...p
         }
     }
 

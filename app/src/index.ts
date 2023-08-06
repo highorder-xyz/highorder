@@ -1,8 +1,11 @@
 import {createApp, defineAsyncComponent} from 'vue'
 import i18next from 'i18next';
 import resources from './common/locales.json'
+import PrimeVue from 'primevue/config';
 import {App} from './app'
-import './index.css'
+import './index.css';
+import 'primeicons/primeicons.css';
+import { init_components } from './components'
 import { AppCore, AppConfig} from "./core"
 import { app_platform } from './platform'
 
@@ -38,6 +41,8 @@ export async function bootup(app_configs: AppConfig[], init_options:Record<strin
 
 export async function createHighOrderApp(app_configs: AppConfig[], init_options:Record<string, any> = {}) {
     const app = createApp(App)
+    app.use(PrimeVue, { ripple: true })
+    init_components()
 
     app.component('SeaSunsetMotion', defineAsyncComponent(async () =>{
         const SeaSunsetMotion = await import('./motion/sea_sunset.js')

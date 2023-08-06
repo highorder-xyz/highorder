@@ -1,6 +1,5 @@
-import { defineComponent, ComponentInternalInstance, h, VNode, PropType, DefineComponent, renderSlot, withModifiers } from 'vue';
-import styles from './retro.module.css'
 
+import { defineComponent, ComponentInternalInstance, h, VNode, PropType, DefineComponent, renderSlot, withModifiers } from 'vue';
 import gsap from 'gsap'
 import 'animate.css';
 import { Swiper, SwiperSlide } from "swiper/vue";
@@ -9,19 +8,25 @@ import "swiper/css/effect-cards";
 import { EffectCards } from "swiper";
 import { VideoPlayer as VideoJSVideoPlayer } from '@videojs-player/vue';
 import 'video.js/dist/video-js.css'
-import { RichTextCompiler, RichTextPart, RichTextTag } from '../../common/richtext';
+import { RichTextCompiler, RichTextPart, RichTextTag } from './common/richtext';
+import PrimeButton from 'primevue/button';
+import { PrimeIcons } from 'primevue/api';
+import styles from './components.module.css'
 
 gsap.ticker.fps(10);
 
-export const CloseIcon = defineComponent({
-    name: 'CloseIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 24 24", width: 24, height: 24, ...this.$props }, [
-            h('title', 'X'),
-            h('path', { fill: "currentColor", d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" })
-        ])
+const icon_components: Record<string, string> = {
+}
+
+export function init_components() {
+    for (let [key, value] of Object.entries(PrimeIcons)) {
+        console.log(key, value);
+        const new_key = key.toLowerCase().replaceAll('_', '-')
+        console.log(new_key, value)
+        icon_components[new_key] = value
     }
-});
+}
+
 
 export function get_size_name(size: number) {
     const names = ['extra_extra_large', 'extra_large', 'large', 'normal', 'medium', 'small', 'extra_small']
@@ -73,129 +78,14 @@ export function get_text_color(name: string) {
     return ""
 }
 
-export const HomeIcon = defineComponent({
-    name: 'HomeIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 512 512", width: 24, height: 24, ...this.$props }, [
-            h('title', 'home-icon'),
-            h('path', {
-                style: "fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px",
-                stroke: "currentcolor",
-                d: "M80,212V448a16,16,0,0,0,16,16h96V328a24,24,0,0,1,24-24h80a24,24,0,0,1,24,24V464h96a16,16,0,0,0,16-16V212"
-            }),
-            h('path', {
-                style: "fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px",
-                stroke: "currentcolor",
-                d: "M480,256,266.89,52c-5-5.28-16.69-5.34-21.78,0L32,256"
-            }),
-            h('polyline', {
-                "points": "400 179 400 64 352 64 352 133",
-                style: "fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px",
-                stroke: "currentcolor",
-
-            })
-        ])
-    }
-});
-
-export const BackIcon = defineComponent({
-    name: 'BackIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 512 512", width: 24, height: 24, ...this.$props }, [
-            h('title', 'back-icon'),
-            h('path', {
-                fill: "none",
-                stroke: "currentcolor",
-                "stroke-linecap": "round",
-                "stroke-linejoin": "round",
-                "stroke-width": 48,
-                d: "M244 400L100 256l144-144M120 256h292"
-            })
-        ])
-    }
-});
-
-export const PersonIcon = defineComponent({
-    name: 'PersonIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 512 512", width: 24, height: 24, ...this.$props }, [
-            h('title', 'person-icon'),
-            h('path', {
-                d: "M 344 144 c -3.92 52.87 -44 96 -88 96 s -84.15 -43.12 -88 -96 c -4 -55 35 -96 88 -96 s 92 42 88 96 Z",
-                "fill": "none",
-                "stroke": "currentcolor",
-                "stroke-linecap": "round",
-                "stroke-linejoin": "round",
-                "stroke-width": 32,
-            }),
-            h('path', {
-                d: "M 256 304 c -87 0 -175.3 48 -191.64 138.6 C 62.39 453.52 68.57 464 80 464 h 352 c 11.44 0 17.62 -10.48 15.65 -21.4 C 431.3 352 343 304 256 304 Z",
-                "fill": "none",
-                "stroke": "currentcolor",
-                "stroke-miterlimit": 10,
-                "stroke-width": 32,
-            })
-        ])
-    }
-});
-
-export const HelpIcon = defineComponent({
-    name: 'HelpIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 512 512", width: 24, height: 24, ...this.$props }, [
-            h('title', 'help-icon'),
-            h('path', {
-                d: "M 160 164 s 1.44 -33 33.54 -59.46 C 212.6 88.83 235.49 84.28 256 84 c 18.73 -0.23 35.47 2.94 45.48 7.82 C 318.59 100.2 352 120.6 352 164 c 0 45.67 -29.18 66.37 -62.35 89.18 S 248 298.36 248 324",
-                fill: "none",
-                stroke: "currentcolor",
-                "stroke-linecap": "round",
-                "stroke-miterlimit": 10,
-                "stroke-width": 40,
-            }),
-            h('circle', {
-                cx: 248,
-                cy: 399.99,
-                r: 32,
-                fill: "currentcolor",
-            })
-        ])
-    }
-});
-
-export const SettingsIcon = defineComponent({
-    name: 'SettingsIcon',
-    render() {
-        return h('svg', { viewBox: "0 0 512 512", width: 24, height: 24, ...this.$props }, [
-            h('title', 'settings-icon'),
-            h('path', {
-                d: "M 262.29 192.31 a 64 64 0 1 0 57.4 57.4 a 64.13 64.13 0 0 0 -57.4 -57.4 Z M 416.39 256 a 154.34 154.34 0 0 1 -1.53 20.79 l 45.21 35.46 a 10.81 10.81 0 0 1 2.45 13.75 l -42.77 74 a 10.81 10.81 0 0 1 -13.14 4.59 l -44.9 -18.08 a 16.11 16.11 0 0 0 -15.17 1.75 A 164.48 164.48 0 0 1 325 400.8 a 15.94 15.94 0 0 0 -8.82 12.14 l -6.73 47.89 a 11.08 11.08 0 0 1 -10.68 9.17 h -85.54 a 11.11 11.11 0 0 1 -10.69 -8.87 l -6.72 -47.82 a 16.07 16.07 0 0 0 -9 -12.22 a 155.3 155.3 0 0 1 -21.46 -12.57 a 16 16 0 0 0 -15.11 -1.71 l -44.89 18.07 a 10.81 10.81 0 0 1 -13.14 -4.58 l -42.77 -74 a 10.8 10.8 0 0 1 2.45 -13.75 l 38.21 -30 a 16.05 16.05 0 0 0 6 -14.08 c -0.36 -4.17 -0.58 -8.33 -0.58 -12.5 s 0.21 -8.27 0.58 -12.35 a 16 16 0 0 0 -6.07 -13.94 l -38.19 -30 A 10.81 10.81 0 0 1 49.48 186 l 42.77 -74 a 10.81 10.81 0 0 1 13.14 -4.59 l 44.9 18.08 a 16.11 16.11 0 0 0 15.17 -1.75 A 164.48 164.48 0 0 1 187 111.2 a 15.94 15.94 0 0 0 8.82 -12.14 l 6.73 -47.89 A 11.08 11.08 0 0 1 213.23 42 h 85.54 a 11.11 11.11 0 0 1 10.69 8.87 l 6.72 47.82 a 16.07 16.07 0 0 0 9 12.22 a 155.3 155.3 0 0 1 21.46 12.57 a 16 16 0 0 0 15.11 1.71 l 44.89 -18.07 a 10.81 10.81 0 0 1 13.14 4.58 l 42.77 74 a 10.8 10.8 0 0 1 -2.45 13.75 l -38.21 30 a 16.05 16.05 0 0 0 -6.05 14.08 c 0.33 4.14 0.55 8.3 0.55 12.47 Z",
-                fill: "none",
-                stroke: "currentcolor",
-                "stroke-linecap": "round",
-                "stroke-linejoin": "round",
-                "stroke-width": 32
-            })
-        ])
-    }
-});
-
-const icon_components: Record<string, any> = {
-    "home": HomeIcon,
-    "back": BackIcon,
-    'person': PersonIcon,
-    'help': HelpIcon,
-    'setting': SettingsIcon,
-    'close': CloseIcon
-}
-
 const icon_assets: Record<string, string> = {
-    "wx_login": "assets/retro/image/wx_login.png",
-    "wx_logo": "assets/retro/image/wx_logo.png",
-    "wx_moments": "assets/retro/image/wx_moments.png"
+    "wx_login": "assets/common/wx_login.png",
+    "wx_logo": "assets/common/wx_logo.png",
+    "wx_moments": "assets/common/wx_moments.png"
 }
 
 export const Button = defineComponent({
-    name: 'RetroButton',
+    name: 'Button',
     props: {
         icon: { type: String },
         text: { type: String, default: "" },
@@ -241,11 +131,7 @@ export const Button = defineComponent({
         renderIcon(): VNode | undefined {
             const icon = this.$props.icon
             if (icon) {
-                if (icon in icon_components) {
-                    const component: DefineComponent = icon_components[icon]
-                    return h(component, { width: this.iconSize, height: this.iconSize })
-
-                } else if (icon in icon_assets) {
+                if (icon in icon_assets) {
                     const asset_url = icon_assets[icon]
                     return h('img', { style: { "max-height": `${this.iconSize}px`, "max-width": "100%" }, src: asset_url })
                 } else {
@@ -256,7 +142,7 @@ export const Button = defineComponent({
         },
 
         renderInner() {
-            const textClasses = [styles["retro-button-text"]]
+            const textClasses = [styles["button-text"]]
             const sizeName = get_size_name(this.$props.text_size)
             textClasses.push(styles[sizeName])
             if (this.$props.text) {
@@ -267,7 +153,7 @@ export const Button = defineComponent({
         },
 
         renderSubText() {
-            const textClasses = [styles["retro-button-text"]]
+            const textClasses = [styles["button-text"]]
             const sizeName = get_size_name(this.$props.text_size + 2)
             textClasses.push(styles[sizeName])
             // const nodes = []
@@ -284,7 +170,8 @@ export const Button = defineComponent({
         }
     },
     render() {
-        const btnClasses = [styles["retro-button"]]
+        const btnClasses = [styles["button"]]
+        let icon = ''
         if (["top", "bottom"].includes(this.icon_pos)) {
             btnClasses.push(styles["content_column"])
         }
@@ -304,7 +191,9 @@ export const Button = defineComponent({
         const children: (VNode | undefined)[] = []
         let row_children: (VNode | undefined)[] = []
         if (this.$props.icon) {
-            if (this.icon_pos === 'left' || this.icon_pos === 'top') {
+            if (this.$props.icon in icon_components){
+                icon = icon_components[this.$props.icon]
+            } else if (this.icon_pos === 'left' || this.icon_pos === 'top') {
                 row_children.push(this.renderIcon())
             }
 
@@ -320,16 +209,17 @@ export const Button = defineComponent({
 
         }
 
-        children.push(h('div', { class: [styles["retro-text-row"]] }, row_children))
+        children.push(h('div', { class: [styles["text-row"]] }, row_children))
 
         if (this.$props.sub_text) {
             row_children = []
             row_children.push(this.renderSubText())
-            children.push(h('div', { class: [styles["retro-text-row"]] }, row_children))
+            children.push(h('div', { class: [styles["text-row"]] }, row_children))
         }
 
-        return h('button', {
-            "type": "button", "class": btnClasses,
+        return h(PrimeButton, {
+            icon: icon,
+            "class": btnClasses,
             style: btnStyle,
             disabled: this.disable,
             onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
@@ -340,7 +230,7 @@ export const Button = defineComponent({
 });
 
 export const IconButton = defineComponent({
-    name: 'RetroIconButton',
+    name: 'IconButton',
     props: {
         icon: { type: String, default: "", required: true },
         size: { type: Number, default: 24 }
@@ -350,28 +240,29 @@ export const IconButton = defineComponent({
     },
     methods: {
         renderIcon(): VNode {
-            const icon = this.$props.icon
-            if (icon in icon_components) {
-                const component: DefineComponent = icon_components[icon]
-                return h(component, { width: this.size, height: this.size })
-            } else {
-                return h('img', { width: this.size, height: this.size, src: icon })
-            }
+            return h('img', { width: this.size, height: this.size, src: this.$props.icon })
         }
 
     },
     render() {
-        return h('button', {
-            "type": "button", "class": styles["retro-icon-button"],
-            onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
-        },
-            this.renderIcon()
+        let icon = ''
+        const sub_nodes = []
+        if (this.$props.icon in icon_components){
+            icon = icon_components[this.$props.icon]
+        } else {
+            sub_nodes.push(this.renderIcon())
+        }
+        return h(PrimeButton, {
+                icon: icon, "class": styles["icon-button"],
+                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
+            },
+            sub_nodes
         )
     }
 });
 
 export const IconNumberButton = defineComponent({
-    name: 'RetroIconNumberButton',
+    name: 'IconNumberButton',
     props: {
         number: { type: Number, default: 0 },
         maxDigits: { type: Number, default: 2 },
@@ -411,8 +302,7 @@ export const IconNumberButton = defineComponent({
         renderIcon(): VNode {
             const icon = this.$props.icon
             if (icon in icon_components) {
-                const component: DefineComponent = icon_components[icon]
-                return h(component, { width: this.size, height: this.size })
+                return h('div', { width: this.size, height: this.size, class:icon_components[icon]})
             } else {
                 return h('img', { width: this.size, height: this.size, src: icon })
             }
@@ -422,7 +312,7 @@ export const IconNumberButton = defineComponent({
     render() {
         return h('button', {
             "type": "button",
-            "class": styles["retro-icon-number-button"],
+            "class": styles["icon-number-button"],
             "data-badge": this.numberText,
             onClick: (evt: any) => { evt.stopPropagation(); this.tryEmit() }
         }, [
@@ -432,7 +322,7 @@ export const IconNumberButton = defineComponent({
 });
 
 export const IconNumberText = defineComponent({
-    name: 'RetroIconNumberText',
+    name: 'IconNumberText',
     props: {
         number: { type: Number, required: true },
         maxDigits: { type: Number, default: 6 },
@@ -462,11 +352,10 @@ export const IconNumberText = defineComponent({
         renderIcon(): VNode {
             const icon = this.$props.icon
             if (icon in icon_components) {
-                const component: DefineComponent = icon_components[icon]
-                return h(component, {
+                return h('div', {
                     ref: "icon", width: 24, height: 24,
                     'number-text': this.numberText,
-                    class: [this.iconBounceClass],
+                    class: [this.iconBounceClass, icon_components[icon]],
                     onanimationend: () => {
                         this.$data.iconBounceClass = ''
                     }
@@ -490,7 +379,7 @@ export const IconNumberText = defineComponent({
     },
 
     render() {
-        return h('div', { class: styles["retro-icon-number-text"] }, [
+        return h('div', { class: styles["icon-number-text"] }, [
             this.renderIcon(),
             this.renderNumberText()
         ])
@@ -498,19 +387,19 @@ export const IconNumberText = defineComponent({
 });
 
 export const Divider = defineComponent({
-    name: 'RetroDivider',
+    name: 'Divider',
     props: {
         widthHint: { type: Number, default: 100 }
     },
     methods: {
     },
     render() {
-        return h('div', { "class": styles["retro-divider"], style: { width: `${this.widthHint}%` } })
+        return h('div', { "class": styles["divider"], style: { width: `${this.widthHint}%` } })
     }
 });
 
 export const Title = defineComponent({
-    name: 'RetroTitle',
+    name: 'Title',
     props: {
         text: { type: String, required: true },
         level: { type: Number, default: 1 }
@@ -518,13 +407,13 @@ export const Title = defineComponent({
     methods: {
     },
     render() {
-        return h('div', { "class": styles[`retro-title-${this.level}`] }, this.text)
+        return h('div', { "class": styles[`title-${this.level}`] }, this.text)
     }
 });
 
 
 export const Paragraph = defineComponent({
-    name: 'RetroParagraph',
+    name: 'Paragraph',
     props: {
         text: { type: String, required: true },
         align: { type: String, default: "start" },
@@ -540,14 +429,14 @@ export const Paragraph = defineComponent({
         }
         style["text-align"] = align
         if (this.isRich) {
-            return h(RichText, { "class": styles["retro-paragraph"], style: style, text: this.text })
+            return h(RichText, { "class": styles["paragraph"], style: style, text: this.text })
         } else {
             const texts = this.text.split('\n')
             const nodes = [];
             for (const text of texts) {
                 nodes.push(h('div', text))
             }
-            return h('div', { "class": styles["retro-paragraph"], style: style }, nodes)
+            return h('div', { "class": styles["paragraph"], style: style }, nodes)
         }
 
     }
@@ -555,7 +444,7 @@ export const Paragraph = defineComponent({
 
 
 export const BulletedList = defineComponent({
-    name: 'RetroBulletedList',
+    name: 'BulletedList',
     props: {
         texts: { type: Array as PropType<Array<string>>, default: [] }
     },
@@ -566,7 +455,7 @@ export const BulletedList = defineComponent({
         for (const text of this.texts) {
             children.push(h('li', {}, text))
         }
-        return h('div', { "class": styles["retro-bulleted-list"] }, h('ul', {}, children))
+        return h('div', { "class": styles["bulleted-list"] }, h('ul', {}, children))
     }
 });
 
@@ -580,7 +469,7 @@ export interface ActionDefinition {
 }
 
 export const Modal = defineComponent({
-    name: 'RetroModal',
+    name: 'Modal',
     props: {
         closeIcon: { type: Boolean, default: false },
         showNow: { type: Boolean, default: false, required: false },
@@ -788,7 +677,7 @@ export const Modal = defineComponent({
         }
     },
     render() {
-        const modalClasses = [styles["retro-modal"]]
+        const modalClasses = [styles["modal"]]
         if (this.$data.showModal) {
             modalClasses.push(styles["appear"])
             return h('div', {
@@ -809,12 +698,12 @@ export const Modal = defineComponent({
 export type ModalType = InstanceType<typeof Modal>
 
 export const NavBar = defineComponent({
-    name: 'RetroNavBar',
+    name: 'NavBar',
     props: {
         title: { type: String, default: "" },
         showHome: { type: Boolean, default: false },
         showBack: { type: Boolean, default: false },
-        showPerson: { type: Boolean, default: true }
+        showPerson: { type: Boolean, default: false }
     },
     emits: {
         homeClicked: null,
@@ -833,7 +722,7 @@ export const NavBar = defineComponent({
         },
         renderCenter(): VNode[] {
             const items: VNode[] = []
-            items.push(h('div', { "class": styles["retro-nav-title"] }, this.$props.title))
+            items.push(h('div', { "class": styles["nav-title"] }, this.$props.title))
             return items
         },
         renderRight(): VNode[] {
@@ -850,10 +739,10 @@ export const NavBar = defineComponent({
         }
     },
     render() {
-        return h('div', { "class": styles["retro-nav-bar"] }, [
-            h('div', { "class": styles["retro-nav-area-left"] }, this.renderLeft()),
-            h('div', { "class": styles["retro-nav-area-center"] }, this.renderCenter()),
-            h('div', { "class": styles["retro-nav-area-right"] }, this.renderRight()),
+        return h('div', { "class": styles["nav-bar"] }, [
+            h('div', { "class": styles["nav-area-left"] }, this.renderLeft()),
+            h('div', { "class": styles["nav-area-center"] }, this.renderCenter()),
+            h('div', { "class": styles["nav-area-right"] }, this.renderRight()),
         ])
     }
 })
@@ -871,7 +760,7 @@ export interface IconActionDefinition {
 }
 
 export const Footer = defineComponent({
-    name: 'RetroFooter',
+    name: 'Footer',
     props: {
         text: { type: String, default: "" },
         leftActions: { type: Array as PropType<Array<ActionDefinition>>, default: () => { return [] } },
@@ -891,7 +780,7 @@ export const Footer = defineComponent({
         },
         renderCenter(): VNode[] {
             const items: VNode[] = []
-            items.push(h('div', { "class": styles["retro-footer-text"] }, this.$props.text))
+            items.push(h('div', { "class": styles["footer-text"] }, this.$props.text))
             return items
         },
         renderRight(): VNode[] {
@@ -904,10 +793,10 @@ export const Footer = defineComponent({
         }
     },
     render() {
-        return h('div', { "class": styles["retro-footer"] }, [
-            h('div', { "class": styles["retro-footer-area-left"] }, this.renderLeft()),
-            h('div', { "class": styles["retro-footer-area-center"] }, this.renderCenter()),
-            h('div', { "class": styles["retro-footer-area-right"] }, this.renderRight()),
+        return h('div', { "class": styles["footer"] }, [
+            h('div', { "class": styles["footer-area-left"] }, this.renderLeft()),
+            h('div', { "class": styles["footer-area-center"] }, this.renderCenter()),
+            h('div', { "class": styles["footer-area-right"] }, this.renderRight()),
         ])
     }
 })
@@ -915,7 +804,7 @@ export const Footer = defineComponent({
 export type FooterType = InstanceType<typeof Footer>
 
 export const ActionBar = defineComponent({
-    name: 'RetroActionBar',
+    name: 'ActionBar',
     props: {
         actions: { type: Array as PropType<Array<IconActionDefinition>>, default: () => { return [] } },
         leftActions: { type: Array as PropType<Array<IconActionDefinition>>, default: () => { return [] } },
@@ -973,10 +862,10 @@ export const ActionBar = defineComponent({
         },
     },
     render() {
-        return h('div', { "class": styles["retro-actionbar"] }, [
-            h('div', { "class": styles["retro-actionbar-left"] }, this.renderActions(this.$props.leftActions)),
-            h('div', { "class": styles["retro-actionbar-center"] }, this.renderActions(this.$props.actions)),
-            h('div', { "class": styles["retro-actionbar-right"] }, this.renderActions(this.$props.rightActions)),
+        return h('div', { "class": styles["actionbar"] }, [
+            h('div', { "class": styles["actionbar-left"] }, this.renderActions(this.$props.leftActions)),
+            h('div', { "class": styles["actionbar-center"] }, this.renderActions(this.$props.actions)),
+            h('div', { "class": styles["actionbar-right"] }, this.renderActions(this.$props.rightActions)),
         ])
     }
 })
@@ -997,7 +886,7 @@ interface AlertDataInterface {
 }
 
 export const Alert = defineComponent({
-    name: "RetroAlert",
+    name: "Alert",
     props: {
         top: { type: Number, default: 40 },
         bottom: { type: Number, default: 40 },
@@ -1061,7 +950,7 @@ export const Alert = defineComponent({
         },
 
         renderAlert(alert: AlertInterface) {
-            const rootClasses = [styles["retro-alert"]]
+            const rootClasses = [styles["alert"]]
             for (const part of alert.position.split(" "))
                 rootClasses.push(styles[part])
             if (alert.status) {
@@ -1104,7 +993,7 @@ export interface HeroAnnotationText {
 }
 
 export const Hero = defineComponent({
-    name: 'RetroHero',
+    name: 'Hero',
     props: {
         text: { type: String, default: "" },
         annotation_text: { type: Object as PropType<HeroAnnotationText>, default: undefined },
@@ -1146,7 +1035,7 @@ export const Hero = defineComponent({
 
 
 export const AnnotationText = defineComponent({
-    name: 'RetroAnnotationText',
+    name: 'AnnotationText',
     props: {
         text: { type: String, default: "" },
         annotation: { type: String, default: "" },
@@ -1177,7 +1066,7 @@ export const AnnotationText = defineComponent({
 });
 
 export const Row = defineComponent({
-    name: 'RetroRow',
+    name: 'Row',
     props: {
         justify: { type: String, default: "start" },
         align: { type: String, default: "center" },
@@ -1198,7 +1087,7 @@ export const Row = defineComponent({
 });
 
 export const Column = defineComponent({
-    name: 'RetroColumn',
+    name: 'Column',
     props: {
         justify: { type: String, default: "start" },
         align: { type: String, default: "center" },
@@ -1236,7 +1125,7 @@ export interface MenuItem {
 }
 
 export const NavMenu = defineComponent({
-    name: 'RetroNavMenu',
+    name: 'NavMenu',
     props: {
         size: { type: Number },
         h_size: { type: Number, default: 3 },
@@ -1286,7 +1175,7 @@ export interface CountWrapper {
 }
 
 export const IconCountText = defineComponent({
-    name: 'RetroIconCountText',
+    name: 'IconCountText',
     props: {
         icon: { type: String, default: "" },
         animate: { type: Boolean, default: true },
@@ -1323,7 +1212,7 @@ export const IconCountText = defineComponent({
 });
 
 export const ProgressBar = defineComponent({
-    name: 'RetroProgressBar',
+    name: 'ProgressBar',
     props: {
         percent: {type: Number, default: -1},
         value: { type: Number, default: -1},
@@ -1365,10 +1254,10 @@ export const ProgressBar = defineComponent({
 });
 
 export const StarRating = defineComponent({
-    name: 'RetroStarRating',
+    name: 'StarRating',
     props: {
         rating: { type: Number, default: 1 },
-        icon: { type: String, default: "assets/retro/image/star_full.png" },
+        icon: { type: String, default: "assets/common/star_full.png" },
         animate: { type: Boolean, default: true }
     },
     render() {
@@ -1387,7 +1276,7 @@ export const StarRating = defineComponent({
 });
 
 export const IconTitle = defineComponent({
-    name: 'RetroIconTitle',
+    name: 'IconTitle',
     props: {
         icon: { type: String },
         count: { type: Number, default: 3 }
@@ -1409,7 +1298,7 @@ export const IconTitle = defineComponent({
 });
 
 export const Icon = defineComponent({
-    name: 'RetroIcon',
+    name: 'Icon',
     props: {
         icon: { type: String, default: "" },
         size: { type: Number, default: 3}
@@ -1431,7 +1320,7 @@ export const Icon = defineComponent({
 
 
 export const IconText = defineComponent({
-    name: 'RetroIconText',
+    name: 'IconText',
     props: {
         text: { type: String, default: "" },
         icon: { type: String, default: "" },
@@ -1459,7 +1348,7 @@ export const IconText = defineComponent({
 
 
 export const TableView = defineComponent({
-    name: 'RetroTableView',
+    name: 'TableView',
 
     props: {
         columns: { type: Array, default: [] },
@@ -1501,7 +1390,7 @@ export const TableView = defineComponent({
 
 
 export const Card = defineComponent({
-    name: 'RetroCard',
+    name: 'Card',
     props: {
         title: { type: String, default: "" },
         showBorder: { type: Boolean, default: true },
@@ -1513,7 +1402,7 @@ export const Card = defineComponent({
 });
 
 export const CardSwiper = defineComponent({
-    name: 'RetroCardSwiper ',
+    name: 'CardSwiper ',
     props: {
         title: { type: String, default: "" },
         cards: { type: Array, default: [] },
@@ -1543,23 +1432,23 @@ export const CardSwiper = defineComponent({
 });
 
 export const Loader = defineComponent({
-    name: 'RetroLoader',
+    name: 'Loader',
     render() {
         return h('span', {
-            class: styles["retro-loader"]
+            class: styles["loader"]
         })
     }
 });
 
 export const ImageView = defineComponent({
-    name: 'RetroImageView',
+    name: 'ImageView',
     props: {
         image_url: { type: String, default: "" },
         image_type: { type: String, default: "image/jpeg" },
         size: { type: Number, default: 3 }
     },
     render() {
-        const viewClasses = [styles["retro-image-view"]]
+        const viewClasses = [styles["image-view"]]
         const sizeName = get_size_name(this.$props.size)
         viewClasses.push(styles[sizeName])
 
@@ -1572,7 +1461,7 @@ export const ImageView = defineComponent({
 });
 
 export const VideoPlayer = defineComponent({
-    name: 'RetroVideoPlayer',
+    name: 'VideoPlayer',
     props: {
         video_url: { type: String, default: "" },
         poster_url: { type: String, default: "" },
@@ -1585,7 +1474,7 @@ export const VideoPlayer = defineComponent({
         size: { type: Number, default: 3 }
     },
     render() {
-        const playerClasses = [styles["retro-video-player"]]
+        const playerClasses = [styles["video-player"]]
         const sizeName = get_size_name(this.$props.size)
         playerClasses.push(styles[sizeName])
 
@@ -1606,7 +1495,7 @@ export const VideoPlayer = defineComponent({
 });
 
 export const RichText = defineComponent({
-    name: 'RetroRichText',
+    name: 'RichText',
     props: {
         text: { type: String, default: "" }
     },

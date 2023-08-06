@@ -1,11 +1,11 @@
 :root {
-    --retro-modal-backdrop-color: rgba(255, 255, 255, 0.7);
-    --retro-modal-bg-color: #fff;
-    --retro-modal-shadow-color: rgba(0, 0, 0, 0.8);
+    --modal-backdrop-color: rgba(255, 255, 255, 0.7);
+    --modal-bg-color: #fff;
+    --modal-shadow-color: rgba(0, 0, 0, 0.8);
 
 }
 
-.retro-icon-button {
+.icon-button {
     user-select: none;
     border: 2px solid #000;
     aspect-ratio: 1;
@@ -22,19 +22,19 @@
     box-shadow: 0 3px 0 0 #000;
 }
 
-.retro-icon-button:active {
+.icon-button:active {
     margin-top: calc(0.1em + 3px);
     margin-bottom: 0;
     box-shadow: none;
 }
 
-.retro-icon-button:disabled {
+.icon-button:disabled {
     pointer-events: none;
     cursor: default;
     opacity: 0.8;
 }
 
-.retro-button {
+.button {
     user-select: none;
     border: 2px solid #000;
     min-width: 2em;
@@ -52,68 +52,68 @@
     box-shadow: 0 3px 0 0 #000;
 }
 
-.retro-button:active {
+.button:active {
     margin-top: calc(0.25em + 3px);
     margin-bottom: calc(0.25em - 3px);
     box-shadow: none;
 }
 
-.retro-button.primary {
+.button.primary {
     background-color: #b1ffb1;
 }
 
-.retro-button.content_column {
+.button.content_column {
     flex-direction: column;
 }
 
-.retro-button:disabled {
+.button:disabled {
     pointer-events: none;
     cursor: default;
     opacity: 0.6;
 }
 
-.retro-button.v_normal {
+.button.v_normal {
     min-height: 2em;
 }
 
-.retro-button.v_large {
+.button.v_large {
     min-height: 2.5em;
 }
 
-.retro-button.v_extra_large {
+.button.v_extra_large {
     min-height: 3.13em;
 }
 
-.retro-button.v_extra_extra_large {
+.button.v_extra_extra_large {
     min-height: 3.90em;
 }
 
-.retro-button.h_extra_small {
+.button.h_extra_small {
     width: 2.5em;
 }
 
-.retro-button.h_small {
+.button.h_small {
     width: 3.5em;
 }
 
-.retro-button.h_medium {
+.button.h_medium {
     width: 5.5em;
 }
 
-.retro-button.h_normal {
+.button.h_normal {
     width: 7.5em;
 }
 
-.retro-button.h_large {
+.button.h_large {
     width: 10.5em;
 }
 
-.retro-button.h_extra_large {
+.button.h_extra_large {
     width: 14.5em;
 }
 
 
-.retro-button-text {
+.button-text {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -123,35 +123,35 @@
     text-decoration: none;
 }
 
-.retro-button-text.extra_small {
+.button-text.extra_small {
     font-size: 0.58em;
 }
 
-.retro-button-text.small {
+.button-text.small {
     font-size: 0.69em;
 }
 
-.retro-button-text.medium {
+.button-text.medium {
     font-size: 0.83em;
 }
 
-.retro-button-text.normal {
+.button-text.normal {
     font-size: 1.0em;
 }
 
-.retro-button-text.large {
+.button-text.large {
     font-size: 1.25em;
 }
 
-.retro-button-text.extra_large {
+.button-text.extra_large {
     font-size: 1.56em;
 }
 
-.retro-button-text.extra_extra_large {
+.button-text.extra_extra_large {
     font-size: 1.94em;
 }
 
-.retro-icon-number-button {
+.icon-number-button {
     user-select: none;
     border: 2px solid #000;
     justify-content: center;
@@ -168,19 +168,19 @@
     box-shadow: 0 3px 0 0 #000;
 }
 
-.retro-icon-number-button:active {
+.icon-number-button:active {
     margin-top: calc(0.1em + 3px);
     margin-bottom: 0;
     box-shadow: none;
 }
 
-.retro-icon-number-button:disabled {
+.icon-number-button:disabled {
     pointer-events: none;
     cursor: default;
     opacity: 0.6;
 }
 
-.retro-icon-number-button[data-badge]:after {
+.icon-number-button[data-badge]:after {
     content: attr(data-badge);
     position: absolute;
     right: 1px;
@@ -195,7 +195,7 @@
     /* box-shadow:0 0 1px #333; */
 }
 
-.retro-icon-number-text {
+.icon-number-text {
     justify-content: center;
     align-items: center;
     flex-direction: row;
@@ -234,7 +234,7 @@
     100% { transform: rotate(360deg) }
 }
 
-.retro-loader {
+.loader {
     box-sizing: border-box;
     width: 48px;
     height: 48px;
@@ -246,7 +246,7 @@
     animation: rotation 1.2s linear infinite;
 }
 
-.retro-loader:after {
+.loader:after {
     box-sizing: border-box;
     content: '';
     position: absolute;
@@ -260,65 +260,65 @@
     border-color: #1ba784 transparent;
 }
 
-.retro-divider {
+.divider {
     margin-top: 0.25em;
     border-top: 3px solid #bbb;
     margin-bottom: 1em;
 }
 
-.retro-title-1 {
+.title-1 {
     font-size: 3em;
     text-align: center;
 }
 
-.retro-title-2 {
+.title-2 {
     font-size: 2.5em;
     font-weight: bold;
     text-align: center;
 }
 
-.retro-title-3 {
+.title-3 {
     font-size: 2.0em;
     font-weight: bold;
     text-align: center;
 }
 
-.retro-title-4 {
+.title-4 {
     font-size: 1.5em;
     font-weight: bold;
     text-align: center;
 }
 
-.retro-title-5 {
+.title-5 {
     font-size: 1.25em;
     text-align: center;
 }
 
-.retro-title-6 {
+.title-6 {
     font-size: 1em;
     text-align: center;
 }
 
-.retro-paragraph {
+.paragraph {
     display: block;
     text-align: start;
     /* text-indent: 2em; */
     margin-bottom: 1rem;
 }
 
-.retro-bulleted-list {
+.bulleted-list {
     display: block;
     text-align: start;
 }
 
 
-.retro-modal {
+.modal {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--retro-modal-backdrop-color);
+    background-color: var(--modal-backdrop-color);
     backdrop-filter: blur(4px) saturate(180%);
     display: flex;
     flex-direction: column;
@@ -330,14 +330,14 @@
 }
 
 
-.retro-modal.appear {
+.modal.appear {
     pointer-events: auto;
     opacity: 1;
 }
 
 
-.retro-modal .content {
-    background-color: var(--retro-modal-bg-color);
+.modal .content {
+    background-color: var(--modal-bg-color);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -350,7 +350,7 @@
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-.retro-modal .close-bar {
+.modal .close-bar {
     width: 100%;
     height: 3em;
     display: flex;
@@ -361,17 +361,17 @@
 
 
 @media screen and (min-width: 30em) {
-    .retro-modal {
+    .modal {
         justify-content: center;
     }
 
-    .retro-modal .content {
+    .modal .content {
         width: 30em;
         margin: 1em;
     }
 }
 
-.retro-modal .title-bar {
+.modal .title-bar {
     padding: 0.5em;
     margin: 0;
     display: flex;
@@ -380,7 +380,7 @@
     flex-direction: row;
 }
 
-.retro-modal .title-action {
+.modal .title-action {
     margin: 0;
     display: flex;
     flex-grow: 0;
@@ -388,7 +388,7 @@
     justify-content: center;
 }
 
-.retro-modal .title {
+.modal .title {
     font-size: 1.25em;
     margin: 0;
     flex-grow: 1;
@@ -398,7 +398,7 @@
     min-height: 1.75em;
 }
 
-.retro-modal .close {
+.modal .close {
     position: absolute;
     top: 0.25em;
     right: 0.25em;
@@ -406,7 +406,7 @@
     z-index: 1;
 }
 
-.retro-modal .options {
+.modal .options {
     display: flex;
     flex-direction: row;
     padding-bottom: 0.3rem;
@@ -414,37 +414,37 @@
     background: rgb(239, 239, 239);
 }
 
-.retro-modal .vertical-options {
+.modal .vertical-options {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.retro-modal .vertical-options .retro-button {
+.modal .vertical-options .button {
     flex: 1 1 0;
     max-width: 20em;
     width: 72%;
 }
 
-.retro-modal .options.left {
+.modal .options.left {
     justify-content: flex-start;
 }
 
-.retro-modal .options.center {
+.modal .options.center {
     justify-content: center;
 }
 
-.retro-modal .options.right {
+.modal .options.right {
     justify-content: flex-end;
 }
 
-.retro-modal .options .retro-button {
+.modal .options .button {
     flex: 1 1 0;
     max-width: 40%;
 }
 
-.retro-modal .text {
+.modal .text {
     font-size: 1.1em;
     margin-top: 0;
     padding: 1em;
@@ -452,7 +452,7 @@
     overflow-x: hidden;
 }
 
-.retro-modal .text.extra_large {
+.modal .text.extra_large {
     font-size: 1.5em;
     line-height: 1em;
     margin-top: 0;
@@ -461,7 +461,7 @@
     overflow-x: hidden;
 }
 
-.retro-modal .text.large {
+.modal .text.large {
     font-size: 1.25em;
     line-height: 1em;
     margin-top: 0;
@@ -470,7 +470,7 @@
     overflow-x: hidden;
 }
 
-.retro-modal .text.medium {
+.modal .text.medium {
     font-size: 0.75em;
     line-height: 1em;
     margin-top: 0;
@@ -479,7 +479,7 @@
     overflow-x: hidden;
 }
 
-.retro-modal .text.small {
+.modal .text.small {
     font-size: 0.5em;
     line-height: 1em;
     margin-top: 0;
@@ -488,11 +488,11 @@
     overflow-x: hidden;
 }
 
-.retro-modal .text.left {
+.modal .text.left {
     text-align: left;
 }
 
-.retro-modal .custom_text {
+.modal .custom_text {
     font-size: 1.1em;
     margin-top: 0;
     padding: 1em;
@@ -504,7 +504,7 @@
     align-items: center;
 }
 
-.retro-nav-bar {
+.nav-bar {
     display: flex;
     width: 100%;
     margin-bottom: 0.4em;
@@ -517,37 +517,37 @@
 }
 
 @media screen and (min-width: 30em) {
-    .retro-nav-bar {
+    .nav-bar {
         width: 30em;
     }
 }
 
-.retro-nav-area-left {
+.nav-area-left {
     display: flex;
     justify-content: flex-start;
     align-items: center;
     width: 30%;
 }
 
-.retro-nav-area-center {
+.nav-area-center {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 40%;
 }
 
-.retro-nav-area-right {
+.nav-area-right {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     width: 30%;
 }
 
-.retro-nav-title {
+.nav-title {
     font-size: 1.25em;
 }
 
-.retro-footer {
+.footer {
     display: flex;
     justify-content: space-between;
     align-self: center;
@@ -562,37 +562,37 @@
 }
 
 @media screen and (min-width: 30em) {
-    .retro-footer {
+    .footer {
         width: 30em;
     }
 }
 
-.retro-footer-area-left {
+.footer-area-left {
     display: flex;
     justify-content: flex-start;
     align-items: center;
     min-width: 15%;
 }
 
-.retro-footer-area-center {
+.footer-area-center {
     display: flex;
     justify-content: center;
     align-items: center;
     min-width: 15%;
 }
 
-.retro-footer-area-right {
+.footer-area-right {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     min-width: 15%;
 }
 
-.retro-footer-text {
+.footer-text {
     font-size: 1em;
 }
 
-.retro-actionbar {
+.actionbar {
     display: flex;
     justify-content: space-between;
     align-self: center;
@@ -607,39 +607,39 @@
 }
 
 @media screen and (min-width: 30em) {
-    .retro-actionbar {
+    .actionbar {
         width: 30em;
     }
 }
 
-.retro-actionbar-left {
+.actionbar-left {
     display: flex;
     justify-content: flex-start;
     align-items: center;
     flex-grow: 1
 }
 
-.retro-actionbar-center {
+.actionbar-center {
     display: flex;
     justify-content: center;
     align-items: center;
     flex-grow: 3
 }
 
-.retro-actionbar-center .retro-button {
+.actionbar-center .button {
     margin-left: 0.1em;
     margin-right: 0.1em;
     align-items: center;
 }
 
-.retro-actionbar-right {
+.actionbar-right {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     flex-grow: 1
 }
 
-.retro-alert {
+.alert {
     position: fixed;
     display: block;
     margin: 0px;
@@ -653,76 +653,76 @@
     padding: 10px;
 }
 
-.retro-alert.top {
+.alert.top {
     top: 20px;
 }
 
-.retro-alert.bottom {
+.alert.bottom {
     bottom: 20px;
 }
 
-.retro-alert.center {
+.alert.center {
     right: 50%;
 }
 
-.retro-alert.top.center {
+.alert.top.center {
     transform: translate(50%, -100%);
     max-width: calc(100vw - 60px);
 }
 
-.retro-alert.bottom.center {
+.alert.bottom.center {
     transform: translate(50%, 100%);
     max-width: calc(100vw - 60px);
 }
 
-.retro-alert.right {
+.alert.right {
     transform: translate(100%, 0px);
     max-width: calc(100vw - 60px);
     right: 20px;
 }
 
-.retro-alert.left {
+.alert.left {
     transform: translate(-100%, 0px);
     max-width: calc(100vw - 60px);
     left: 20px;
 }
 
-.retro-alert.active {
+.alert.active {
     opacity: 1;
     transform: translate(0px, 0px);
 }
 
-.retro-alert.center.active {
+.alert.center.active {
     opacity: 1;
     transform: translate(50%, 0%);
 }
 
-.retro-alert>.alert-container {
+.alert>.alert-container {
     display: flex;
     position: relative;
     width: 100%;
 }
 
-.retro-alert>.alert-container .alert-content {
+.alert>.alert-container .alert-content {
     display: flex;
     width: 100%;
     flex-direction: column;
     justify-content: center;
 }
 
-.retro-alert>.alert-container .alert-content>* {
+.alert>.alert-container .alert-content>* {
     text-align: left;
     margin: 2px 4px;
     padding-right: 6px;
 }
 
-.retro-alert>.alert-container .alert-content>h5.alert-head {
+.alert>.alert-container .alert-content>h5.alert-head {
     font-size: 18px;
     font-weight: 600;
     color: black;
 }
 
-.retro-alert>.alert-container .alert-content>p.alert-message {
+.alert>.alert-container .alert-content>p.alert-message {
     font-size: 16px;
     min-width: fit-content;
     font-weight: bold;
@@ -898,7 +898,7 @@
     height: 1.5em;
 }
 
-.retro-text-row {
+.text-row {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1340,66 +1340,66 @@
     background-color: #fff;
 }
 
-.retro-video-player {
+.video-player {
     border:none;
 }
 
-.retro-video-player.extra_small {
+.video-player.extra_small {
     max-width: 90%
 }
 
-.retro-video-player.small {
+.video-player.small {
     max-width: 90%
 }
 
-.retro-video-player.medium {
+.video-player.medium {
     max-width: 90%
 }
 
-.retro-video-player.normal {
+.video-player.normal {
     max-width: 90%
 }
 
-.retro-video-player.large {
+.video-player.large {
     max-width: 90%
 }
 
-.retro-video-player.extra_large {
+.video-player.extra_large {
     max-width: 90%
 }
 
-.retro-video-player.extra_extra_large {
+.video-player.extra_extra_large {
     max-width: 100%
 }
 
-.retro-image-view {
+.image-view {
     border:none;
 }
 
-.retro-image-view.extra_small {
+.image-view.extra_small {
     max-width: 15%
 }
 
-.retro-image-view.small {
+.image-view.small {
     max-width: 28%
 }
 
-.retro-image-view.medium {
+.image-view.medium {
     max-width: 40%
 }
 
-.retro-image-view.normal {
+.image-view.normal {
     max-width: 60%
 }
 
-.retro-image-view.large {
+.image-view.large {
     max-width: 80%
 }
 
-.retro-image-view.extra_large {
+.image-view.extra_large {
     max-width: 90%
 }
 
-.retro-image-view.extra_extra_large {
+.image-view.extra_extra_large {
     max-width: 100%
 }

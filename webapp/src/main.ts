@@ -345,10 +345,15 @@ const highorder_app_config = {
     clientSecret: options.client_secret ?? ""
 }
 
+const init_options: Record<string, any> = {}
+
+if(options.theme !== undefined ){
+    init_options.theme = options.theme
+}
 console.log(highorder_app_config)
 
 app_configs.push(highorder_app_config)
 
-createHighOrderApp(app_configs, {}).then((app: any) => {
+createHighOrderApp(app_configs, init_options).then((app: any) => {
     app.mount('#app')
 })

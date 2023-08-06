@@ -45,7 +45,7 @@ import { NavBar, Footer, Button, ActionDefinition,
     Icon,
     IconButton,
     ProgressBar
-} from './styles/retro/retro'
+} from './components'
 
 import { app_platform } from './platform';
 import { HolaCommand, ShowAlertCommandArg, ShowMotionCommandArg } from './client';
@@ -349,7 +349,8 @@ export const App = defineComponent({
             loading: false,
             modal_helper: modal_helper,
             alert_helper: new AlertHelper(this),
-            ad_helper: new AdHelper(modal_helper)
+            ad_helper: new AdHelper(modal_helper),
+            theme: app_platform.getTheme()
         }
     },
     computed: {
@@ -451,7 +452,7 @@ export const App = defineComponent({
                 console.log('session start.')
                 clearTimeout(timerId)
                 this.loading = false
-                this.handleImmediateCommands(commands, {route:"/", modal_id: undefined})
+                this.handleImmediateCommands(commands, {route:"/", modal_id: undefined, })
             }).catch((err: Error) => {
                 console.log('load home page error.', err)
                 clearTimeout(timerId)
