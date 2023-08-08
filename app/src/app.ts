@@ -418,7 +418,7 @@ export const App = defineComponent({
         }
     },
     beforeMount() {
-        changeTheme('viva-light', () => {})
+        changeTheme('retro-light', () => {})
     },
     methods: {
         showPrivacyModal(content_html?: string){
