@@ -105,6 +105,31 @@ export function renderDecorationComponent(name: string, props: any, children:any
     return h('div', {...props}, 'not exits decoration')
 }
 
+export function switchTheme(newTheme:string, linkElementId:string, callback:Function) {
+    const linkElement = document.getElementById(linkElementId);
+    if (linkElement === null){
+        console.log(`theme node ID ${linkElementId} not exits, switchTheme failed.`)
+        return
+    }
+    const cloneLinkElement = linkElement!.cloneNode(true) as HTMLElement;
+    const newThemeUrl = `/assets/themes/${newTheme}/theme.css`;
+
+    cloneLinkElement.setAttribute('id', linkElementId + '-clone');
+    cloneLinkElement.setAttribute('href', newThemeUrl);
+    cloneLinkElement.addEventListener('load', () => {
+        linkElement.remove();
+        cloneLinkElement.setAttribute('id', linkElementId);
+
+        if (callback) {
+            callback();
+        }
+    });
+    linkElement.parentNode && linkElement.parentNode.insertBefore(cloneLinkElement, linkElement.nextSibling);
+}
+
+export function changeTheme(newTheme:string, callback:Function) {
+    return switchTheme(newTheme, 'theme-link', callback)
+}
 
 export interface AlertOption{
     top?:number,
@@ -391,6 +416,9 @@ export const App = defineComponent({
             }
 
         }
+    },
+    beforeMount() {
+        changeTheme('viva-light', () => {})
     },
     methods: {
         showPrivacyModal(content_html?: string){

@@ -3,8 +3,6 @@ import i18next from 'i18next';
 import resources from './common/locales.json'
 import PrimeVue from 'primevue/config';
 import {App} from './app'
-import 'primevue/resources/themes/viva-light/theme.css';
-import 'primevue/resources/primevue.min.css';
 import 'primeicons/primeicons.css';
 import './index.css';
 import { init_components } from './components'
