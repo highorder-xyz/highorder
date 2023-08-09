@@ -88,7 +88,7 @@ class AppHostPlatform {
     }
 
     getTheme() {
-        return this.init_options.theme ?? "prime"
+        return this.init_options.theme ?? undefined
     }
 
     mustAgreePrivacy() {

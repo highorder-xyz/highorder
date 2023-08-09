@@ -57,6 +57,32 @@ import { showConfetti } from './motion/confetti';
 
 type PlayableComponent = ApplyableInstance;
 
+const themes_all = {
+    'fluent-light': {},
+    'retro-light': {},
+    'tailwind-light': {},
+    'lara-dark-blue': {},
+    'lara-light-blue': {},
+    'md-dark-indigo': {},
+    'md-light-indigo': {},
+    'md-dark-deeppurple': {},
+    'md-light-deeppurple': {},
+    'mdc-dark-deeppurple': {},
+    'mdc-light-deeppurple': {},
+    'mdc-dark-indigo': {},
+    'mdc-light-indigo': {},
+    'lara-dark-teal': {},
+    'lara-light-teal': {},
+    'lara-dark-indigo': {},
+    'lara-light-indigo': {},
+    'lara-dark-purple': {},
+    'lara-light-purple': {},
+    'viva-dark': {},
+    'viva-light': {},
+    'soho-dark': {},
+    'soho-light': {}
+}
+
 function toPascalCase(name:string) {
     let thePascalCase = `-${name}`.replace(/-./g, match => match[1].toUpperCase())
     return thePascalCase;
@@ -418,7 +444,14 @@ export const App = defineComponent({
         }
     },
     beforeMount() {
-        changeTheme('retro-light', () => {})
+        const theme = app_platform.getTheme()
+        if(typeof theme  === 'string' && theme.length > 0){
+            if(theme in themes_all){
+                changeTheme(theme, () => {})
+            } else {
+                console.log(`Theme ${theme} not supported.`)
+            }
+        }
     },
     methods: {
         showPrivacyModal(content_html?: string){
