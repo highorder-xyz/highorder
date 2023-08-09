@@ -55,7 +55,7 @@ export interface ButtonParam {
 }
 
 
-export interface HeaderElement {
+export interface NavBarElement {
     type: string
     title?: string
     show_home: boolean
@@ -116,7 +116,15 @@ export interface ButtonElement {
 export interface TitleElement {
     type: string;
     level: number
+    title: string
+    sub_title?: string
+}
+
+export interface LinkElement {
+    type: string;
     text: string
+    target_url: string
+    open_mode?: string
 }
 
 export interface ProgressBarElement {
@@ -289,6 +297,13 @@ export interface NavMenuElement {
     elements: MenuItemElement[]
 }
 
+export interface HeaderElement {
+    type: string
+    start_elements?: HolaElement[];
+    elements?: HolaElement[];
+    end_elements?: HolaElement[];
+}
+
 export interface FooterElement {
     type: string
     left_elements?: ActionElement[];
@@ -328,10 +343,11 @@ export interface CardSwiperElement {
     elements: HolaElement[]
 }
 
-export type HolaElement = (HeaderElement | FooterElement
+export type HolaElement = (HeaderElement | FooterElement | NavBarElement
     | HeroElement | NavMenuElement | DecorationElement
     | MotionElement | PlayableElement | ActionBarElement
     | TableViewElement | ModalWidgetElement);
+
 
 export interface HolaPage {
     type: string

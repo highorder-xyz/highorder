@@ -1164,9 +1164,9 @@ class HolaService:
             "style": style
         }
 
-    async def transform_header(self, obj, context):
+    async def transform_navbar(self, obj, context):
         ret = {
-            "type": "header",
+            "type": "navbar",
             "show_home": obj.get('show_home', False),
             "show_back": obj.get('show_back', False),
             "show_profile": obj.get('show_profile', False),
@@ -1178,6 +1178,19 @@ class HolaService:
                 transformed = await self.transform_element(element, context)
                 elements.add(transformed)
             ret['elements'] = elements
+        return ret
+
+    async def transform_header(self, obj, context):
+        ret = {
+            "type": "header",
+        }
+        for name in ['start_elements', 'elements', 'end_elements']:
+            if name in obj:
+                elements = AutoList()
+                for element in obj[name]:
+                    transformed = await self.transform_element(element, context)
+                    elements.add(transformed)
+                ret[name] = elements
         return ret
 
     async def load_info_object(self, target):
@@ -1283,7 +1296,15 @@ class HolaService:
             return {
                 "type": "title",
                 "level": element.get('level', 3),
-                "text": self.eval_value(element["text"], context)
+                "title": self.eval_value(element["title"], context),
+                "sub_title": self.eval_value(element.get("sub_title"), context)
+            }
+        elif element["type"] == 'link':
+            return {
+                "type": "link",
+                "text": self.eval_value(element["text"], context),
+                "open_mode": self.eval_value(element.get("open_mode", "new"), context),
+                "target_url": self.eval_value(element.get("target_url", ""), context),
             }
         elif element["type"] == 'annotation-text':
             return {
@@ -1440,6 +1461,8 @@ class HolaService:
             return await self.transform_row(element, context)
         elif element["type"] == 'column':
             return await self.transform_column(element, context)
+        elif element["type"] == 'navbar':
+            return await self.transform_navbar(element, context)
         elif element["type"] == 'header':
             return await self.transform_header(element, context)
         elif element["type"] == 'footer':

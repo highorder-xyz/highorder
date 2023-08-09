@@ -236,6 +236,25 @@ export const Button = defineComponent({
     }
 });
 
+export const Link = defineComponent({
+    name: 'Link',
+    props: {
+        text: { type: String, default: "" },
+        open_mode: { type: String, default: "new" },
+        target_url: { type: String, default: ""}
+    },
+    emits: {
+        clicked: null
+    },
+    render() {
+        return h(PrimeButton, {
+            label: this.text,
+            link: true,
+            onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked", this.target_url, this.open_mode) }
+        })
+    }
+});
+
 export const IconButton = defineComponent({
     name: 'IconButton',
     props: {
@@ -414,13 +433,19 @@ export const Divider = defineComponent({
 export const Title = defineComponent({
     name: 'Title',
     props: {
-        text: { type: String, required: true },
-        level: { type: Number, default: 1 }
+        title: { type: String, required: true },
+        level: { type: Number, default: 1 },
+        sub_title: { type: String, default: ""}
     },
     methods: {
     },
     render() {
-        return h('div', { "class": styles[`title-${this.level}`] }, this.text)
+        const nodes: VNode[] = []
+        nodes.push(h('span', { "class": styles[`title-${this.level}`] }, this.title))
+        if(this.sub_title.length > 0){
+            nodes.push(h('span', { "class": styles[`title-sub-${this.level}`] }, this.sub_title))
+        }
+        return h('div', { "class": styles['title'] }, nodes)
     }
 });
 
@@ -1482,7 +1507,12 @@ export const ImageView = defineComponent({
         return h('img', {
             src: this.image_url,
             crossorigin: "anonymous",
-            class: viewClasses
+            class: viewClasses,
+            "style": {
+                "max-height": "100%",
+                "max-width:": "100%",
+                "object-fit": "cover"
+            }
         })
     }
 });

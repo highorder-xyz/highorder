@@ -132,9 +132,9 @@ label * {
     z-index: 0;
 }
 
-.mobile {
+/* .mobile {
     max-width: 30em;
-}
+} */
 
 .motion_canvas {
     top: 0;

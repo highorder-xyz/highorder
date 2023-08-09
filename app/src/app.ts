@@ -2,7 +2,8 @@ import { defineComponent, h, reactive, VNode, resolveComponent} from 'vue'
 import i18next from 'i18next';
 import {
     PlainTextObject,
-    HeaderElement, FooterElement, HeroElement, NavMenuElement, MenuItemElement,
+    HeaderElement,
+    FooterElement, HeroElement, NavMenuElement, MenuItemElement,
     DecorationElement, MotionElement, PlayableElement, NarrationParagraph,
     ActionBarElement,
     ActionElement,
@@ -32,7 +33,9 @@ import {
     VideoElement,
     ImageElement,
     IconElement,
-    ProgressBarElement
+    ProgressBarElement,
+    NavBarElement,
+    LinkElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -44,7 +47,9 @@ import { NavBar, Footer, Button, ActionDefinition,
     ImageView,
     Icon,
     IconButton,
-    ProgressBar
+    ProgressBar,
+    Header,
+    Link
 } from './components'
 
 import { app_platform } from './platform';
@@ -875,7 +880,7 @@ export const App = defineComponent({
             return new_style
         },
 
-        renderHeader(element: HeaderElement, context: RenderContext): VNode {
+        renderNavBar(element: NavBarElement, context: RenderContext): VNode {
             return h(NavBar, {
                 title: element.title ?? "",
                 showHome:element.show_home || false,
@@ -956,6 +961,33 @@ export const App = defineComponent({
             }, undefined)
         },
 
+        renderSubElements(elements: HolaElement[] | undefined, context: RenderContext): VNode[] {
+            const sub_nodes:VNode[] = []
+            if(elements && elements?.length > 0){
+                for(const sub_element of elements){
+                    const n = this.renderElement(sub_element as HolaElement, context)
+                    if(n !== undefined){
+                        sub_nodes.push(n)
+                    }
+                }
+            }
+            return sub_nodes
+        },
+
+        renderHeader(element: HeaderElement, context: RenderContext): VNode {
+            return h(Header, {}, {
+                "start": () => {
+                    return this.renderSubElements(element.start_elements, context)
+                },
+                "center": () => {
+                    return this.renderSubElements(element.elements, context)
+                },
+                "end": () => {
+                    return this.renderSubElements(element.end_elements, context)
+                }
+            })
+        },
+
         renderFooter(element: FooterElement, context: RenderContext): VNode {
             const app_core = AppCore.getCore(this.app_id)
             const footer_main = element.element
@@ -990,8 +1022,23 @@ export const App = defineComponent({
         },
 
         renderTitle(element: TitleElement, context: RenderContext){
-            return h(Title, {text: element.text, level: element.level})
+            return h(Title, {title: element.title, level: element.level, sub_title: element.sub_title ?? ""})
         },
+
+        renderLink(element: LinkElement, context: RenderContext){
+            return h(Link, {text: element.text,
+                target_url: element.target_url,
+                open_mode: element.open_mode ?? "new",
+                onClicked: () => {
+                    const url = element.target_url
+                    const open_mode = element.open_mode ?? "new"
+                    if(open_mode === "new"){
+                        app_platform.openUrl(url)
+                    }
+                }
+            })
+        },
+
 
         renderParagraph(element: ParagraphElement, context: RenderContext){
             return h(Paragraph, {
@@ -1247,6 +1294,8 @@ export const App = defineComponent({
                 return this.renderSeparator(element as SeparatorElement, context)
             } else if (element.type == 'title') {
                 return this.renderTitle(element as TitleElement, context)
+            } else if (element.type == 'link') {
+                return this.renderLink(element as LinkElement, context)
             } else if (element.type == 'paragraph') {
                 return this.renderParagraph(element as ParagraphElement, context)
             } else if (element.type == 'bulleted-list') {
@@ -1538,7 +1587,9 @@ export const App = defineComponent({
         },
 
         renderElement(element: HolaElement, context: RenderContext): VNode | undefined {
-            if (element.type === "header") {
+            if (element.type === "navbar") {
+                return this.renderNavBar(element as NavBarElement, context)
+            } else if (element.type === "header") {
                 return this.renderHeader(element as HeaderElement, context)
             } else if (element.type === "footer") {
                 return this.renderFooter(element as FooterElement, context)
@@ -1580,7 +1631,7 @@ export const App = defineComponent({
             if (this.page.narration.paragraphs.length > 0) {
                 children.push(this.renderNarration({route: this.page.route, modal_id: undefined}))
             }
-            return h('div', { class: ["page", "mobile"] }, [...children])
+            return h('div', { class: ["page"] }, [...children])
         },
 
         renderAdditional(): VNode[] {
