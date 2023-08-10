@@ -803,7 +803,7 @@ export const Header = defineComponent({
     },
     render() {
         const items: VNode[] = []
-        return h('div', { "class": styles["header"] }, [
+        return h('div', { "class": [styles["header"], 'h-header'] }, [
             h('div', { "class": styles["header-start"] }, renderSlot(this.$slots, "start", {})),
             h('div', { "class": styles["header-center"] }, renderSlot(this.$slots, "center", {})),
             h('div', { "class": styles["header-end"] }, renderSlot(this.$slots, "end", {})),

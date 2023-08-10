@@ -66,8 +66,6 @@ const themes_all = {
     'fluent-light': {},
     'retro-light': {},
     'tailwind-light': {},
-    'lara-dark-blue': {},
-    'lara-light-blue': {},
     'md-dark-indigo': {},
     'md-light-indigo': {},
     'md-dark-deeppurple': {},
@@ -82,10 +80,8 @@ const themes_all = {
     'lara-light-indigo': {},
     'lara-dark-purple': {},
     'lara-light-purple': {},
-    'viva-dark': {},
-    'viva-light': {},
-    'soho-dark': {},
-    'soho-light': {}
+    'lara-dark-blue': {},
+    'lara-light-blue': {}
 }
 
 function toPascalCase(name:string) {
