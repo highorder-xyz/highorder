@@ -1,0 +1,24 @@
+{
+  "name": "@highorder/docs",
+  "version": "1.0.0",
+  "description": "documentation of highorder and hola",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/highorder-xyz/highorder.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/highorder-xyz/highorder/issues"
+  },
+  "homepage": "https://github.com/highorder-xyz/highorder#readme",
+  "dependencies": {
+    "vitepress": "^1.0.0-rc.4"
+  }
+}

@@ -279,11 +279,24 @@
     text-align: center;
 }
 
+
+.title-sub-1 {
+    font-size: 1.25em;
+    text-align: center;
+}
+
+
 .title-2 {
     font-size: 2.5em;
     font-weight: bold;
     text-align: center;
 }
+
+.title-sub-2 {
+    font-size: 1.0em;
+    text-align: center;
+}
+
 
 .title-3 {
     font-size: 2.0em;
@@ -302,8 +315,18 @@
     text-align: center;
 }
 
+.title-sub-4 {
+    font-size: 0.75em;
+    text-align: center;
+}
+
 .title-5 {
     font-size: 1.25em;
+    text-align: center;
+}
+
+.title-sub-5 {
+    font-size: 0.625em;
     text-align: center;
 }
 
@@ -311,6 +334,12 @@
     font-size: 1em;
     text-align: center;
 }
+
+.title-sub-6 {
+    font-size: 0.5em;
+    text-align: center;
+}
+
 
 .paragraph {
     display: block;
