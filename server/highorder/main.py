@@ -88,4 +88,6 @@ app.register_blueprint(hola_bp)
 
 def main():
     debug = settings.server.get('debug', False)
-    app.run(host='0.0.0.0', port=5000, debug=debug)
+    port = settings.server.get('port', 5000)
+    host = settings.server.get('host', '0.0.0.0')
+    app.run(host=host, port=port, debug=debug)
