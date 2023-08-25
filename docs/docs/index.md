@@ -3,9 +3,9 @@
 layout: home
 
 hero:
-  name: "HighOrder高阶开发文档"
-  text: "HighOrder高阶开发文档网站"
-  tagline: My great project tagline
+  name: "HighOrder"
+  text: "10倍速开发，产品经理就能掌握的开源工具"
+  tagline:
   actions:
     - theme: brand
       text: Markdown Examples
@@ -13,13 +13,5 @@ hero:
     - theme: alt
       text: API Examples
       link: /api-examples
-
-features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
 ---
 

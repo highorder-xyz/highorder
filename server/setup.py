@@ -44,8 +44,5 @@ setup(
         'test': test_requires,
     },
     entry_points={
-        'console_scripts': [
-            'highorder = highorder.main:main'
-        ],
     }
 )
