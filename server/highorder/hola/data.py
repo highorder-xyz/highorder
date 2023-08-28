@@ -33,20 +33,12 @@ class HookDefine:
     condition: Optional[str] = field(default_factory=str)
 
 
-#deprecated
-@dataclass
-class PageTriggersDefine:
-    before_first_show: Optional[List[OjectActionCall]] = field(default_factory=list)
-    before_show: Optional[List[OjectActionCall]] = field(default_factory=list)
-
-
 @dataclass
 class PageDefine:
     type: str
     route: str
     name: str
-    #deprecated
-    triggers: Optional[PageTriggersDefine] = field(default=None)
+    valid: Optional[dict] = field(default_factory=dict)
     hooks: Optional[List[HookDefine]] = field(default_factory=list)
     elements: Optional[List[dict]] = field(default_factory=list)
 
@@ -344,8 +336,13 @@ class ClientCommandName:
 class ClientRequestContext:
     route: str
     platform: str
-    vendor: Optional[str] = field(default="unknown")
-    version: Optional[str] = field(default="0.5.0")
+    os: str
+    os_version: str
+    is_virtual: bool
+    vendor: str = field(default="")
+    version: str = field(default="0.0.0")
+    page_size: dict = field(default_factory=dict)
+    screen_size: dict = field(default_factory=dict)
 
 
 @dataclass

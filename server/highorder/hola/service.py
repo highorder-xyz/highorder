@@ -36,6 +36,16 @@ import zlib
 
 factory = dataclass_factory.Factory()
 
+def get_page_size_name(page_width):
+    if page_width <= 480:
+        return 'small'
+    elif page_width <= 768:
+        return 'medium'
+    elif page_width <= 1200:
+        return 'large'
+    elif page_width > 1200:
+        return 'xlarge'
+
 class ValueNotEnoughError(Exception):
     def __init__(self, name):
         self.name = name
@@ -307,9 +317,9 @@ class ChallengeService:
 class HolaService:
 
     @classmethod
-    async def create(cls, user, session, config_loader, **kwargs):
+    async def create(cls, user, session, config_loader, request_context, **kwargs):
         inst = cls(user, session, config_loader)
-        await inst.load()
+        await inst.load(request_context)
         return inst
 
 
@@ -321,13 +331,21 @@ class HolaService:
         self.config_loader = config_loader
         self.router = Router()
 
-    async def load(self):
+    async def load(self, request_context):
         hola_dict = await self.config_loader.get_config("hola")
         hola_def = factory.load(hola_dict, HolaInterfaceDefine)
         self.widgets = hola_def.widgets
         self.interfaces = hola_def.interfaces
+        page_width = request_context.page_size.get('width', 0)
+        psize_name = get_page_size_name(page_width)
+
         for interface_def in self.interfaces:
-            self.router.add(interface_def.route, interface_def.name)
+            valid_page_size = interface_def.valid.get('page_size', None)
+            if not valid_page_size:
+                self.router.add(interface_def.route, interface_def.name)
+            elif (isinstance(valid_page_size, (str,)) and valid_page_size == psize_name) or \
+                (isinstance(valid_page_size, (list, tuple)) and psize_name in valid_page_size):
+                self.router.add(interface_def.route, interface_def.name)
         self.components = hola_def.components
         self.variables_def = hola_def.variables
         self.objects_def = hola_def.objects
@@ -583,6 +601,7 @@ class HolaService:
         user['weixin'] = {
             'login': self.session.weixin_login
         }
+
         ret =  {
             "user": user,
             "session": factory.dump(page_context) or {},
@@ -1070,8 +1089,12 @@ class HolaService:
     async def transform_card(self, obj, context):
         ret = {
             "type": "card",
-            "title": obj.get('title', "")
+            "title": self.eval_value(obj.get('title', ""), context),
+            "text": self.eval_value(obj.get('text', ''), context)
         }
+
+        if 'image_src' in obj:
+            ret['image_src'] = self.eval_value(obj['image_src'], context)
 
         elements = AutoList()
         for el in obj.get("elements", []):
@@ -1178,6 +1201,15 @@ class HolaService:
                 transformed = await self.transform_element(element, context)
                 elements.add(transformed)
             ret['elements'] = elements
+        return ret
+
+    async def transform_logo(self, obj, context):
+        ret = {
+            "type": "logo",
+        }
+        for name in ['image_src', 'text']:
+            if name in obj:
+                ret[name] = self.eval_value(obj[name], context=context)
         return ret
 
     async def transform_header(self, obj, context):
@@ -1463,6 +1495,8 @@ class HolaService:
             return await self.transform_column(element, context)
         elif element["type"] == 'navbar':
             return await self.transform_navbar(element, context)
+        elif element["type"] == 'logo':
+            return await self.transform_logo(element, context)
         elif element["type"] == 'header':
             return await self.transform_header(element, context)
         elif element["type"] == 'footer':
@@ -1503,7 +1537,7 @@ class HolaService:
         elif element["type"] == 'action-bar':
             elements = AutoList()
             elements.add(await self.transform_element(element.get("element"), context))
-            for el in element["elements"]:
+            for el in element.get("elements", []):
                 elements.add(await self.transform_element(el, context))
             return {
                 "type": "action-bar",
@@ -2538,18 +2572,6 @@ class HolaService:
         svc = await HolaPageStateService.load(self.app_id, self.user_id)
 
         commands = AutoList()
-        if page_def.triggers != None:
-            page_viewed = await svc.get_view_showed(page_route)
-            if page_def.triggers.before_first_show and not page_viewed:
-                for obj_call in page_def.triggers.before_first_show:
-                    cmd = await self.handle_page_trigger(obj_call, context)
-                    if cmd:
-                        commands.add(await self.get_show_page_command(page_def, context, include_elements=False))
-                        await svc.set_view_showed(page_route)
-                        commands.add(cmd)
-                        return commands
-            elif page_def.triggers.before_show:
-                pass
 
         if page_def.hooks:
             before_commands = AutoList()

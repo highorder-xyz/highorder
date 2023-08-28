@@ -12,15 +12,15 @@ bp =  Blueprint('hola', url_prefix="/service/hola")
 
 @bp.route('/main', methods=["POST", "GET"])
 async def hola_main(request):
-    if request.user:
-        hola_svc = await HolaService.create(request.user, request.session, request.config_loader)
-    else:
-        hola_svc = HolaAccountService(request.app_id, request.config_loader)
     data = await request.json()
-
     request_cmd = None
     if 'command' in data:
         request_cmd = factory.load(data, ClientRequestCommand)
+
+    if request.user:
+        hola_svc = await HolaService.create(request.user, request.session, request.config_loader, request_cmd.context)
+    else:
+        hola_svc = HolaAccountService(request.app_id, request.config_loader)
 
     commands = await hola_svc.handle_request(request_cmd)
 
