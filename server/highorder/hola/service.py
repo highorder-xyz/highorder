@@ -1225,6 +1225,19 @@ class HolaService:
                 ret[name] = elements
         return ret
 
+    async def transform_hero(self, obj, context):
+        elements = AutoList()
+        elements.add(await self.transform_element(obj.get("element"), context))
+        ret = {
+            "type": "hero",
+            "title": self.eval_value(obj.get("title"), context),
+            "text": self.eval_value(obj.get("text"), context),
+            "element": elements.first
+        }
+        if "image_src" in obj:
+            ret["image_src"] = self.eval_value(obj["image_src"], context)
+        return ret
+
     async def load_info_object(self, target):
         if not target:
             return None
@@ -1515,12 +1528,7 @@ class HolaService:
                 "left_elements": left_elements
             }
         elif element["type"] == 'hero':
-            elements = AutoList()
-            elements.add(await self.transform_element(element.get("element"), context))
-            return {
-                "type": "hero",
-                "element": elements.first,
-            }
+            return await self.transform_hero(element, context)
 
         elif element["type"] == 'decoration':
             return {
