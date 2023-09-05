@@ -2,7 +2,7 @@ import os
 from basepy.asynclib.threaded import threaded
 import json
 from basepy.config import settings
-from .configdata import ApplicationAccount, ApplicationSummary
+from .configdata import ApplicationSummary
 import dataclass_factory
 import time
 from zipfile import ZipFile
@@ -104,12 +104,7 @@ class ConfigLoader:
         self.config_dir = os.path.abspath(os.path.join(settings.server.config_dir, f'APP_{app_id}'))
         self.config_file = None
         self.max_cached = -1
-        self._account = None
         self._client_keys = None
-
-    @property
-    def account(self):
-        return self._account
 
     @property
     def client_keys(self):
@@ -128,10 +123,6 @@ class ConfigLoader:
         jsondata = await self.get_config('app')
         app_summary = factory.load(jsondata, ApplicationSummary)
         self._client_keys = app_summary.client_keys
-
-        jsondata = await self.get_config('account')
-        account = factory.load(jsondata, ApplicationAccount)
-        self._account = account
 
     def get_filepath(self, name):
         if self.config_file:

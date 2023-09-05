@@ -17,7 +17,3 @@ class ApplicationSummary:
     app_id: str
     app_name: str
     client_keys: List[ApplicationClientKey] = field(default_factory=list)
-
-@dataclass
-class ApplicationAccount:
-    allow_anonymous: bool = field(default=False)

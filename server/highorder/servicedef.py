@@ -80,7 +80,6 @@ class AppConfig:
     def __init__(self, config_looader):
         self.loader = config_looader
         self.client_keys = self.loader.client_keys
-        self.account = self.loader.account
 
     def get_client_secret(self, client_key):
         for k in self.client_keys:
