@@ -205,8 +205,6 @@ class HolaAccountService:
             ))
             return commands
         user, session = await AccountService.create(self.app_id)
-        print(user)
-        print(session)
         if user and session:
             commands.add(SetSessionCommand(args=SetSessionCommandArg(
                 session = session.get_data_dict(),
@@ -349,13 +347,13 @@ class HolaService:
         self.components = hola_def.components
         self.variables_def = hola_def.variables
         self.objects_def = hola_def.objects
-        self.attribute_def = hola_def.attribute
-        self.item_def = hola_def.item
-        self.itembox_def = hola_def.itembox
-        self.currency_def = hola_def.currency
+        self.attribute_def = hola_def.attributes
+        self.item_def = hola_def.items
+        self.itembox_def = hola_def.itemboxes
+        self.currency_def = hola_def.currencies
         self.action_def = {}
-        self.task_def = hola_def.task
-        for action in hola_def.action:
+        self.task_def = hola_def.tasks
+        for action in hola_def.actions:
             name = action['name']
             if name in self.action_def:
                 raise Exception(f'duplicated name {name} in action define.')

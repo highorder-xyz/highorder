@@ -16,5 +16,11 @@ def server_error(error_type:str, error_msg:str = '', code:int = 500):
 def client_invalid(msg:str = ''):
     return bad_request('ClientInvalid', msg or '', 400)
 
+def client_unauthorized(msg:str = ''):
+    return bad_request('AuthorizeRequired', msg, 401)
+
+def client_forbidden(msg:str = ''):
+    return bad_request('Forbidden', msg, 403)
+
 def session_invalid(msg: str = ''):
     return bad_request('SessionInvalid', msg or 'session invalid or expired', 400)

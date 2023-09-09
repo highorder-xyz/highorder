@@ -10,10 +10,6 @@ if debug:
 from callpy import CallFlow
 from callpy.web import response
 from callpy.web.response import FileResponse
-from .servicedef import (
-    validate_client,
-    validate_session_token
-)
 import os
 
 from .base import error
@@ -60,23 +56,6 @@ async def app_before_start():
 async def app_before_request(request):
     if not request.path.startswith('/service/'):
         return
-    sign = request.headers.get('X-HighOrder-Sign')
-    app_id = request.headers.get('X-HighOrder-Application-Id')
-    assert app_id != None
-    session_token = request.headers.get('X-HighOrder-Session-Token')
-    sign_valid  = await validate_client(app_id, sign, request)
-    if not sign_valid:
-        return error.client_invalid('sign not correct.')
-    request.app_id = app_id
-
-    user = None
-    session = None
-    if session_token:
-        session, user = await validate_session_token(session_token, app_id)
-
-    request.user = user
-    request.session = session
-
 
 @app.errorhandler(500)
 async def app_error_handler(request, exc):
