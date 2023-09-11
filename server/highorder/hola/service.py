@@ -330,7 +330,7 @@ class HolaService:
         self.router = Router()
 
     async def load(self, request_context):
-        hola_dict = await self.config_loader.get_config("hola")
+        hola_dict = await self.config_loader.get_config("main.hola")
         hola_def = factory.load(hola_dict, HolaInterfaceDefine)
         self.widgets = hola_def.widgets
         self.interfaces = hola_def.interfaces
