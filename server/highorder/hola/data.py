@@ -37,8 +37,10 @@ class HookDefine:
 class PageDefine:
     type: str
     route: str
-    name: str
+    name: Optional[str] = field(default_factory=str)
     valid: Optional[dict] = field(default_factory=dict)
+    locals: Optional[dict] = field(default_factory=dict)
+    events: Optional[dict] = field(default_factory=dict)
     hooks: Optional[List[HookDefine]] = field(default_factory=list)
     elements: Optional[List[dict]] = field(default_factory=list)
 

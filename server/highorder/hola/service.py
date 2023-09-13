@@ -333,17 +333,27 @@ class HolaService:
         hola_dict = await self.config_loader.get_config("main.hola")
         hola_def = factory.load(hola_dict, HolaInterfaceDefine)
         self.widgets = hola_def.widgets
-        self.interfaces = hola_def.interfaces
+        self.interfaces = []
+        all_interfaces = hola_def.interfaces
         page_width = request_context.page_size.get('width', 0)
         psize_name = get_page_size_name(page_width)
+        platform_name = request_context.platform
 
-        for interface_def in self.interfaces:
+        for interface_def in all_interfaces:
             valid_page_size = interface_def.valid.get('page_size', None)
-            if not valid_page_size:
-                self.router.add(interface_def.route, interface_def.name)
+            valid_platform = interface_def.valid.get('platform', None)
+            if (not valid_page_size) and (not valid_platform):
+                self.router.add(interface_def.route, interface_def.route)
+                self.interfaces.append(interface_def)
             elif (isinstance(valid_page_size, (str,)) and valid_page_size == psize_name) or \
                 (isinstance(valid_page_size, (list, tuple)) and psize_name in valid_page_size):
-                self.router.add(interface_def.route, interface_def.name)
+                self.router.add(interface_def.route, interface_def.route)
+                self.interfaces.append(interface_def)
+            elif (isinstance(valid_platform, (str,)) and valid_platform == platform_name) or \
+                (isinstance(valid_platform, (list, tuple)) and platform_name in valid_platform):
+                self.router.add(interface_def.route, interface_def.route)
+                self.interfaces.append(interface_def)
+
         self.components = hola_def.components
         self.variables_def = hola_def.variables
         self.objects_def = hola_def.objects
@@ -549,18 +559,18 @@ class HolaService:
                 )
 
     def get_page_def(self, route):
-        page_name, route_args = self.router.match(route)
-        page_def = self.get_page_def_by_name(page_name)
+        page_route, route_args = self.router.match(route)
+        page_def = self.get_page_def_by_route(page_route)
         return page_def, route_args
 
-    def get_page_def_by_name(self, name):
+    def get_page_def_by_route(self, route):
         page_def = None
         for _interface in self.interfaces:
-            if _interface.name == name:
+            if _interface.route == route:
                 page_def = _interface
                 break
         if page_def == None:
-            raise Exception(f'no page named {name} found.')
+            raise Exception(f'no page routed to  "{route}" found.')
         return page_def
 
     def expand_link(self, raw_link):
@@ -2672,7 +2682,7 @@ class HolaService:
             return None
         return InitAdCommand(args={'configs': config_list})
 
-    async def get_session_start(self, context):
+    async def get_session_start(self, args, context):
         commands = AutoList()
         commands.add(await self.get_init_ad(context=context))
         # commands.add(await self.get_player_all(context=context))
@@ -2712,7 +2722,7 @@ class HolaService:
             await self.load_variables_to_context(context = context)
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
-                ret_commands.add(await self.get_session_start(context=context))
+                ret_commands.add(await self.get_session_start(args, context=context))
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))
