@@ -1,5 +1,5 @@
 
-from .model import SocialAccount, User, Session, UserProfile
+from .model import SessionStore, SocialAccount, User, Session, UserProfile
 from highorder.base.utils import time_random_id
 from postmodel.transaction import in_transaction
 from dataclasses import dataclass
@@ -158,6 +158,10 @@ class SessionService:
         return self.model.session_type
 
     @property
+    def expire_time(self):
+        return self.model.expire_time
+
+    @property
     def device_info(self):
         return self.model.device_info
 
@@ -186,7 +190,59 @@ class SessionService:
             user_id = self.model.user_id)
 
     async def get_user_service(self):
-        return await UserService.load(self.model.app_id, self.model.user_id)
+        if self.model.user_id:
+            return await UserService.load(self.model.app_id, self.model.user_id)
+        else:
+            return None
+
+
+class SessionStoreService:
+    @classmethod
+    async def load(cls, app_id, session_token):
+        model = await SessionStore.load(app_id=app_id, session_token=session_token)
+        if model:
+            return cls(model)
+        return None
+
+    @classmethod
+    async def load_or_create(cls, app_id, session_token):
+        model = await SessionStore.load(app_id=app_id, session_token=session_token)
+        if model:
+            return cls(model)
+        else:
+            session_model = await Session.load(app_id=app_id, session_token=session_token)
+            expire_time = session_model.expire_time if session_model else None
+            model = await SessionStore.create(
+                app_id = app_id,
+                session_token = session_token,
+                expire_time = expire_time,
+                store = {}
+            )
+            return cls(model)
+        return None
+
+    def __init__(self, model, **kwargs):
+        self.model =  model
+
+    @property
+    def app_id(self):
+        return self.model.app_id
+
+    @property
+    def session_token(self):
+        return self.model.session_token
+
+    @property
+    def store(self):
+        return self.model.store
+
+    @property
+    def expire_time(self):
+        return self.model.expire_time
+
+    async def save(self, store):
+        self.model.store = store
+        await self.model.save()
 
 
 class UserProfileService:

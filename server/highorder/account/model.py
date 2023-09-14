@@ -46,17 +46,6 @@ class UserAuth(MetaverModel):
     email = models.CharField(max_length=128)
 
 
-class UserAuthAnonymous(MetaverModel):
-    class Meta:
-        table = 'user_auth_anonymous'
-        primary_key = ('app_id', 'local_uid')
-        indexes = (("app_id", "custom_uid"), )
-
-    app_id = models.CharField(max_length=128)
-    local_uid = models.CharField(max_length=256)
-    custom_uid = models.CharField(max_length=256)
-    user_id = models.CharField(max_length=256)
-
 class Phone(MetaverModel):
     class Meta:
         table = 'user_phone'

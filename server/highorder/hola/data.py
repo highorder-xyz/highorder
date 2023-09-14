@@ -162,8 +162,8 @@ class ShowPageCommand:
 
 @dataclass
 class SetSessionCommandArg:
-    session: Optional[Any]
-    user: Optional[Any]
+    session: Optional[dict] = None
+    user: Optional[dict] = None
 
 @dataclass
 class SetSessionCommand:

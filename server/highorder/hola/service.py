@@ -1,6 +1,8 @@
 
-import importlib.resources
-from highorder.account.service import AccountService, SessionService, SocialAccountService, UserProfileService
+from dataclasses import dataclass, field
+from highorder.account.service import (
+    AccountService, SessionService, SocialAccountService, UserProfileService, SessionStoreService
+)
 from highorder.base.utils import time_random_id
 from highorder.base.munch import munchify
 from highorder.base.router import Router
@@ -121,21 +123,15 @@ class ShowMessageService:
         ))
 
 class HolaPageStateService:
-    @classmethod
-    async def load(cls, app_id, user_id):
-        page_state = await HolaPageState.load(app_id=app_id, user_id=user_id)
-        if page_state == None:
-            page_state = await HolaPageState.create(app_id=app_id, user_id=user_id, page_state = {})
-        return cls(page_state)
-
-    def __init__(self, model):
-        self._model = model
-
+    def __init__(self, unique_id, page_state, store_svc):
+        self.unique_id = unique_id
+        self.page_state = page_state
+        self.store_svc = store_svc
 
     def get_instant_store(self, limit):
         limit_key = limit.get_instant_key()
         instant_name = short_hash(f'pagestate:{limit_key}')
-        instant_store = UserInstantDataStoreService(self._model.user_id, "d")
+        instant_store = UserInstantDataStoreService(self.unique_id, "d")
         return (instant_store, instant_name)
 
     async def get_instant_view_viewed(self, route, tag, limit):
@@ -162,16 +158,16 @@ class HolaPageStateService:
             limitobj = factory.load(limit, LimitObject)
             return await self.set_instant_view_viewed(route, tag, limitobj)
         else:
-            state = self._model.page_state.setdefault(route, {})
+            state = self.page_state.setdefault(route, {})
             state[f'{tag}viewed'] = True
-            await self._model.save()
+            await self.store_svc.save_page_state(self.page_state)
 
     async def get_view_showed(self, route, tag='', limit=None):
         if limit:
             limitobj = factory.load(limit, LimitObject)
             return await self.get_instant_view_viewed(route, tag, limitobj)
         else:
-            state = self._model.page_state.get(route, {})
+            state = self.page_state.get(route, {})
             return state.get(f'{tag}viewed', False)
 
 
@@ -275,13 +271,31 @@ class ChallengeService:
         else:
             return False
 
+@dataclass
+class PlayerAttribute:
+    attribute: dict
+    currency: dict
 
-class HolaSessionService:
-    def __init__(self, session):
+@dataclass
+class ItemBox:
+    name: str
+    detail: dict
+
+class HolaStoreSerive:
+    def __init__(self, session, hola_svc):
         self.session = session
         self.session_token = session.session_token
         self.app_id = session.app_id
         self.user_id = session.user_id
+        self.hola_svc = hola_svc
+        self._models = {}
+
+    async def load_session_store_model(self):
+        session_store_model = self._models.get('session_store')
+        if not session_store_model:
+            session_store_model = await SessionStoreService.load_or_create(app_id= self.app_id, session_token=self.session_token)
+        self._models['session_store'] = session_store_model
+        return session_store_model
 
     async def get_profile(self):
         if self.user_id:
@@ -291,14 +305,6 @@ class HolaSessionService:
                 'nick_name': 'Anonymous',
                 'avatar_url': ''
             }
-
-class HolaStoreSerive:
-    def __init__(self, session, hola_svc):
-        self.session = session
-        self.session_token = session.session_token
-        self.app_id = session.app_id
-        self.user_id = session.user_id
-        self.hola_svc = hola_svc
 
     def get_variable_value(self, vardef, context):
         if 'value' in vardef:
@@ -315,11 +321,12 @@ class HolaStoreSerive:
             init[name] = self.get_variable_value(vardef, context)
         return init
 
-    async def load_variables(self, context):
-        if not self.user_id:
-            #TODO: add handler
-            pass
+    async def load_variables_model(self, context = None):
+        if 'hola_variable' in self._models:
+            return self._models['hola_variable']
         var = await HolaVariable.load(app_id=self.app_id, user_id=self.user_id)
+        if context == None:
+            return var
         if not var:
             v = self.init_variables(context)
             var = await HolaVariable.create(app_id=self.app_id, user_id=self.user_id, variable=v)
@@ -328,12 +335,20 @@ class HolaStoreSerive:
                 if vardef['name'] not in var.variable:
                     var.variable[vardef['name']] = self.get_variable_value(vardef, context)
             await var.save()
+        self._models['hola_variable'] = var
         return var
 
-    async def load_attributes(self):
+    async def load_variables(self, context):
         if not self.user_id:
-            #TODO: add handler
-            pass
+            session_store_model = await self.load_session_store_model()
+            variable = session_store_model.store.get('variable', {})
+            return variable
+        var = await self.load_variables_model(context)
+        return var.variable
+
+    async def load_player_model(self):
+        if 'hola_player' in self._models:
+            return self._models['hola_player']
         player = await HolaPlayer.load(app_id=self.app_id, user_id=self.user_id)
         if not player:
             player = await HolaPlayer.create(app_id=self.app_id, user_id=self.user_id,
@@ -346,40 +361,94 @@ class HolaStoreSerive:
                     if initial != None:
                         player.attribute[attr_def["name"]] = initial
             await player.save()
+        self._models['hola_player'] = player
         return player
 
-    async def save_player(self, player):
-        await player.save()
-
-    async def load_itembox(self, name="default"):
+    async def load_player(self):
         if not self.user_id:
-            #TODO: add handler
-            pass
+            session_store_model = await self.load_session_store_model()
+            player = session_store_model.store.get('player', {})
+            return PlayerAttribute(
+                attribute = player.get('attribute', []),
+                currency = player.get('currency', [])
+            )
+        player = await self.load_player_model()
+        return PlayerAttribute(
+            attribute = player.attribute,
+            currency = player.currency
+        )
+
+    async def save_player(self, player):
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            session_store_model.store['player']['attribute'] = player.attribute
+            session_store_model.store['player']['currency'] = player.currency
+            await session_store_model.save()
+            return
+        player_model = await self.load_player_model()
+        player_model.attribute = player.attribute
+        player_model.currency = player.currency
+        await player_model.save()
+
+    async def load_itembox_model(self, name="default"):
+        if 'hola_player_itembox' in self._models:
+            return self._models['hola_player_itembox']
         item = await HolaPlayerItembox.load(app_id=self.app_id, user_id=self.user_id, name=name)
         if not item:
             item = await HolaPlayerItembox.create(app_id=self.app_id, user_id=self.user_id,
                 name = name, attrs = {},
                 detail={"items": self.hola_svc.get_item_initial()})
+        self._models['hola_player_itembox'] = item
         return item
 
-    async def save_itembox(self, itembox):
-        await itembox.save()
-
-    async def load_playable_state(self):
+    async def load_itembox(self, name="default"):
         if not self.user_id:
-            #TODO: add handler
-            pass
+            session_store_model = await self.load_session_store_model()
+            itembox = session_store_model.store.get('itembox', {})
+            return ItemBox(
+                name = name,
+                detail = itembox.get('detail', {})
+            )
+        item = await self.load_itembox_model(name)
+        return ItemBox(
+            name = item.name,
+            detail = item.detail
+        )
+
+    async def save_itembox(self, itembox):
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            session_store_model.store['itembox']['name'] = itembox.name
+            session_store_model.store['itembox']['detail'] = itembox.detail
+            await session_store_model.save()
+            return
+        item = await self.load_itembox_model(itembox.name)
+        item.name = itembox.name
+        item.detail = itembox.detail
+        await item.save()
+
+    async def load_playable_state_model(self):
+        if 'playable_state' in self._models:
+            return self._models['playable_state']
         state = await HolaPlayableState.load(app_id=self.app_id, user_id=self.user_id)
         if not state:
             state = await HolaPlayableState.create(app_id=self.app_id, user_id=self.user_id,
                 playable_state = {})
+        self._models['playable_state'] = state
         return state
 
+    async def load_playable_state(self):
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            return session_store_model.store.get('playable_state', {})
+        state = await self.load_playable_state_model()
+        return state.playable_state
+
     async def get_playable_state(self, collection, level_id):
-        state = await self.load_playable_state()
+        playable_state = await self.load_playable_state()
         collection_def = await self.hola_svc.get_playable_collection_define(collection)
         iter_type = collection_def.iter_type
-        content = state.playable_state.get(collection, {})
+        content = playable_state.get(collection, {})
         if iter_type == 'sequence':
             content['level_id'] = level_id
             try:
@@ -397,21 +466,55 @@ class HolaStoreSerive:
         return {}
 
     async def set_playable_state(self, collection, level_id, succeed = True):
-        state = await self.load_playable_state()
+        playable_state = await self.load_playable_state()
         collection_def = await self.hola_svc.get_playable_collection_define(collection)
         iter_type = collection_def.iter_type
         if iter_type == 'sequence':
-            content = state.playable_state.setdefault(collection, {})
+            content = playable_state.setdefault(collection, {})
             if succeed:
                 content['level_id'] = level_id
         elif iter_type == 'daily':
-            content = state.playable_state.setdefault(collection, {})
+            content = playable_state.setdefault(collection, {})
             if level_id not in content:
                 content[level_id] = succeed
             else:
                 if not content[level_id]:
                     content[level_id] = succeed
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            session_store_model.store['playable_state'] = playable_state
+            await session_store_model.save()
+            return
+        state = await self.load_playable_state_model()
+        state.playable_state = playable_state
         await state.save()
+
+    async def load_page_state_model(self):
+        if 'page_state' in self._models:
+            return self._models['page_state']
+        app_id, user_id = self.app_id, self.user_id
+        page_state_model = await HolaPageState.load(app_id=app_id, user_id=user_id)
+        if page_state_model == None:
+            page_state_model = await HolaPageState.create(app_id=app_id, user_id=user_id, page_state = {})
+        self._models['page_state'] = page_state_model
+        return page_state_model
+
+    async def load_page_state_service(self):
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            return HolaPageStateService(self.session_token, session_store_model.store.get('page_state', {}), self)
+        page_state_model = await self.load_page_state_model()
+        return HolaPageStateService(self.user_id, page_state_model.page_state, self)
+
+    async def save_page_state(self, page_state):
+        if not self.user_id:
+            session_store_model = await self.load_session_store_model()
+            session_store_model.store['page_state'] = page_state
+            await session_store_model.save()
+            return
+        page_state_model = await self.load_page_state_model()
+        page_state_model.page_state = page_state
+        await page_state_model.save()
 
 class HolaService:
 
@@ -426,7 +529,6 @@ class HolaService:
         self.app_id = app_id
         self.user_id = session.user_id if session else None
         self.session = session
-        self.session_svc = HolaSessionService(session) if session else None
         self.config_loader = config_loader
         self.router = Router()
         self._commands = AutoList()
@@ -480,7 +582,6 @@ class HolaService:
             self._commands.add(SetSessionCommand(args=SetSessionCommandArg(
                 session = self.session.get_data_dict()
             )))
-            self.session_svc = HolaSessionService(self.session)
         self.store_svc = HolaStoreSerive(self.session, self)
 
     def get_content_url_root(self):
@@ -507,7 +608,7 @@ class HolaService:
 
     async def load_variables_to_context(self, context):
         var = await self.store_svc.load_variables(context)
-        context.variable =  munchify(var.variable)
+        context.variable =  munchify(var)
         objects = await self.load_objects(context)
         context.objects = munchify(objects)
 
@@ -544,7 +645,7 @@ class HolaService:
             raise Exception(f'no attribute define with name {name}')
 
     async def load_player_to_context(self, context):
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         info = {}
         info.update(player.attribute)
         info.update({'currency': player.currency})
@@ -608,7 +709,7 @@ class HolaService:
             raise Exception('no item<{item_name}> info found.')
 
     async def get_player_all(self, context):
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         itembox = await self.store_svc.load_itembox()
         return SetPlayer(args=
                     SetPlayerArg(
@@ -653,7 +754,7 @@ class HolaService:
 
     async def _create_context(self, page_context):
         root_url = settings.server.get('content_url', '').strip('/')
-        profile = await self.session_svc.get_profile()
+        profile = await self.store_svc.get_profile()
         core = {"attribute":{}, "currency":{}}
         context = munchify({
             "content": f'{root_url}/static/APP_{self.app_id}/content'
@@ -967,7 +1068,7 @@ class HolaService:
     async def transform_currency_text(self, obj, context):
         currency_name = obj['currency_name']
         currency_def = self.get_currency_define(currency_name)
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         return {
             "type": "icon-number",
             "icon": self.expand_link(currency_def['icon']),
@@ -978,7 +1079,7 @@ class HolaService:
     async def transform_attribute_text(self, obj, context):
         attribute_name = obj['attribute_name']
         attribute_def = self.get_attribute_define(attribute_name)
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         return {
             "type": "icon-number",
             "icon": self.expand_link(attribute_def['icon']),
@@ -1889,7 +1990,7 @@ class HolaService:
             itembox.detail['items'] = items
 
     async def apply_changes(self, changes):
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         itemboxes = {}
 
         for change in changes:
@@ -2101,7 +2202,7 @@ class HolaService:
 
                 operator = change["change_operator"]
                 name = target_name
-                player = await self.store_svc.load_attributes()
+                player = await self.store_svc.load_player()
 
                 if target_type == 'player.currency':
                     if operator == 'decrease':
@@ -2197,7 +2298,7 @@ class HolaService:
         table = self.build_upgrade_table(self.eval_value({"expr": change['table']}, context))
         targets = change['targets']
         level_name, value_name, value_required_name = targets['level'], targets['value'], targets['value_required']
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         level_change = self.get_player_value(player, level_name)
         value_change = self.get_player_value(player, value_name)
         value_new = value_change['value_before']
@@ -2530,7 +2631,7 @@ class HolaService:
         item_name = args["item_name"]
         item_def = await self.get_item_define(item_name)
         price = item_def['price']
-        player = await self.store_svc.load_attributes()
+        player = await self.store_svc.load_player()
         currency = player.currency
         currency_def = self.get_currency_define()
         currency_name = currency_def['name']
@@ -2593,7 +2694,7 @@ class HolaService:
         exit_hooks = list(filter(lambda x: x.name == 'before_exit', page_def.hooks))
         if exit_hooks:
             commands = AutoList()
-            svc = await HolaPageStateService.load(self.app_id, self.user_id)
+            svc = await self.store_svc.load_page_state_service()
             hook = exit_hooks[0]
             if hook.limit:
                 showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
@@ -2613,7 +2714,7 @@ class HolaService:
             context = copy.copy(origin_context)
             context.route_args = munchify(route_args)
 
-        svc = await HolaPageStateService.load(self.app_id, self.user_id)
+        svc = await self.store_svc.load_page_state_service()
 
         commands = AutoList()
 
