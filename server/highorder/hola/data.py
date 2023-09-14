@@ -29,7 +29,7 @@ class HookDefine:
     name: str
     tag: str
     limit: Optional[dict] = field(default_factory=dict)
-    actions: Optional[List[dict]] = field(default_factory=list)
+    handlers: Optional[List[dict]] = field(default_factory=list)
     condition: Optional[str] = field(default_factory=str)
 
 
@@ -144,6 +144,7 @@ class HolaInterfaceDefine:
     actions: List[dict] = field(default_factory=list)
     tasks: List[dict] = field(default_factory=list)
     currencies: List[dict] = field(default_factory=list)
+    hooks: dict = field(default_factory=dict)
     playable: Optional[PlayableConfig] = field(default_factory=PlayableConfig)
     advertisement: Optional[HolaAdvertisementDefine] = field(default_factory=HolaAdvertisementDefine)
 
@@ -161,8 +162,8 @@ class ShowPageCommand:
 
 @dataclass
 class SetSessionCommandArg:
-    session: Any
-    user: Any
+    session: Optional[Any]
+    user: Optional[Any]
 
 @dataclass
 class SetSessionCommand:
@@ -225,7 +226,7 @@ class ShowModalCommandArg:
     content_html: str = ''
     title_action: Optional[dict] = field(default_factory=dict)
     elements: Optional[List[dict]] = field(default_factory=list)
-    actions: Optional[List[dict]] = field(default_factory=list)
+    handlers: Optional[List[dict]] = field(default_factory=list)
     style: Optional[dict] = field(default_factory=dict)
     confirm: Optional[dict] = field(default_factory=dict)
     cancel: Optional[dict] = field(default_factory=dict)

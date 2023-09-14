@@ -1,6 +1,6 @@
 
 import importlib.resources
-from highorder.account.service import AccountService, SocialAccountService
+from highorder.account.service import AccountService, SessionService, SocialAccountService, UserProfileService
 from highorder.base.utils import time_random_id
 from highorder.base.munch import munchify
 from highorder.base.router import Router
@@ -181,41 +181,6 @@ class HolaPageStateService:
         await self.set_instant_view_viewed(route, f'{hook}_{tag}',  limitobj)
         return viewed
 
-class HolaAccountService:
-    def __init__(self, app_id, config_loader):
-        self.app_id = app_id
-        self.config_loader = config_loader
-
-    async def handle_request(self, request_cmd):
-        ret_commands = AutoList()
-        if request_cmd:
-            args = request_cmd.args
-            req_context = request_cmd.context
-            if request_cmd.command == 'login':
-                ret_commands.add(await self.login(args))
-            else:
-                raise Exception(f'no handler for request command {request_cmd.command}')
-        return ret_commands
-
-    async def login(self, args):
-        commands = AutoList()
-        if 'anonymous' not in args:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='only anonymous login supported.', title='')
-            ))
-            return commands
-        user, session = await AccountService.create(self.app_id)
-        if user and session:
-            commands.add(SetSessionCommand(args=SetSessionCommandArg(
-                session = session.get_data_dict(),
-                user = user.get_data_dict()
-            )))
-        else:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
-            ))
-        return commands
-
 def short_hash(value):
     if type(value) in (str,):
         return hex(zlib.adler32(value.encode('utf-8')))[2:]
@@ -311,23 +276,160 @@ class ChallengeService:
             return False
 
 
+class HolaSessionService:
+    def __init__(self, session):
+        self.session = session
+        self.session_token = session.session_token
+        self.app_id = session.app_id
+        self.user_id = session.user_id
+
+    async def get_profile(self):
+        if self.user_id:
+            return await UserProfileService.load_or_create(self.app_id, self.user_id)
+        else:
+            return {
+                'nick_name': 'Anonymous',
+                'avatar_url': ''
+            }
+
+class HolaStoreSerive:
+    def __init__(self, session, hola_svc):
+        self.session = session
+        self.session_token = session.session_token
+        self.app_id = session.app_id
+        self.user_id = session.user_id
+        self.hola_svc = hola_svc
+
+    def get_variable_value(self, vardef, context):
+        if 'value' in vardef:
+            return self.hola_svc.eval_value(vardef['value'], context)
+        elif 'initial' in vardef:
+            return vardef['initial']
+        else:
+            raise Exception('Either variable initial or value muse be defined.')
+
+    def init_variables(self, context):
+        init = {}
+        for vardef in self.hola_svc.variables_def:
+            name = vardef['name']
+            init[name] = self.get_variable_value(vardef, context)
+        return init
+
+    async def load_variables(self, context):
+        if not self.user_id:
+            #TODO: add handler
+            pass
+        var = await HolaVariable.load(app_id=self.app_id, user_id=self.user_id)
+        if not var:
+            v = self.init_variables(context)
+            var = await HolaVariable.create(app_id=self.app_id, user_id=self.user_id, variable=v)
+        else:
+            for vardef in self.hola_svc.variables_def:
+                if vardef['name'] not in var.variable:
+                    var.variable[vardef['name']] = self.get_variable_value(vardef, context)
+            await var.save()
+        return var
+
+    async def load_attributes(self):
+        if not self.user_id:
+            #TODO: add handler
+            pass
+        player = await HolaPlayer.load(app_id=self.app_id, user_id=self.user_id)
+        if not player:
+            player = await HolaPlayer.create(app_id=self.app_id, user_id=self.user_id,
+                attribute=self.hola_svc.get_attribute_initial(),
+                currency=self.hola_svc.get_currency_initial())
+        else:
+            for attr_def in self.hola_svc.attribute_def:
+                if attr_def['name'] not in player.attribute:
+                    initial = attr_def.get('initial')
+                    if initial != None:
+                        player.attribute[attr_def["name"]] = initial
+            await player.save()
+        return player
+
+    async def save_player(self, player):
+        await player.save()
+
+    async def load_itembox(self, name="default"):
+        if not self.user_id:
+            #TODO: add handler
+            pass
+        item = await HolaPlayerItembox.load(app_id=self.app_id, user_id=self.user_id, name=name)
+        if not item:
+            item = await HolaPlayerItembox.create(app_id=self.app_id, user_id=self.user_id,
+                name = name, attrs = {},
+                detail={"items": self.hola_svc.get_item_initial()})
+        return item
+
+    async def save_itembox(self, itembox):
+        await itembox.save()
+
+    async def load_playable_state(self):
+        if not self.user_id:
+            #TODO: add handler
+            pass
+        state = await HolaPlayableState.load(app_id=self.app_id, user_id=self.user_id)
+        if not state:
+            state = await HolaPlayableState.create(app_id=self.app_id, user_id=self.user_id,
+                playable_state = {})
+        return state
+
+    async def get_playable_state(self, collection, level_id):
+        state = await self.load_playable_state()
+        collection_def = await self.hola_svc.get_playable_collection_define(collection)
+        iter_type = collection_def.iter_type
+        content = state.playable_state.get(collection, {})
+        if iter_type == 'sequence':
+            content['level_id'] = level_id
+            try:
+                if int(content['level_id']) >= level_id:
+                    return {'succeed': True}
+                else:
+                    return {}
+            except:
+                return {}
+        elif iter_type == 'daily':
+            if level_id not in content:
+                return {}
+            else:
+                return {'succeed': content[level_id]}
+        return {}
+
+    async def set_playable_state(self, collection, level_id, succeed = True):
+        state = await self.load_playable_state()
+        collection_def = await self.hola_svc.get_playable_collection_define(collection)
+        iter_type = collection_def.iter_type
+        if iter_type == 'sequence':
+            content = state.playable_state.setdefault(collection, {})
+            if succeed:
+                content['level_id'] = level_id
+        elif iter_type == 'daily':
+            content = state.playable_state.setdefault(collection, {})
+            if level_id not in content:
+                content[level_id] = succeed
+            else:
+                if not content[level_id]:
+                    content[level_id] = succeed
+        await state.save()
 
 class HolaService:
 
     @classmethod
-    async def create(cls, user, session, config_loader, request_context, **kwargs):
-        inst = cls(user, session, config_loader)
+    async def create(cls, app_id, session, config_loader, request_context, **kwargs):
+        inst = cls(app_id, session, config_loader)
         await inst.load(request_context)
         return inst
 
 
-    def __init__(self, user, session, config_loader):
-        self.app_id = user.app_id
-        self.user = user
-        self.user_id = user.user_id
+    def __init__(self, app_id, session, config_loader):
+        self.app_id = app_id
+        self.user_id = session.user_id if session else None
         self.session = session
+        self.session_svc = HolaSessionService(session) if session else None
         self.config_loader = config_loader
         self.router = Router()
+        self._commands = AutoList()
 
     async def load(self, request_context):
         hola_dict = await self.config_loader.get_config("main.hola")
@@ -373,6 +475,13 @@ class HolaService:
         self.ad_objects_def = hola_def.advertisement.show
         self.playable_collections_def = hola_def.playable.collections
         self.playable_challenges_def = hola_def.playable.challenges
+        if self.session is None:
+            self.session = await SessionService.create(app_id=self.app_id)
+            self._commands.add(SetSessionCommand(args=SetSessionCommandArg(
+                session = self.session.get_data_dict()
+            )))
+            self.session_svc = HolaSessionService(self.session)
+        self.store_svc = HolaStoreSerive(self.session, self)
 
     def get_content_url_root(self):
         root_url = settings.server.get('content_url', '').strip('/')
@@ -390,33 +499,6 @@ class HolaService:
             return filtered[0]
         return None
 
-    def get_variable_value(self, vardef, context):
-        if 'value' in vardef:
-            return self.eval_value(vardef['value'], context)
-        elif 'initial' in vardef:
-            return vardef['initial']
-        else:
-            raise Exception('Either variable initial or value muse be defined.')
-
-    def init_variables(self, context):
-        init = {}
-        for vardef in self.variables_def:
-            name = vardef['name']
-            init[name] = self.get_variable_value(vardef, context)
-        return init
-
-    async def load_variables(self, context):
-        var = await HolaVariable.load(app_id=self.app_id, user_id=self.user_id)
-        if not var:
-            v = self.init_variables(context)
-            var = await HolaVariable.create(app_id=self.app_id, user_id=self.user_id, variable=v)
-        else:
-            for vardef in self.variables_def:
-                if vardef['name'] not in var.variable:
-                    var.variable[vardef['name']] = self.get_variable_value(vardef, context)
-            await var.save()
-        return var
-
     async def load_objects(self, context):
         objects = {}
         for obj_def in self.objects_def:
@@ -424,7 +506,7 @@ class HolaService:
         return objects
 
     async def load_variables_to_context(self, context):
-        var = await self.load_variables(context)
+        var = await self.store_svc.load_variables(context)
         context.variable =  munchify(var.variable)
         objects = await self.load_objects(context)
         context.objects = munchify(objects)
@@ -461,22 +543,8 @@ class HolaService:
         else:
             raise Exception(f'no attribute define with name {name}')
 
-    async def load_attributes(self):
-        player = await HolaPlayer.load(app_id=self.app_id, user_id=self.user_id)
-        if not player:
-            player = await HolaPlayer.create(app_id=self.app_id, user_id=self.user_id,
-                attribute=self.get_attribute_initial(), currency=self.get_currency_initial())
-        else:
-            for attr_def in self.attribute_def:
-                if attr_def['name'] not in player.attribute:
-                    initial = attr_def.get('initial')
-                    if initial != None:
-                        player.attribute[attr_def["name"]] = initial
-            await player.save()
-        return player
-
     async def load_player_to_context(self, context):
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         info = {}
         info.update(player.attribute)
         info.update({'currency': player.currency})
@@ -496,14 +564,6 @@ class HolaService:
                 })
         return item_initial
 
-    async def load_itembox(self, name="default"):
-        item = await HolaPlayerItembox.load(app_id=self.app_id, user_id=self.user_id, name=name)
-        if not item:
-            item = await HolaPlayerItembox.create(app_id=self.app_id, user_id=self.user_id,
-                name = name, attrs = {},
-                detail={"items": self.get_item_initial()})
-        return item
-
     def get_itembox_define(self, name="default"):
         filtered = list(filter(lambda x: x["name"] == name, self.itembox_def))
         if filtered:
@@ -512,7 +572,7 @@ class HolaService:
             raise Exception(f'no itembox define with name {name}')
 
     async def get_player_item_info(self, item_name):
-        items = (await self.load_itembox()).detail.get("items", [])
+        items = (await self.store_svc.load_itembox()).detail.get("items", [])
         filtered = list(filter(lambda x: x["name"] == item_name, items))
         have = len(filtered) > 0
         item = filtered[0] if have else {}
@@ -520,7 +580,7 @@ class HolaService:
 
 
     async def get_itembox_items(self, name):
-        itembox = await self.load_itembox(name=name)
+        itembox = await self.store_svc.load_itembox(name=name)
         return itembox.detail.get('items', [])
 
     async def get_item_info(self, item_name, ):
@@ -536,7 +596,7 @@ class HolaService:
                 effect_name = item.get("effect_name"),
                 price = item.get('price')
             )
-            itembox = await self.load_itembox()
+            itembox = await self.store_svc.load_itembox()
             count = 0
             for item in itembox.detail.get('items', []):
                 if item["name"] == item_name:
@@ -548,8 +608,8 @@ class HolaService:
             raise Exception('no item<{item_name}> info found.')
 
     async def get_player_all(self, context):
-        player = await self.load_attributes()
-        itembox = await self.load_itembox()
+        player = await self.store_svc.load_attributes()
+        itembox = await self.store_svc.load_itembox()
         return SetPlayer(args=
                     SetPlayerArg(
                         attributes=player.attribute,
@@ -593,7 +653,7 @@ class HolaService:
 
     async def _create_context(self, page_context):
         root_url = settings.server.get('content_url', '').strip('/')
-        profile = await self.user.get_profile()
+        profile = await self.session_svc.get_profile()
         core = {"attribute":{}, "currency":{}}
         context = munchify({
             "content": f'{root_url}/static/APP_{self.app_id}/content'
@@ -715,7 +775,7 @@ class HolaService:
             template = count_def.get('template')
             template_have = count_def.get('template_have')
             template_not = count_def.get('template_not')
-            items = (await self.load_itembox()).detail.get("items", [])
+            items = (await self.store_svc.load_itembox()).detail.get("items", [])
             filtered = list(filter(lambda x: x["name"] == item_name, items))
             have = len(filtered) > 0
             item = filtered[0] if have else {}
@@ -907,7 +967,7 @@ class HolaService:
     async def transform_currency_text(self, obj, context):
         currency_name = obj['currency_name']
         currency_def = self.get_currency_define(currency_name)
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         return {
             "type": "icon-number",
             "icon": self.expand_link(currency_def['icon']),
@@ -918,12 +978,19 @@ class HolaService:
     async def transform_attribute_text(self, obj, context):
         attribute_name = obj['attribute_name']
         attribute_def = self.get_attribute_define(attribute_name)
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         return {
             "type": "icon-number",
             "icon": self.expand_link(attribute_def['icon']),
             "number": player.attribute.get(attribute_name, 0),
             "animate": True
+        }
+
+    async def transform_qrcode(self, obj, context):
+        return {
+            "type": "qrcode",
+            "code": self.eval_value(obj.get('code', ''), context),
+            "text": self.eval_value(obj.get('text', ''), context)
         }
 
     async def query_playable_status_objects(self, query, context):
@@ -932,7 +999,7 @@ class HolaService:
         level_ids = []
         if 'level_ids' in query:
             level_ids = self.eval_value(query['level_ids'], context)
-        state = await self.load_playable_state()
+        state = await self.store_svc.load_playable_state()
         collection_state = state.playable_state.get(collection, {})
 
         for level_id in level_ids:
@@ -1038,8 +1105,8 @@ class HolaService:
             cond = obj['cancel'].get('condition')
             if not cond or (cond and self.eval_condition(cond, context)):
                 ret['cancel'] = self.eval_object(obj['cancel'], context, ignore_keys=["args"])
-        if 'actions' in obj:
-            ret['actions'] = [await self.transform_element(action, context) for action in obj['actions']]
+        if 'handlers' in obj:
+            ret['handlers'] = [await self.transform_element(action, context) for action in obj['handlers']]
         return ret
 
     def get_object_type(self, obj):
@@ -1305,6 +1372,11 @@ class HolaService:
             visible = self.eval_value(element['visible'], context)
             if not visible:
                 return None
+        el_name = element['type'].replace('-', '_').lower()
+        method_name = f'transform_{el_name}'
+        handler = getattr(self, method_name, None)
+        if callable(handler):
+            return await handler(element, context)
 
         if element['type'] == 'component-ref':
             component_name = self.eval_value(element['name'], context)
@@ -1727,7 +1799,6 @@ class HolaService:
     async def get_show_page_command(self, page_def, context, include_elements=True):
         origin_context = context
         context = copy.copy(origin_context)
-        svc = await HolaPageStateService.load(self.app_id, self.user_id)
 
         page_route = page_def.route
         if context.get('route_args'):
@@ -1775,53 +1846,10 @@ class HolaService:
         command = await self.get_show_page_command(page_def, context)
         return command
 
-    async def load_playable_state(self):
-        state = await HolaPlayableState.load(app_id=self.app_id, user_id=self.user_id)
-        if not state:
-            state = await HolaPlayableState.create(app_id=self.app_id, user_id=self.user_id,
-                playable_state = {})
-        return state
 
-    async def get_playable_state(self, collection, level_id):
-        state = await self.load_playable_state()
-        collection_def = await self.get_playable_collection_define(collection)
-        iter_type = collection_def.iter_type
-        content = state.playable_state.get(collection, {})
-        if iter_type == 'sequence':
-            content['level_id'] = level_id
-            try:
-                if int(content['level_id']) >= level_id:
-                    return {'succeed': True}
-                else:
-                    return {}
-            except:
-                return {}
-        elif iter_type == 'daily':
-            if level_id not in content:
-                return {}
-            else:
-                return {'succeed': content[level_id]}
-        return {}
-
-    async def set_playable_state(self, collection, level_id, succeed = True):
-        state = await self.load_playable_state()
-        collection_def = await self.get_playable_collection_define(collection)
-        iter_type = collection_def.iter_type
-        if iter_type == 'sequence':
-            content = state.playable_state.setdefault(collection, {})
-            if succeed:
-                content['level_id'] = level_id
-        elif iter_type == 'daily':
-            content = state.playable_state.setdefault(collection, {})
-            if level_id not in content:
-                content[level_id] = succeed
-            else:
-                if not content[level_id]:
-                    content[level_id] = succeed
-        await state.save()
 
     async def get_playable_level(self, collection):
-        state = await self.load_playable_state()
+        state = await self.store_svc.load_playable_state()
         content = state.playable_state.get(collection, {})
         return content
 
@@ -1861,7 +1889,7 @@ class HolaService:
             itembox.detail['items'] = items
 
     async def apply_changes(self, changes):
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         itemboxes = {}
 
         for change in changes:
@@ -1897,16 +1925,16 @@ class HolaService:
                     change['value_after'] = player.attribute[name]
             elif target_type == 'player.itembox':
                 if name not in itemboxes:
-                    itembox = await self.load_itembox(name=name)
+                    itembox = await self.store_svc.load_itembox(name=name)
                     itemboxes[name] = itembox
                 itembox = itemboxes[name]
                 await self.apply_itembox_change(itembox, change)
             else:
                 raise Exception(f'not supported change target {change["target"]}')
 
-        await player.save()
+        await self.store_svc.save_player(player)
         for name, itembox in itemboxes.items():
-            await itembox.save()
+            await self.store_svc.save_itembox(itembox)
 
 
     def eval_condition(self, condition, context):
@@ -2073,7 +2101,7 @@ class HolaService:
 
                 operator = change["change_operator"]
                 name = target_name
-                player = await self.load_attributes()
+                player = await self.store_svc.load_attributes()
 
                 if target_type == 'player.currency':
                     if operator == 'decrease':
@@ -2169,7 +2197,7 @@ class HolaService:
         table = self.build_upgrade_table(self.eval_value({"expr": change['table']}, context))
         targets = change['targets']
         level_name, value_name, value_required_name = targets['level'], targets['value'], targets['value_required']
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         level_change = self.get_player_value(player, level_name)
         value_change = self.get_player_value(player, value_name)
         value_new = value_change['value_before']
@@ -2434,12 +2462,12 @@ class HolaService:
             await self.transform_locals(playable_def['locals'], context)
 
         if 'collection' in playable_def:
-            state = await self.get_playable_state(playable_def["collection"], args.level.level_id)
+            state = await self.store_svc.get_playable_state(playable_def["collection"], args.level.level_id)
             if state and 'succeed' in state and state['succeed'] == True:
                 context.playable.first_time_succeed = False
             else:
                 context.playable.first_time_succeed = True
-            await self.set_playable_state(playable_def["collection"], args.level.level_id, args.succeed)
+            await self.store_svc.set_playable_state(playable_def["collection"], args.level.level_id, args.succeed)
         elif 'challenge' in playable_def:
             name = playable_def['challenge']['name']
             challenge_def = await self.get_playable_challenge_define(name)
@@ -2480,14 +2508,14 @@ class HolaService:
         page_route = context.session.route
         item_name = args["item_name"]
         item_def = await self.get_item_define(item_name)
-        itembox = await self.load_itembox()
+        itembox = await self.store_svc.load_itembox()
         items = itembox.detail.get("items", [])
         filtered = list(filter(lambda x: x["name"] == item_name, items))
         if len(filtered) <=0 or filtered[0]['count'] < 1:
             return ShowAlertCommand(args=
                     ShowAlertCommandArg(text=f"物品 {item_def['display_name']} 已经用完了！"))
         filtered[0]['count'] -= 1
-        await itembox.save()
+        await self.store_svc.save_itembox(itembox)
         command = AutoList()
         command.add(
             PlayableApplyCommand(args=
@@ -2502,7 +2530,7 @@ class HolaService:
         item_name = args["item_name"]
         item_def = await self.get_item_define(item_name)
         price = item_def['price']
-        player = await self.load_attributes()
+        player = await self.store_svc.load_attributes()
         currency = player.currency
         currency_def = self.get_currency_define()
         currency_name = currency_def['name']
@@ -2513,7 +2541,7 @@ class HolaService:
 
 
         command = AutoList()
-        itembox = await self.load_itembox()
+        itembox = await self.store_svc.load_itembox()
         items = itembox.detail.get("items", [])
         filtered = list(filter(lambda x: x["name"] == item_name, items))
         if len(filtered) <=0:
@@ -2529,8 +2557,8 @@ class HolaService:
 
         item['count'] += 1
         player.currency[currency_name] -= price
-        await itembox.save()
-        await player.save()
+        await self.store_svc.save_itembox(itembox)
+        await self.store_svc.save_player(player)
 
         command.add(ShowAlertCommand(args=
                     ShowAlertCommandArg(text=f"{item_def['display_name']} 购买成功！")))
@@ -2573,7 +2601,7 @@ class HolaService:
             else:
                 hooked = True
             if hooked:
-                commands.add(await self.handle_events(hook.actions, context))
+                commands.add(await self.handle_events(hook.handlers, context))
                 return commands
         return None
 
@@ -2598,7 +2626,7 @@ class HolaService:
                     tag = f'{hook.tag}_b'
                     showed = await svc.get_view_showed(page_route, tag)
                     if not showed:
-                        before_commands.add(await self.handle_events(hook.actions, context))
+                        before_commands.add(await self.handle_events(hook.handlers, context))
                         await svc.set_view_showed(page_route, tag)
                 elif hook.name == 'before_show':
                     if hook.condition:
@@ -2608,9 +2636,9 @@ class HolaService:
                     if hook.limit:
                         hook_showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
                         if not hook_showed:
-                            before_commands.add(await self.handle_events(hook.actions, context))
+                            before_commands.add(await self.handle_events(hook.handlers, context))
                     else:
-                        before_commands.add(await self.handle_events(hook.actions, context))
+                        before_commands.add(await self.handle_events(hook.handlers, context))
 
             if before_commands:
                 commands.add(await self.get_show_page_command(page_def, context, include_elements=False))
@@ -2622,7 +2650,7 @@ class HolaService:
                     tag = f'{hook.tag}'
                     showed = await svc.get_view_showed(page_route, tag)
                     if not showed:
-                        commands.add(await self.handle_events(hook.actions, context))
+                        commands.add(await self.handle_events(hook.handlers, context))
                         await svc.set_view_showed(page_route, tag)
 
         commands.add(await self.get_show_page_command(page_def, context))
@@ -2634,9 +2662,9 @@ class HolaService:
                     if hook.limit:
                         showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
                         if not showed:
-                            commands.add(await self.handle_events(hook.actions, context))
+                            commands.add(await self.handle_events(hook.handlers, context))
                     else:
-                        commands.add(await self.handle_events(hook.actions, context))
+                        commands.add(await self.handle_events(hook.handlers, context))
 
         return commands
 
@@ -2695,6 +2723,26 @@ class HolaService:
             user = user
         ))
 
+    async def login(self, args):
+        commands = AutoList()
+        if 'anonymous' not in args:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='only anonymous login supported.', title='')
+            ))
+            return commands
+        user, session = await AccountService.create(self.app_id)
+        if user and session:
+            commands.add(SetSessionCommand(args=SetSessionCommandArg(
+                session = session.get_data_dict(),
+                user = user.get_data_dict()
+            )))
+        else:
+            commands.add(ShowAlertCommand(
+                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
+            ))
+        return commands
+
+
     async def auth_weixin(self, code, context):
         commands = AutoList()
         # if self.session.weixin_login:
@@ -2715,6 +2763,7 @@ class HolaService:
 
     async def handle_request(self, request_cmd):
         ret_commands = AutoList()
+        ret_commands.add(self._commands)
         if request_cmd:
             args = request_cmd.args
             req_context = request_cmd.context
@@ -2723,6 +2772,8 @@ class HolaService:
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
                 ret_commands.add(await self.get_session_start(args, context=context))
+            elif request_cmd.command == 'login':
+                ret_commands.add(await self.login(args))
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))
@@ -2761,7 +2812,7 @@ class HolaService:
                 ret_commands.add(await self.ad_showed(args,
                     context=context))
             else:
-                raise Exception(f'no handler for request command {request_cmd.command}')
+                await logger.error(f'no handler for request command {request_cmd.command}')
         else:
             page_context = ClientRequestContext(
                 route='/',
@@ -2771,4 +2822,6 @@ class HolaService:
             )
             context = await self._create_context(page_context)
             ret_commands.add(await self.get_page('/', context=context))
+        if request_cmd and request_cmd.command and len(ret_commands) == 0:
+            raise Exception(f'no return commands for request command {request_cmd.command}')
         return ret_commands

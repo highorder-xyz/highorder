@@ -28,7 +28,7 @@ class UserProfile(MetaverModel):
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256, default=partial(time_random_id, 'UU', 10))
+    user_id = models.CharField(max_length=256, default=partial(time_random_id, 'UP', 10))
     nick_name = models.CharField(max_length=256)
     avatar_url = models.CharField(max_length=2048)
     extra = models.JSONField()
@@ -91,11 +91,10 @@ class Session(MetaverModel):
     class Meta:
         table = 'session'
         primary_key = ('app_id', 'session_token')
-        indexes = (('app_id', 'user_id'))
 
-    session_token = models.CharField(max_length=256, default=partial(time_random_id, 'US', 20))
+    session_token = models.CharField(max_length=256, default=partial(time_random_id, 'SS', 20))
     app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256)
+    user_id = models.CharField(max_length=256, null=True)
     expire_time = models.DatetimeField(null=True)
     session_type = models.CharField(max_length=32)
     session_data = models.JSONField()
@@ -103,6 +102,18 @@ class Session(MetaverModel):
     country_code = models.CharField(max_length=32,null=True)
     ip = models.CharField(max_length=128, null=True)
     is_valid = models.BooleanField(null=True, default=True)
+
+
+class SessionStore(MetaverModel):
+    class Meta:
+        table = 'session_store'
+        primary_key = ('app_id', 'session_token')
+
+    session_token = models.CharField(max_length=256)
+    app_id = models.CharField(max_length=128)
+    expire_time = models.DatetimeField(null=True)
+    store = models.JSONField()
+
 
 class UserTags(MetaverModel):
     class Meta:

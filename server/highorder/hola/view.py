@@ -1,6 +1,6 @@
 from callpy.web import Blueprint
 from callpy.web.response import jsonify
-from .service import HolaAccountService, HolaService
+from .service import HolaService
 import dataclass_factory
 import hmac, hashlib
 from highorder.base.loader import ConfigLoader
@@ -106,11 +106,7 @@ async def hola_main(request):
     if 'command' in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    if request.user:
-        hola_svc = await HolaService.create(request.user, request.session, request.config_loader, request_cmd.context)
-    else:
-        hola_svc = HolaAccountService(request.app_id, request.config_loader)
-
+    hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
     commands = await hola_svc.handle_request(request_cmd)
 
     return jsonify({"ok":True, "data": factory.dump({"commands": commands})})
@@ -125,11 +121,7 @@ async def hola_lite(request):
     if 'command' in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    if request.user:
-        hola_svc = await HolaService.create(request.user, request.session, request.config_loader, request_cmd.context)
-    else:
-        hola_svc = HolaAccountService(request.app_id, request.config_loader)
-
+    hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
     commands = await hola_svc.handle_request(request_cmd)
 
     return jsonify({"ok":True, "data": factory.dump({"commands": commands})})

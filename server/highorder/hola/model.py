@@ -61,14 +61,3 @@ class HolaPlayerTask(MetaverModel):
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
     task = models.JSONField()
-
-
-class HolaArena(MetaverModel):
-    class Meta:
-        table = 'hola_arena'
-        primary_key = ('app_id', 'arena_id')
-
-    app_id = models.CharField(max_length=128)
-    arena_id = models.CharField(max_length=256)
-    attrs = models.JSONField()
-    itemboxes = models.JSONField()

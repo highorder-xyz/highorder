@@ -46,7 +46,6 @@ class AccountService:
         return (UserService(user), SessionService(session))
 
 
-
 class UserService:
     @classmethod
     async def load(cls, app_id, user_id):
@@ -84,19 +83,7 @@ class UserService:
     async def get_profile(self):
         user_id = self.user_id
         app_id = self.app_id
-        profile = await UserProfileService.load(app_id, user_id)
-        if not profile:
-            data = {
-                'nick_name': f'无名-{user_id[-8:]}',
-                'avatar_url': ''
-            }
-            await UserProfileService.create_or_update(app_id, user_id, data)
-            return data
-        else:
-            return {
-                'nick_name': profile.nick_name,
-                'avatar_url': profile.avatar_url
-            }
+        return await UserProfileService.load_or_create(app_id, user_id)
 
     async def new_session(self, **kwargs):
         session_type = kwargs.get('session_type', 'mobile')
@@ -127,8 +114,40 @@ class SessionService:
             return cls(model)
         return None
 
+    @classmethod
+    async def create(cls, app_id, **kwargs):
+        session_type = kwargs.get('session_type', 'mobile')
+        session_data = kwargs.get('session_data', {})
+        device_info = kwargs.get('device_info', {})
+        country_code = kwargs.get('country_code', 'cn')
+        ip = kwargs.get('ip')
+
+        session = Session(app_id=app_id, user_id=None,
+            session_type = session_type,
+            session_data = session_data,
+            device_info = device_info,
+            country_code = country_code,
+            ip = ip)
+
+        async with in_transaction():
+            await session.save()
+
+        return SessionService(session)
+
     def __init__(self, model, **kwargs):
         self.model = model
+
+    @property
+    def user_id(self):
+        return self.model.user_id
+
+    @property
+    def app_id(self):
+        return self.model.app_id
+
+    @property
+    def session_token(self):
+        return self.model.session_token
 
     @property
     def session_data(self):
@@ -194,6 +213,23 @@ class UserProfileService:
             inst = cls(model)
             await inst.update(data)
         return inst
+
+    @classmethod
+    async def load_or_create(cls, app_id, user_id):
+        profile = await cls.load(app_id, user_id)
+        if not profile:
+            data = {
+                'nick_name': f'无名-{user_id[-8:]}',
+                'avatar_url': ''
+            }
+            await cls.create_or_update(app_id, user_id, data)
+            return data
+        else:
+            return {
+                'nick_name': profile.nick_name,
+                'avatar_url': profile.avatar_url
+            }
+
 
     def __init__(self, model, **kwargs):
         self.model =  model
