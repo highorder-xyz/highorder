@@ -3,6 +3,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, List
 import string
+from copy import deepcopy
 
 class TokenKind(Enum):
     Unknown = 1
@@ -18,11 +19,26 @@ class TokenKind(Enum):
     Comment = 11
 
 @dataclass
+class CharPosition:
+    index: int
+    line: int
+    column: int
+
+    def move(self, num):
+        self.index += num
+        self.column += num
+
+    def newline(self):
+        self.index += 1
+        self.line += 1
+        self.column = 0
+
+@dataclass
 class Token:
     kind: TokenKind
     value: str
-    start_pos: int
-    end_pos: int
+    start_pos: CharPosition
+    end_pos: CharPosition
 
 @dataclass
 class TokenizeContext:
@@ -53,87 +69,178 @@ class HolaNode:
     children: List[HolaNode] = field(default_factory=list())
 
 
+ESCAPE_CHAR_MAP = {
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    'v': '\v',
+    'b': '\b',
+    'f': '\f',
+    'a': '\a'
+}
+
 class Tokenizer:
     def __init__(self):
         pass
 
     def tokenize(self, code):
-        def handle_context():
-            if len(context.chars) == 0:
-                return
-            if len(context.chars) == 1:
-                tokens.append(Token(
-                    kind = TokenKind.Identifier,
-                    value = context.chars[0],
-                    start_pos = context.start_pos,
-                    end_pos = context.start_pos
-                ))
-            else:
-                if context.chars[0] == '"' and context.chars[-1] == '"':
-                    tokens.append(Token(
-                        kind = TokenKind.StringLiteral,
-                        value = ''.join(context.chars[1:-2]),
-                        start_pos = context.start_pos,
-                        end_pos = context.start_pos + len(context.chars) - 2
-                    ))
-                else:
-                    tokens.append(Token(
-                        kind = TokenKind.Identifier,
-                        value = ''.join(context.chars),
-                        start_pos = context.start_pos,
-                        end_pos = context.start_pos + len(context.chars)
-                    ))
-        pos = 0
+        pos = CharPosition(index = 0, line = 0, column = 0)
         tokens = []
-        context = TokenizeContext(start_pos=pos, chars = [], in_str_literal = False)
-        while pos < len(code):
-            ch = code[pos]
+        while pos.index < len(code):
+            ch = code[pos.index]
             if ch == '{':
-                handle_context()
                 tokens.append(Token(
                     kind = TokenKind.LBrace,
                     value = '{',
-                    start_pos = pos,
-                    end_pos = pos
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
                 ))
 
-                pos += 1
-                context = TokenizeContext(
-                    start_pos = pos
-                )
+                pos.move(1)
+
             elif ch == '}':
-                handle_context()
                 tokens.append(Token(
                     kind = TokenKind.RBrace,
                     value = '}',
-                    start_pos = pos,
-                    end_pos = pos
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
                 ))
 
-                pos += 1
-                context = TokenizeContext(
-                    start_pos = pos
-                )
+                pos.move(1)
+
             elif ch == ':':
-                pos += 1
+                tokens.append(Token(
+                    kind = TokenKind.Colon,
+                    value = ':',
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
+                ))
+                pos.move(1)
             elif ch == '\n':
-                pos += 1
+                tokens.append(Token(
+                    kind = TokenKind.NewLine,
+                    value = '\n',
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
+                ))
+                pos.move(1)
             elif ch == '[':
-                pos += 1
+                tokens.append(Token(
+                    kind = TokenKind.LBracket,
+                    value = '[',
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
+                ))
+                pos.move(1)
             elif ch == ']':
-                pos += 1
+                tokens.append(Token(
+                    kind = TokenKind.RBracket,
+                    value = ']',
+                    start_pos = deepcopy(pos),
+                    end_pos = deepcopy(pos)
+                ))
+                pos.move(1)
             elif ch == '/':
-                pos += 1
-            elif (ch in string.ascii_letters or ch in string.digits or
-                  ch == '.' or ch == '_'):
-                context.chars.append(ch)
-                pos += 1
+                pos.move(1)
+            elif ch == '"':
+                token = self.tokenize_string(pos, code)
+                if token:
+                    tokens.append(token)
+            elif (ch in string.ascii_letters or ch == '_'):
+                token = self.tokenize_identifier(pos, code)
+                if token:
+                    tokens.append(token)
+            elif ch in string.digits:
+                token = self.tokenize_number(pos, code)
+                if token:
+                    tokens.append(token)
+                pos.move(1)
             else:
-                handle_context()
-                pos += 1
-                context = TokenizeContext(
-                    start_pos = pos
-                )
-        handle_context()
+                pos.move(1)
 
         return tokens
+
+    def tokenize_identifier(self, pos, code):
+        chars = []
+        chars.append(code[pos.index])
+        index = pos.index + 1
+        while index < len(code):
+            ch = code[index]
+            if ch in string.ascii_letters or ch == '_' or ch in string.digits:
+                chars.append(ch)
+                index += 1
+            else:
+                break
+        start_pos = deepcopy(pos)
+        end_pos = deepcopy(pos)
+        end_pos.index = (index - 1)
+        count = index - pos.index
+        pos.move(count)
+        return Token(
+            kind = TokenKind.Identifier,
+            value = ''.join(chars),
+            start_pos = start_pos,
+            end_pos = end_pos
+        )
+
+    def tokenize_string(self, pos, code):
+        chars = []
+        quote_char = code[pos.index]
+        index = pos.index + 1
+        while index < len(code):
+            ch = code[index]
+            if ch == '\\':
+                next_char = code[index+1]
+                if next_char in ESCAPE_CHAR_MAP:
+                    chars.append(ESCAPE_CHAR_MAP[next_char])
+                else:
+                    chars.append(next_char)
+                index += 2
+            elif ch == quote_char:
+                index += 1
+                break
+            else:
+                chars.append(ch)
+                index += 1
+        start_pos = deepcopy(pos)
+        end_pos = deepcopy(pos)
+        end_pos.index = (index - 1)
+        count = index - pos.index
+        pos.move(count)
+        return Token(
+            kind = TokenKind.StringLiteral,
+            value = ''.join(chars),
+            start_pos = start_pos,
+            end_pos = end_pos
+        )
+
+    def tokenize_number(self, pos, code):
+        chars = []
+        quote_char = code[pos.index]
+        index = pos.index + 1
+        while index < len(code):
+            ch = code[index]
+            if ch == '\\':
+                next_char = code[index+1]
+                if next_char in ESCAPE_CHAR_MAP:
+                    chars.append(ESCAPE_CHAR_MAP[next_char])
+                else:
+                    chars.append(next_char)
+                index += 2
+            elif ch == quote_char:
+                index += 1
+                break
+            else:
+                chars.append(ch)
+                index += 1
+        start_pos = deepcopy(pos)
+        end_pos = deepcopy(pos)
+        end_pos.index = (index - 1)
+        count = index - pos.index
+        pos.move(count)
+        return Token(
+            kind = TokenKind.StringLiteral,
+            value = ''.join(chars),
+            start_pos = start_pos,
+            end_pos = end_pos
+        )

@@ -1,13 +1,36 @@
 
 from highorder.base.compiler import Tokenizer, TokenKind
 
+def compare_tokens(code, desire_tokens):
+    raw_tokens = Tokenizer().tokenize(code)
+    tokens = list(map(lambda x: (x.kind, x.value), raw_tokens))
+    assert tokens == desire_tokens
+
 def test_tokenizer_simple_1():
-    tokens = Tokenizer().tokenize('''''')
-    assert len(tokens) == 0
+    compare_tokens(
+        '''''',
+        []
+    )
 
 def test_tokenizer_simple_2():
-    tokens = Tokenizer().tokenize('''Page {}''')
-    assert len(tokens) == 3
-    assert tokens[0].kind == TokenKind.Identifier
-    assert tokens[1].kind == TokenKind.LBrace
-    assert tokens[2].kind == TokenKind.RBrace
+    compare_tokens(
+        '''Page {}''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.RBrace, '}')
+        ]
+    )
+
+def test_tokenizer_simple_3():
+    compare_tokens(
+        '''Page { route: "/" }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.Identifier, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.StringLiteral, '/'),
+            (TokenKind.RBrace, '}')
+        ]
+    )
