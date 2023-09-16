@@ -34,3 +34,36 @@ def test_tokenizer_simple_3():
             (TokenKind.RBrace, '}')
         ]
     )
+
+def test_tokenizer_simple_31():
+    compare_tokens(
+        '''Page { route: "/a
+bb" }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.Identifier, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.StringLiteral, '/a\nbb'),
+            (TokenKind.RBrace, '}')
+        ]
+    )
+
+def test_tokenizer_simple_4():
+    compare_tokens(
+        '''Page { route: "/"
+            size: 5
+        }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.Identifier, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.StringLiteral, '/'),
+            (TokenKind.LineBreak, '\n'),
+            (TokenKind.Identifier, 'size'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.NumberLiteral, 5),
+            (TokenKind.RBrace, '}')
+        ]
+    )
