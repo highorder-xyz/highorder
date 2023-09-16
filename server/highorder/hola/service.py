@@ -580,7 +580,8 @@ class HolaService:
         if self.session is None:
             self.session = await SessionService.create(app_id=self.app_id)
             self._commands.add(SetSessionCommand(args=SetSessionCommandArg(
-                session = self.session.get_data_dict()
+                session = self.session.get_data_dict(),
+                user = None
             )))
         self.store_svc = HolaStoreSerive(self.session, self)
 
@@ -603,7 +604,8 @@ class HolaService:
     async def load_objects(self, context):
         objects = {}
         for obj_def in self.objects_def:
-            objects[obj_def['name']] = obj_def['values']
+            if 'values' in obj_def:
+                objects[obj_def['name']] = obj_def['values']
         return objects
 
     async def load_variables_to_context(self, context):
@@ -767,9 +769,10 @@ class HolaService:
                                     ["name", "icon", "display_name", "initial", "min", "max"])
         user = {}
         user.update(profile)
-        user['weixin'] = {
-            'login': self.session.weixin_login
-        }
+        if user:
+            user['weixin'] = {
+                'login': self.session.weixin_login
+            }
 
         ret =  {
             "user": user,
@@ -792,31 +795,13 @@ class HolaService:
                 obj = getattr(obj, part, {})
         return obj
 
-    # async def get_playable_data(self, playable_name):
-    #     with importlib.resources.path('highorder', '__init__.py') as root_path:
-    #         playable_file = os.path.join(os.path.dirname(root_path), f'data/playable/{playable_name}.json')
-    #         if not os.path.exists(playable_file):
-    #             raise Exception(f'{playable_name} not exits in package.')
-    #         with open(playable_file, 'rb') as f:
-    #             return json.loads(f.read().decode('utf-8'))
 
     async def get_item_define(self, item_name):
-        # item_parts = item_name.split('.')
-        # if len(item_parts) == 1:
         filtered = list(filter(lambda x: x["name"] == item_name, self.item_def))
         if len(filtered) > 0:
             return filtered[0]
         else:
             raise Exception(f'item def of {item_name} not found.')
-        # else:
-        #     ns = item_parts[0]
-        #     name = '.'.join(item_parts[1:])
-        #     ns_def = await self.get_playable_data(ns)
-        #     filtered = list(filter(lambda x: x["name"] == name, ns_def["items"]))
-        #     if len(filtered) > 0:
-        #         return filtered[0]
-        #     else:
-        #         raise Exception(f'item def of {item_name} not found.')
 
     async def transform_item_action(self, obj, context):
         origin_context = context

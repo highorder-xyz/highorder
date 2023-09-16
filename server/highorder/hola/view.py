@@ -1,5 +1,5 @@
 from callpy.web import Blueprint
-from callpy.web.response import jsonify
+from callpy.web.response import Response
 from .service import HolaService
 import dataclass_factory
 import hmac, hashlib
@@ -9,6 +9,7 @@ from highorder.account.service import SessionService
 from .data import (
     ClientRequestCommand
 )
+import json
 
 factory = dataclass_factory.Factory()
 
@@ -67,6 +68,7 @@ async def validate_client_request(request):
     app_id = request.headers.get('X-HighOrder-Application-Id')
     assert app_id != None
     session_token = request.headers.get('X-HighOrder-Session-Token')
+
     sign_valid  = await validate_client(app_id, sign, request)
     if not sign_valid:
         return False, error.client_invalid('sign not correct.')
@@ -86,6 +88,8 @@ async def validate_client_lite_request(request):
     assert app_id != None
     session_token = request.headers.get('X-HighOrder-Session-Token')
     request.app_id = app_id
+    app_config = await AppConfig.get(app_id)
+    request.config_loader = app_config.loader
 
     user = None
     session = None
@@ -109,7 +113,10 @@ async def hola_main(request):
     hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
     commands = await hola_svc.handle_request(request_cmd)
 
-    return jsonify({"ok":True, "data": factory.dump({"commands": commands})})
+    ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},
+                          ensure_ascii=False, indent=None, separators=(',', ':'))
+
+    return Response(ret_data, content_type='application/json')
 
 @bp.route('/lite', methods=["POST", "GET"])
 async def hola_lite(request):
@@ -124,4 +131,6 @@ async def hola_lite(request):
     hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
     commands = await hola_svc.handle_request(request_cmd)
 
-    return jsonify({"ok":True, "data": factory.dump({"commands": commands})})
+    ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},
+                          ensure_ascii=False, indent=None, separators=(',', ':'))
+    return Response(ret_data, content_type='application/json')
