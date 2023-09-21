@@ -7,7 +7,7 @@ if debug:
     from basepy.more.rich_console import install_rich_console
     install_rich_console()
 
-from callpy import CallFlow
+from callpy import CallPy
 from callpy.web import response
 from callpy.web.response import FileResponse
 import os
@@ -16,7 +16,7 @@ from .base import error
 
 from .boot import boot_components
 
-app = CallFlow('highorder')
+app = CallPy('highorder')
 
 webapp_root = settings.server.get('webapp_root', None)
 
@@ -53,7 +53,7 @@ async def app_before_start():
     try:
         await boot_components()
     except Exception as ex:
-        await log.error(str(ex))
+        await logger.error(str(ex))
 
 @app.before_request
 async def app_before_request(request):
