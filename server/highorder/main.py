@@ -50,7 +50,10 @@ async def app_before_start():
         await logger.init(settings.log)
     else:
         await logger.init()
-    await boot_components()
+    try:
+        await boot_components()
+    except Exception as ex:
+        await log.error(str(ex))
 
 @app.before_request
 async def app_before_request(request):
