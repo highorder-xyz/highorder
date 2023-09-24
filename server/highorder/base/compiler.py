@@ -85,8 +85,8 @@ class SyntaxNode:
     start_pos: CharPosition
     end_pos: CharPosition
     value: str = field(default_factory=str)
-    properties: Dict[str, SyntaxNode] = field(default_factory=dict())
-    children: List[SyntaxNode] = field(default_factory=list())
+    properties: Dict[str, SyntaxNode] = field(default_factory=dict)
+    children: List[SyntaxNode] = field(default_factory=list)
 
 
 ESCAPE_CHAR_MAP = {
@@ -474,7 +474,7 @@ class Parser:
             if token.kind == TokenKind.RBrace:
                 break
             if token.kind in [TokenKind.PropertyName, TokenKind.StringLiteral]:
-                name, value = self.parse_property(self, tokens)
+                name, value = self.parse_property(tokens)
                 node.properties[name] = value
                 tokens.consume(TokenKind.LineBreak)
             elif token.kind in TokenKind.Identifier:
@@ -498,7 +498,7 @@ class Parser:
         tokens.next()
         tokens.expect(TokenKind.Colon)
         tokens.consume(TokenKind.LineBreak)
-        value = self.parse_value(self, tokens)
+        value = self.parse_value(tokens)
         return (name, value)
 
     def parse_value(self, tokens):
@@ -597,13 +597,13 @@ class JsonCodeGenerator:
             obj = self.gen_object(sub_node)
             raw_obj_list.append(obj)
         json_obj_root = {
-            "attributes": [],
         }
 
         for obj in raw_obj_list:
             obj_type = obj["type"]
-            if obj_type in [""]:
-                pass
+            if obj_type in ["page"]:
+                interfaces = json_obj_root.setdefault('interfaces', [])
+                interfaces.append(obj)
             else:
                 raise Exception()
         return json_obj_root
@@ -619,7 +619,7 @@ class JsonCodeGenerator:
                 chars.append(char.low())
             else:
                 chars.append(char)
-        return ''.join(name)
+        return ''.join(chars)
 
     def gen_object(self, node):
         obj = {}
@@ -630,7 +630,7 @@ class JsonCodeGenerator:
                 continue
             obj[k] = self.gen_value(v)
 
-        if obj.children:
+        if node.children:
             child_key_name = CHILD_PROPERTY_NAMES.get(obj["type"], "elements")
             obj[child_key_name] = []
             for child in obj.children:
