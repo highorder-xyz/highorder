@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 import string
 from copy import deepcopy
-import json
 
 class TokenKind(Enum):
     Null = 1
@@ -406,9 +405,8 @@ class HolaSyntaxError(Exception):
     def __init__(self, message, pos):
         self.message = message
         self.pos = pos
-
-    def __str__(self):
-        return f'Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}): {self.message}'
+        new_message = f'Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}): {self.message}'
+        super().__init__(self, new_message)
 
 class HolaSyntaxExpectError(Exception):
     def __init__(self, expect, found):
@@ -418,13 +416,13 @@ class HolaSyntaxExpectError(Exception):
         else:
             self.expect = expect
         self.found = found
-
-    def __str__(self):
-        expect_str = ', '.join(list(map(lambda x: str(x), self.expect)))
-        return f'''Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}):
+        expect_str = ', '.join(list(map(lambda x: repr(x), self.expect)))
+        message = f'''Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}):
     Expect token:  {expect_str}
-    Found token: k={self.found.kind}, v="{self.fond.value}"
+    Found token: k={self.found.kind}, v="{self.found.value}"
     '''
+        super().__init__(self, message)
+
 
 
 class Parser:
@@ -468,7 +466,7 @@ class Parser:
             children = []
         )
         tokens.expect(TokenKind.LBrace)
-        tokens.consume(TokenKind.LineBreak)
+        tokens.consume([TokenKind.Comma, TokenKind.LineBreak])
         while not tokens.eof():
             token = tokens.peek()
             if token.kind == TokenKind.RBrace:
@@ -476,8 +474,7 @@ class Parser:
             if token.kind in [TokenKind.PropertyName, TokenKind.StringLiteral]:
                 name, value = self.parse_property(tokens)
                 node.properties[name] = value
-                tokens.consume(TokenKind.LineBreak)
-            elif token.kind in TokenKind.Identifier:
+            elif token.kind in (TokenKind.Identifier, TokenKind.LBrace):
                 sub_node = self.parse_object(tokens)
                 node.children.append(sub_node)
             else:
@@ -485,8 +482,12 @@ class Parser:
                     [TokenKind.StringLiteral, TokenKind.PropertyName, TokenKind.Identifier],
                     token
                 )
+            next_token = tokens.peek()
+            if next_token.kind in [TokenKind.Comma, TokenKind.LineBreak]:
+                tokens.next()
+                tokens.consume(TokenKind.LineBreak)
+                continue
 
-        print(tokens.peek())
         token = tokens.peek()
         node.end_pos = deepcopy(token.end_pos)
         tokens.expect(TokenKind.RBrace)
@@ -497,7 +498,6 @@ class Parser:
         name = token.value
         tokens.next()
         tokens.expect(TokenKind.Colon)
-        tokens.consume(TokenKind.LineBreak)
         value = self.parse_value(tokens)
         return (name, value)
 
@@ -571,12 +571,18 @@ class Parser:
                     properties = {},
                     children = []
                 ))
+                tokens.consume(TokenKind.LineBreak)
                 continue
             else:
                 sub_node = self.parse_value(tokens)
-                tokens.expect([TokenKind.Comma, TokenKind.LineBreak])
-                tokens.consume(TokenKind.LineBreak)
                 node.children.append(sub_node)
+                next_token = tokens.peek()
+                if next_token.kind in [TokenKind.Comma, TokenKind.LineBreak]:
+                    tokens.next()
+                    tokens.consume(TokenKind.LineBreak)
+                else:
+                    break
+
         token = tokens.peek()
         node.end_pos = deepcopy(token.end_pos)
         tokens.expect(TokenKind.RBracket)
@@ -586,7 +592,7 @@ CHILD_PROPERTY_NAMES = {
     "data-object": "properties"
 }
 
-class JsonCodeGenerator:
+class ObjectTreeCodeGenerator:
     def __init__(self):
         pass
 
@@ -596,16 +602,19 @@ class JsonCodeGenerator:
             assert sub_node.kind == NodeKind.Object
             obj = self.gen_object(sub_node)
             raw_obj_list.append(obj)
-        json_obj_root = {
-        }
+
+        json_obj_root = {}
 
         for obj in raw_obj_list:
             obj_type = obj["type"]
-            if obj_type in ["page"]:
+            if obj_type in ["page", "widget", "modal"]:
                 interfaces = json_obj_root.setdefault('interfaces', [])
                 interfaces.append(obj)
+            elif obj_type in ["data-object"]:
+                interfaces = json_obj_root.setdefault('objects', [])
+                interfaces.append(obj)
             else:
-                raise Exception()
+                raise Exception(f'no handler for obj_type: {obj["type"]}')
         return json_obj_root
 
     def transform_obj_name(self, name):
@@ -665,11 +674,11 @@ class Compiler:
     def __init__(self):
         pass
 
-    def compile(self, code, target="json"):
+    def compile(self, code, target="object_tree"):
         parser = Parser()
         node = parser.parse(code)
-        if target == 'json':
-            generator = JsonCodeGenerator()
+        if target == 'object_tree':
+            generator = ObjectTreeCodeGenerator()
             return generator.gen(node)
         else:
-            raise Exception(f'Only target with json supported.')
+            raise Exception(f'Only target with object_tree supported.')
