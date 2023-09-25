@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 import string
 from copy import deepcopy
+# import pprint
+# pp = pprint.PrettyPrinter(indent=4)
 
 class TokenKind(Enum):
     Null = 1
@@ -191,7 +193,6 @@ class Tokenizer:
                 token = self.tokenize_number(pos, code)
                 if token:
                     tokens.append(token)
-                pos.move(1)
             else:
                 pos.move(1)
 
@@ -440,9 +441,11 @@ class Parser:
             properties = {},
             children = []
         )
+        tokens.consume(TokenKind.LineBreak)
         while not tokens.eof():
             node = self.parse_object(tokens)
             root.children.append(node)
+            tokens.consume(TokenKind.LineBreak)
 
         return root
 
@@ -562,7 +565,7 @@ class Parser:
             token = tokens.peek()
             if token.kind == TokenKind.RBracket:
                 break
-            if token.kind == TokenKind.Comma:
+            elif token.kind == TokenKind.Comma:
                 node.children.append(node = SyntaxNode(
                     kind = NodeKind.Null,
                     start_pos = deepcopy(token.start_pos),
@@ -580,8 +583,8 @@ class Parser:
                 if next_token.kind in [TokenKind.Comma, TokenKind.LineBreak]:
                     tokens.next()
                     tokens.consume(TokenKind.LineBreak)
-                else:
-                    break
+                    continue
+                continue
 
         token = tokens.peek()
         node.end_pos = deepcopy(token.end_pos)
@@ -613,6 +616,9 @@ class ObjectTreeCodeGenerator:
             elif obj_type in ["data-object"]:
                 interfaces = json_obj_root.setdefault('objects', [])
                 interfaces.append(obj)
+            elif obj_type in ["attribute"]:
+                attributes = json_obj_root.setdefault('attributes', [])
+                attributes.append(obj)
             else:
                 raise Exception(f'no handler for obj_type: {obj["type"]}')
         return json_obj_root
@@ -624,8 +630,8 @@ class ObjectTreeCodeGenerator:
         chars.append(name[0].lower())
         for char in name[1:]:
             if char in string.ascii_uppercase:
-                chars.append('_')
-                chars.append(char.low())
+                chars.append('-')
+                chars.append(char.lower())
             else:
                 chars.append(char)
         return ''.join(chars)
@@ -642,7 +648,7 @@ class ObjectTreeCodeGenerator:
         if node.children:
             child_key_name = CHILD_PROPERTY_NAMES.get(obj["type"], "elements")
             obj[child_key_name] = []
-            for child in obj.children:
+            for child in node.children:
                 obj[child_key_name].append(self.gen_value(child))
 
         return obj
