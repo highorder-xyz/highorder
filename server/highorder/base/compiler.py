@@ -639,7 +639,8 @@ class ObjectTreeCodeGenerator:
     def gen_object(self, node):
         obj = {}
         if node.value.lower() != "object":
-            obj["type"] = self.transform_obj_name(node.value)
+            if node.value:
+                obj["type"] = self.transform_obj_name(node.value)
         for k, v in node.properties.items():
             if k.lower() == "type":
                 continue
