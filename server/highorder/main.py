@@ -38,8 +38,23 @@ async def favicon(request):
 if webapp_root:
     app.static('/assets', os.path.abspath(os.path.join(webapp_root, 'assets')))
 
-if simulator_root and os.path.exists(simulator_root):
-    app.static('/simulator', os.path.abspath(simulator_root))
+if simulator_root:
+    @app.route('/simulator/')
+    async def simulator(request):
+        args = request.args
+        if 'app_id' in args and 'client_key' in args and simulator_root:
+            return FileResponse(os.path.join(simulator_root, 'index.html'))
+        return 'highorder server ok'
+
+    @app.route('/simulator/favicon.ico')
+    async def simulator_favicon(request):
+        favicon_path = os.path.join(simulator_root, 'favicon.ico')
+        if simulator_root and os.path.exists(favicon_path):
+            return FileResponse(os.path.join(simulator_root, 'favicon.ico'))
+        return response.abort(404)
+
+
+    app.static('/simulator/assets', os.path.abspath(os.path.join(simulator_root, 'assets')))
 
 content_location = settings.server.get('content_location', None)
 if content_location:
