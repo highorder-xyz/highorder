@@ -19,6 +19,7 @@ from .boot import boot_components
 app = CallPy('highorder')
 
 webapp_root = settings.server.get('webapp_root', None)
+simulator_root = settings.server.get('simulator_root', None)
 
 @app.route('/')
 async def index(request):
@@ -36,6 +37,9 @@ async def favicon(request):
 
 if webapp_root:
     app.static('/assets', os.path.abspath(os.path.join(webapp_root, 'assets')))
+
+if simulator_root and os.path.exists(simulator_root):
+    app.static('/simulator', os.path.abspath(simulator_root))
 
 content_location = settings.server.get('content_location', None)
 if content_location:
