@@ -91,7 +91,7 @@ export class ServiceClient {
         let body = !this.isEmpty(data.data) ? JSON.stringify(data.data) : '';
         var sign = this.getSign(body)
         var headers: any = data.headers || {}
-        let real_url = trimStart(url, '/')
+        let real_url = url
         if (sign != undefined) {
             headers['X-HighOrder-Sign'] = sign
             headers['X-HighOrder-Application-Id'] = this.config.appId
@@ -110,6 +110,7 @@ export class ServiceClient {
             fetch: app_platform.custom_fetch,
             throwHttpErrors: false
         }
+
         let response = await ky(real_url, option)
         if(! response.ok){
             let body = await response.json()

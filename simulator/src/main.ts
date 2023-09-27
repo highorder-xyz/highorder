@@ -310,7 +310,7 @@ function transformToOject(paramstr: string) {
 }
 
 const options = getSearchParameters();
-console.log(options)
+
 const highorder_app_config = {
     appId: options.app_id ?? "",
     baseUrl: options.base_url ?? "",
@@ -324,7 +324,6 @@ const init_options: Record<string, any> = {}
 if(options.theme !== undefined ){
     init_options.theme = options.theme
 }
-console.log(highorder_app_config)
 
 app_configs.push(highorder_app_config)
 
