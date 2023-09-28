@@ -39,14 +39,18 @@ import zlib
 factory = dataclass_factory.Factory()
 
 def get_page_size_name(page_width):
-    if page_width <= 480:
+    if page_width <= 300:
+        return 'xmall'
+    elif page_width <= 480:
         return 'small'
     elif page_width <= 768:
         return 'medium'
     elif page_width <= 1200:
         return 'large'
-    elif page_width > 1200:
+    elif page_width <= 1680:
         return 'xlarge'
+    elif page_width > 1680:
+        return 'xxlarge'
 
 class ValueNotEnoughError(Exception):
     def __init__(self, name):
@@ -515,6 +519,14 @@ class HolaStoreSerive:
         page_state_model = await self.load_page_state_model()
         page_state_model.page_state = page_state
         await page_state_model.save()
+
+class HolaDataProcessSerivce:
+    pass
+
+
+class HolaInterfaceService:
+    pass
+
 
 class HolaService:
 
