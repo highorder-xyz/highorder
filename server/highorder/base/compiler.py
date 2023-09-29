@@ -595,6 +595,17 @@ CHILD_PROPERTY_NAMES = {
     "data-object": "properties"
 }
 
+OBJECT_CATEGORY_MAP = {
+    "page": "interfaces",
+    "modal": "interfaces",
+    "component": "components",
+    "action": "actions",
+    "currency": "currencies",
+    "variable": "variables",
+    "data-object": "objects",
+    "attribute": "attributes"
+}
+
 class ObjectTreeCodeGenerator:
     def __init__(self):
         pass
@@ -610,17 +621,13 @@ class ObjectTreeCodeGenerator:
 
         for obj in raw_obj_list:
             obj_type = obj["type"]
-            if obj_type in ["page", "widget", "modal"]:
-                interfaces = json_obj_root.setdefault('interfaces', [])
-                interfaces.append(obj)
-            elif obj_type in ["data-object"]:
-                interfaces = json_obj_root.setdefault('objects', [])
-                interfaces.append(obj)
-            elif obj_type in ["attribute"]:
-                attributes = json_obj_root.setdefault('attributes', [])
-                attributes.append(obj)
-            else:
+            if obj_type not in OBJECT_CATEGORY_MAP:
                 raise Exception(f'no handler for obj_type: {obj["type"]}')
+
+            category = OBJECT_CATEGORY_MAP[obj_type]
+            category_objects = json_obj_root.setdefault(category, [])
+            category_objects.append(obj)
+
         return json_obj_root
 
     def transform_obj_name(self, name):
