@@ -193,7 +193,6 @@ export class AlertHelper {
     }
 
     render() {
-        if(this)
         return h(Alert, {ref:this.ref, ...this.option})
     }
 }
