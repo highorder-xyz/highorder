@@ -1360,6 +1360,52 @@ class HolaService:
             "style": style
         }
 
+    async def transform_button(self, element, context):
+        transformed = {
+            "type": element["type"],
+            "text": self.eval_value(element.get("text", ""), context),
+            "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
+        }
+        if "href" in element:
+            transformed['href'] = self.eval_value(element['href'], context)
+
+        if "open_new" in element:
+            transformed['open_new'] = self.eval_value(element['open_new'], context)
+
+        if 'sub_text' in element:
+            transformed['sub_text'] = self.eval_value(element["sub_text"], context)
+
+        if 'route' in element:
+            transformed['route'] = self.eval_value(element["route"], context)
+
+        if 'style' in element:
+            style = self.eval_object(element['style'], context)
+            transformed['style'] = style
+
+        if "disable" in element:
+            transformed["disable"] = self.eval_value(element["disable"], context) or False
+
+        if "disable_text" in element:
+            transformed["disable_text"] = self.eval_value(element["disable_text"], context)
+
+        if 'open_modal' in element:
+            transformed['open_modal'] = await self.transform_element(element["open_modal"], context)
+
+        if 'open_modal_args' in element:
+            transformed['open_modal_args'] = self.eval_object(element['open_modal_args'], context)
+
+        if 'show_ad' in element:
+            transformed['show_ad'] = self.eval_object(element.get('show_ad', {}), context)
+
+        if 'action' in element:
+            transformed['action'] = self.eval_value(element['action'], context)
+            if 'action_condition' in element:
+                transformed['action_condition'] = self.eval_object(element["action_condition"], context)
+            if 'action_props' in element:
+                transformed['action_props'] = self.eval_object(element["action_props"], context)
+            transformed['args'] = self.eval_object(element.get('args', {}), context)
+        return transformed
+
     async def transform_navbar(self, obj, context):
         ret = {
             "type": "navbar",
@@ -1470,6 +1516,7 @@ class HolaService:
             visible = self.eval_value(element['visible'], context)
             if not visible:
                 return None
+
         el_name = element['type'].replace('-', '_').lower()
         method_name = f'transform_{el_name}'
         handler = getattr(self, method_name, None)
@@ -1624,44 +1671,7 @@ class HolaService:
             return transformed
 
         elif element["type"] == 'button' or element["type"] == 'icon-button':
-            transformed = {
-                "type": element["type"],
-                "text": self.eval_value(element.get("text", ""), context),
-                "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
-            }
-            if 'sub_text' in element:
-                transformed['sub_text'] = self.eval_value(element["sub_text"], context)
-
-            if 'route' in element:
-                transformed['route'] = self.eval_value(element["route"], context)
-
-            if 'style' in element:
-                style = self.eval_object(element['style'], context)
-                transformed['style'] = style
-
-            if "disable" in element:
-                transformed["disable"] = self.eval_value(element["disable"], context) or False
-
-            if "disable_text" in element:
-                transformed["disable_text"] = self.eval_value(element["disable_text"], context)
-
-            if 'open_modal' in element:
-                transformed['open_modal'] = await self.transform_element(element["open_modal"], context)
-
-            if 'open_modal_args' in element:
-                transformed['open_modal_args'] = self.eval_object(element['open_modal_args'], context)
-
-            if 'show_ad' in element:
-                transformed['show_ad'] = self.eval_object(element.get('show_ad', {}), context)
-
-            if 'action' in element:
-                transformed['action'] = self.eval_value(element['action'], context)
-                if 'action_condition' in element:
-                    transformed['action_condition'] = self.eval_object(element["action_condition"], context)
-                if 'action_props' in element:
-                    transformed['action_props'] = self.eval_object(element["action_props"], context)
-                transformed['args'] = self.eval_object(element.get('args', {}), context)
-            return transformed
+            return await self.transform_button(element, context)
         elif element["type"] == 'action':
             transformed = {
                 "type": "action",
@@ -1692,15 +1702,17 @@ class HolaService:
             return await self.transform_header(element, context)
         elif element["type"] == 'footer':
             elements = AutoList()
+            text = self.eval_value(element.get('text'), context)
             elements.add(await self.transform_element(element.get("element"), context))
             right_elements = AutoList()
             for el in element.get("right_elements", []):
                 right_elements.add(await self.transform_element(el, context))
             left_elements = AutoList()
-            for el in element.get("right_elements", []):
+            for el in element.get("left_elements", []):
                 left_elements.add(await self.transform_element(el, context))
             return {
                 "type": "footer",
+                "text": text,
                 "element": elements.first,
                 "right_elements": right_elements,
                 "left_elements": left_elements
