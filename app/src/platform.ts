@@ -88,7 +88,7 @@ class AppHostPlatform {
     }
 
     getTheme() {
-        return this.init_options.theme ?? undefined
+        return this.init_options.theme ?? "lara-light-blue"
     }
 
     mustAgreePrivacy() {

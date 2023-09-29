@@ -20,8 +20,7 @@ export async function bootup(app_configs: AppConfig[], init_options:Record<strin
     }
     const platform_info = app_platform.getPlatform()
     const language = init_options.language || platform_info['language'] || 'en'
-    console.log(language)
-    console.log(resources)
+
     await i18next.init({
         lng: language,
         debug: false,

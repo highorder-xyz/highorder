@@ -613,7 +613,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    flex: 0 1 30%;
+    flex: 1 1 40%;
 }
 
 
@@ -621,7 +621,7 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    flex: 0 0 30%;
+    flex: 1 0 30%;
 }
 
 .footer {
@@ -1378,6 +1378,7 @@
     width: 92%;
 }
 
+
 .table-view {
     border: 2px solid #000;
     max-width: 92%;
@@ -1474,4 +1475,76 @@
 
 .image-view.extra_extra_large {
     max-width: 100%
+}
+
+
+.h-header {
+    width: 100%;
+    height: 72px;
+    max-height: 72px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px 16px 32px;
+    position: fixed;
+    background: #ffffff;
+    color: #495057;
+    box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.14), 0 1px 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.h-header-holder {
+    width: 100%;
+    height: 72px !important;
+    max-height: 72px;
+    flex-shrink: 0;
+}
+
+.h-logo {
+    max-height: 40px;
+    border-radius: 8px;
+}
+
+.h-logo-text {
+    margin-left: 8px;
+    color: var(--text-color);
+    font-size: x-large;
+    font-weight: bold;
+}
+
+
+.h-card {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    max-width: 60rem;
+}
+
+.h-footer {
+    width: 100%;
+    min-height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.h-hero {
+    max-width: 50rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.h-hero .title {
+    font-size: 2.25rem;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.h-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
 }

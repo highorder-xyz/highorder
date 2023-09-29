@@ -128,8 +128,9 @@ label * {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    overflow: hidden;
+    overflow: auto;
     z-index: 0;
+    background-color: var(--surface-ground);
 }
 
 /* .mobile {

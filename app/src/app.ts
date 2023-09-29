@@ -35,7 +35,8 @@ import {
     IconElement,
     ProgressBarElement,
     NavBarElement,
-    LinkElement
+    LinkElement,
+    LogoElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -49,7 +50,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     IconButton,
     ProgressBar,
     Header,
-    Link
+    Link,
+    Logo
 } from './components'
 
 import { app_platform } from './platform';
@@ -174,7 +176,7 @@ export class AlertHelper {
     constructor(container:ComponentRefs, option:AlertOption | undefined = undefined) {
         this.container = container
         this.option = option ?? {
-            top: 40,
+            top: -120,
             bottom: 40,
             width: 360,
             duration: 300,
@@ -191,6 +193,7 @@ export class AlertHelper {
     }
 
     render() {
+        if(this)
         return h(Alert, {ref:this.ref, ...this.option})
     }
 }
@@ -983,7 +986,7 @@ export const App = defineComponent({
         renderFooter(element: FooterElement, context: RenderContext): VNode {
             const app_core = AppCore.getCore(this.app_id)
             const footer_main = element.element
-            let text = ""
+            let text = element.text ?? ""
             if (footer_main && footer_main.type == 'plain-text') {
                 text = (footer_main as PlainTextObject)["text"]
             }
@@ -1090,9 +1093,12 @@ export const App = defineComponent({
             return h(Button, {
                 text: element.text,
                 icon: element.icon,
+                href: element.href ?? "",
+                open_new: element.open_new,
                 sub_text: element.sub_text ?? "",
                 disable: element.disable ?? false,
                 disable_text: element.disable_text ?? "",
+                style: style,
                 ...style,
                 color: element.style?.color ?? "surface",
                 onClicked:() => {
@@ -1467,6 +1473,8 @@ export const App = defineComponent({
         renderCard(element: CardElement, context: RenderContext): VNode {
             return h(Card, {
                 title: element.title ?? "",
+                text: element.text ?? "",
+                image_src: element.image_src ?? "",
                 showBorder: element.show_border ?? true
             }, {
                 default: () => {
@@ -1485,8 +1493,16 @@ export const App = defineComponent({
             })
         },
 
+        renderLogo(element: LogoElement, context: RenderContext): VNode {
+            return h(Logo, { text: element.text ?? "", image_src: element.image_src ?? "" })
+        },
+
         renderHero(element: HeroElement, context: RenderContext): VNode {
-            return h(Hero, { annotation_text: element.element })
+            return h(Hero, {
+                title: element.title ?? "",
+                text: element.text ?? "",
+                image_src: element.image_src ?? "",
+                annotation_text: element.element })
         },
 
         renderNavMenu(element: NavMenuElement, context: RenderContext): VNode {
@@ -1585,6 +1601,8 @@ export const App = defineComponent({
                 return this.renderHeader(element as HeaderElement, context)
             } else if (element.type === "footer") {
                 return this.renderFooter(element as FooterElement, context)
+            } else if (element.type === "logo") {
+                return this.renderLogo(element as LogoElement, context)
             } else if (element.type === "hero") {
                 return this.renderHero(element as HeroElement, context)
             } else if (element.type === "nav-menu") {

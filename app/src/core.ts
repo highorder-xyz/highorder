@@ -100,6 +100,8 @@ export interface ButtonElement {
     text: string;
     icon?: string;
     sub_text?: string;
+    href?: string;
+    open_new?: boolean;
     disable?: boolean;
     disable_text?: string;
     style?: Record<string, any>;
@@ -110,7 +112,6 @@ export interface ButtonElement {
     action_condition?: ActionableElement
     action_props?: Record<string, any>
     args: Record<string, any>
-
 }
 
 export interface TitleElement {
@@ -268,7 +269,10 @@ export type ActionElement = ActionButtonElement;
 
 export interface HeroElement {
     type: string
-    element: AnnotationTextObject
+    title?: string
+    text?: string
+    image_src?: string
+    element?: AnnotationTextObject
 }
 
 export interface DecorationElement {
@@ -306,6 +310,7 @@ export interface HeaderElement {
 
 export interface FooterElement {
     type: string
+    text?: string
     left_elements?: ActionElement[];
     element: PlainTextObject;
     right_elements?: ActionElement[];
@@ -330,9 +335,17 @@ export interface TableViewElement {
     };
 }
 
+export interface LogoElement{
+    type: string
+    text?: string
+    image_src?: string
+}
+
 export interface CardElement{
     type: string
-    title: string
+    title?: string
+    text?: string
+    image_src?: string
     show_border: boolean
     elements: HolaElement[]
 }

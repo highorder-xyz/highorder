@@ -11,6 +11,7 @@ import { VideoPlayer as VideoJSVideoPlayer } from '@videojs-player/vue';
 import 'video.js/dist/video-js.css'
 import { RichTextCompiler, RichTextPart, RichTextTag } from './common/richtext';
 import PrimeButton from 'primevue/button';
+import PrimeCard from 'primevue/card';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -88,7 +89,10 @@ export const Button = defineComponent({
     props: {
         icon: { type: String },
         text: { type: String, default: "" },
+        href: { type: String, default: ""},
+        open_new: { type: Boolean, default: false},
         sub_text: { type: String, default: "" },
+        style: { type: Object, default: {}},
         disable: { type: Boolean, default: false},
         disable_text: { type:String, default: ""},
         height: { type: Number },
@@ -198,12 +202,22 @@ export const Button = defineComponent({
         }
     },
     render() {
-        const btnClasses = [styles["button"]]
+        const btnClasses = []
         let icon = ''
         if (["top", "bottom"].includes(this.icon_pos)) {
             btnClasses.push(styles["content_column"])
         }
 
+        const styleTags:Record<string, any> = {}
+        const tags = this.style.tags ?? []
+
+        for(const tag of tags){
+            if(tag === 'text'){
+                styleTags['text'] = true
+            } else if(["primary", "secondary"].includes(tag)){
+                styleTags['severity'] = tag
+            }
+        }
         const btnStyle: Record<string, any> = {}
         if (this.$props.color === 'primary') {
             btnClasses.push(styles['primary'])
@@ -218,21 +232,30 @@ export const Button = defineComponent({
 
         if (this.$props.icon && this.$props.icon in icon_components) {
             icon = icon_components[this.$props.icon]
+        } else {
+            icon = this.$props.icon ? `pi pi-${this.$props.icon}`: "pi"
         }
 
-        return h(PrimeButton, {
+        const btn = h(PrimeButton, {
+                label: this.text,
                 icon: icon,
                 "class": btnClasses,
                 style: btnStyle,
                 disabled: this.disable,
+                ...styleTags,
                 onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
             },
             {
-                "default": () => {
-                    return this.renderChildren()
-                }
+                // "default": () => {
+                //     return this.renderChildren()
+                // }
             }
         )
+        if(this.href.length > 0){
+            return h('a', {href: this.href, "target": this.open_new === true ? '_blank' : '_self'}, btn)
+        } else {
+            return btn;
+        }
     }
 });
 
@@ -803,11 +826,14 @@ export const Header = defineComponent({
     },
     render() {
         const items: VNode[] = []
-        return h('div', { "class": [styles["header"], 'h-header'] }, [
-            h('div', { "class": styles["header-start"] }, renderSlot(this.$slots, "start", {})),
-            h('div', { "class": styles["header-center"] }, renderSlot(this.$slots, "center", {})),
-            h('div', { "class": styles["header-end"] }, renderSlot(this.$slots, "end", {})),
-        ])
+        return [
+            h('div', { "class": [styles["header"], styles['h-header']] }, [
+                h('div', { "class": styles["header-start"] }, renderSlot(this.$slots, "start", {})),
+                h('div', { "class": styles["header-center"] }, renderSlot(this.$slots, "center", {})),
+                h('div', { "class": styles["header-end"] }, renderSlot(this.$slots, "end", {})),
+            ]),
+            h('div', {class: styles["h-header-holder"]})
+        ]
     }
 })
 
@@ -845,7 +871,7 @@ export const Footer = defineComponent({
         }
     },
     render() {
-        return h('div', { "class": styles["footer"] }, [
+        return h('div', { "class": [styles["footer"], styles["h-footer"]]}, [
             h('div', { "class": styles["footer-area-left"] }, this.renderLeft()),
             h('div', { "class": styles["footer-area-center"] }, this.renderCenter()),
             h('div', { "class": styles["footer-area-right"] }, this.renderRight()),
@@ -1047,13 +1073,13 @@ export interface HeroAnnotationText {
 export const Hero = defineComponent({
     name: 'Hero',
     props: {
+        title: { type: String, default: "" },
         text: { type: String, default: "" },
+        iamge_src: { type: String, default: "" },
         annotation_text: { type: Object as PropType<HeroAnnotationText>, default: undefined },
     },
     render() {
-        if (this.text.length > 0) {
-            return h('div', this.text)
-        } else if (this.annotation_text) {
+        if (this.annotation_text) {
             const textNodes: VNode[] = []
             let text = this.annotation_text.text.trim().split(' ')
             const annotation = this.annotation_text.annotation.trim().split(' ')
@@ -1079,7 +1105,17 @@ export const Hero = defineComponent({
             }
             return h('div', { class: styles["hero-line"] }, textNodes)
         } else {
-            return h('div')
+            const children = []
+            if(this.iamge_src){
+                children.push(h('img', {src: this.iamge_src}))
+            }
+            if(this.title){
+                children.push(h('div', {class: styles["title"]}, this.title))
+            }
+            if(this.text){
+                children.push(h('div', {}, this.text))
+            }
+            return h('div', { class: styles["h-hero"] }, children)
         }
 
     }
@@ -1441,15 +1477,49 @@ export const TableView = defineComponent({
 });
 
 
+export const Logo = defineComponent({
+    name: 'Logo',
+    props: {
+        text: { type: String, default: ""},
+        image_src: { type: String, default: ""}
+    },
+
+    render() {
+        const children = []
+        children.push(h('img', {class: styles['h-logo'], src: this.image_src}))
+        if(this.text){
+            children.push(h('div', {class: styles['h-logo-text']}, this.text))
+        }
+        return h('a', { class: [styles["h-row"]]}, children)
+    }
+});
+
 export const Card = defineComponent({
     name: 'Card',
     props: {
         title: { type: String, default: "" },
+        sub_title: { type: String, default: "" },
+        text: { type: String, default: ""},
+        image_src: { type: String, default: ""},
         showBorder: { type: Boolean, default: true },
     },
 
     render() {
-        return h('div', { class: styles["card"] }, renderSlot(this.$slots, "default", {}))
+        return h(PrimeCard, { class: [styles["card"], styles["h-card"]] }, {
+            "header": () => {
+                return h('img', {src: this.image_src})
+            },
+            "title": () => {
+                return this.title
+            },
+            "subtitle": () => {
+                return this.sub_title
+            },
+            "content": () => {
+                return [h('p', this.text), renderSlot(this.$slots, "default", {})]
+            }
+
+        })
     }
 });
 
