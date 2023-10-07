@@ -3,7 +3,6 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: '/simulator/',
     server: {
         proxy: {
             // string shorthand
@@ -22,5 +21,8 @@ export default defineConfig({
     publicDir: '../app/public',
     plugins: [
         vue()
-    ]
+    ],
+    define: {
+        '__WEBAPP_VERSION__': JSON.stringify(process.env.npm_package_version),
+    },
 })

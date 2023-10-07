@@ -800,11 +800,14 @@ export const NavBar = defineComponent({
         }
     },
     render() {
-        return h('div', { "class": styles["nav-bar"] }, [
-            h('div', { "class": styles["nav-area-left"] }, this.renderLeft()),
-            h('div', { "class": styles["nav-area-center"] }, this.renderCenter()),
-            h('div', { "class": styles["nav-area-right"] }, this.renderRight()),
-        ])
+        return [
+            h('div', { "class": styles["nav-bar"] }, [
+                h('div', { "class": styles["nav-area-left"] }, this.renderLeft()),
+                h('div', { "class": styles["nav-area-center"] }, this.renderCenter()),
+                h('div', { "class": styles["nav-area-right"] }, this.renderRight()),
+            ]),
+            h('div', {"class": styles["nav-bar-placeholder"]})
+        ]
     }
 })
 

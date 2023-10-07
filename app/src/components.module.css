@@ -548,14 +548,29 @@
 
 .nav-bar {
     display: flex;
+    position: fixed;
     width: 100%;
     margin-bottom: 0.4em;
     padding: 8px;
     align-self: center;
-    height: 40px;
+    height: 3rem;
     margin-top: env(safe-area-inset-top);
     margin-left: env(safe-area-inset-left);
     margin-right: env(safe-area-inset-right);
+    background: #ffffff;
+    color: #495057;
+    box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.14), 0 1px 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.nav-bar-placeholder {
+    width: 100%;
+    margin-bottom: 0.4em;
+    padding: 8px;
+    height: 3rem;
+    margin-top: env(safe-area-inset-top);
+    margin-left: env(safe-area-inset-left);
+    margin-right: env(safe-area-inset-right);
+    flex-shrink: 0;
 }
 
 @media screen and (min-width: 30em) {
@@ -568,21 +583,24 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    width: 30%;
+    min-width: 20%;
+    flex: 1 1 auto;
 }
 
 .nav-area-center {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 40%;
+    min-width: 20%;
+    flex: 2 2 auto;
 }
 
 .nav-area-right {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    width: 30%;
+    min-width: 20%;
+    flex: 1 1 auto
 }
 
 .nav-title {
