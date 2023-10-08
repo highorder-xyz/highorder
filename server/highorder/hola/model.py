@@ -3,6 +3,18 @@ from highorder.base.model import MetaverModel
 from postmodel import models
 from highorder.base.utils import random_id, time_random_id
 
+class HolaObject(MetaverModel):
+    class Meta:
+        table = 'hola_object'
+        primary_key = ('app_id', 'object_id')
+        indexes = (("app_id", "object_name"), )
+
+    app_id = models.CharField(max_length=128)
+    object_name = models.CharField(max_length=512)
+    object_id = models.CharField(max_length=512)
+    value = models.JSONField()
+
+
 class HolaVariable(MetaverModel):
     class Meta:
         table = 'hola_variable'

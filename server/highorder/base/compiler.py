@@ -591,19 +591,17 @@ class Parser:
         tokens.expect(TokenKind.RBracket)
         return node
 
-CHILD_PROPERTY_NAMES = {
-    "data-object": "properties"
-}
-
 OBJECT_CATEGORY_MAP = {
     "page": "interfaces",
     "modal": "interfaces",
-    "component": "components",
+    "component": "interfaces",
     "action": "actions",
-    "currency": "currencies",
-    "variable": "variables",
-    "data-object": "objects",
-    "attribute": "attributes"
+    "task": "actions",
+    "currency": "objects",
+    "variable": "objects",
+    "item": "objects",
+    "object-meta": "objects",
+    "attribute": "objects"
 }
 
 class ObjectTreeCodeGenerator:
@@ -621,10 +619,8 @@ class ObjectTreeCodeGenerator:
 
         for obj in raw_obj_list:
             obj_type = obj["type"]
-            if obj_type not in OBJECT_CATEGORY_MAP:
-                raise Exception(f'no handler for obj_type: {obj["type"]}')
 
-            category = OBJECT_CATEGORY_MAP[obj_type]
+            category = OBJECT_CATEGORY_MAP.get(obj_type, "objects")
             category_objects = json_obj_root.setdefault(category, [])
             category_objects.append(obj)
 
@@ -654,7 +650,7 @@ class ObjectTreeCodeGenerator:
             obj[k] = self.gen_value(v)
 
         if node.children:
-            child_key_name = CHILD_PROPERTY_NAMES.get(obj["type"], "elements")
+            child_key_name = "elements"
             obj[child_key_name] = []
             for child in node.children:
                 obj[child_key_name].append(self.gen_value(child))

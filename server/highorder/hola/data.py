@@ -11,20 +11,6 @@ class ComponentDefine:
 
 
 @dataclass
-class OjectRef:
-    type: str
-    name: str
-
-#deprecated
-@dataclass
-class OjectActionCall:
-    type: str
-    name: str
-    action: str
-    action_args: Optional[dict] = field(default_factory=dict)
-    action_limit: Optional[int] = field(default=0)
-
-@dataclass
 class HookDefine:
     name: str
     tag: str
@@ -133,18 +119,9 @@ class HolaAdvertisementDefine:
 
 @dataclass
 class HolaInterfaceDefine:
-    widgets: List[dict] = field(default_factory=list)
-    components: List[ComponentDefine] = field(default_factory=list)
-    interfaces: List[PageDefine] = field(default_factory=list)
-    variables: List[dict] = field(default_factory=list)
+    interfaces: List[dict] = field(default_factory=list)
     objects: List[dict] = field(default_factory=list)
-    attributes: List[dict] = field(default_factory=list)
-    items: List[dict] = field(default_factory=list)
-    itemboxes: List[dict] = field(default_factory=list)
     actions: List[dict] = field(default_factory=list)
-    tasks: List[dict] = field(default_factory=list)
-    currencies: List[dict] = field(default_factory=list)
-    hooks: dict = field(default_factory=dict)
     playable: Optional[PlayableConfig] = field(default_factory=PlayableConfig)
     advertisement: Optional[HolaAdvertisementDefine] = field(default_factory=HolaAdvertisementDefine)
 

@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass, field
+import inspect
 from highorder.account.service import (
     AccountService, SessionService, SocialAccountService, UserProfileService, SessionStoreService
 )
@@ -13,7 +14,7 @@ import random
 from datetime import date, timedelta, datetime
 from typing import List, Any, Mapping, Sequence
 from .data import (
-    ClientRequestContext, InitAdCommand, LimitObject, PlayableApplyCommand, PlayableApplyCommandArg, PlayableCompletedArg, PlayableConfig,
+    ClientRequestContext, InitAdCommand, LimitObject, PageDefine, PlayableApplyCommand, PlayableApplyCommandArg, PlayableCompletedArg, PlayableConfig,
     HolaInterfaceDefine, PageInterface,
     SetPlayer, SetPlayerArg, SetSessionCommand, SetSessionCommandArg, ShowAdCommand, ShowAdCommandArg, ShowAlertCommand, ShowAlertCommandArg, ShowModalCommand,
     ShowModalCommandArg, ShowMotionCommand, ShowMotionCommandArg,
@@ -548,7 +549,8 @@ class HolaService:
     async def load(self, request_context):
         hola_dict = await self.config_loader.get_config("main.hola")
         hola_def = factory.load(hola_dict, HolaInterfaceDefine)
-        self.widgets = hola_def.widgets
+        self.widgets = []
+        self.components = []
         self.interfaces = []
         all_interfaces = hola_def.interfaces
         page_width = request_context.page_size.get('width', 0)
@@ -556,30 +558,49 @@ class HolaService:
         platform_name = request_context.platform
 
         for interface_def in all_interfaces:
-            valid_page_size = interface_def.valid.get('page_size', None)
-            valid_platform = interface_def.valid.get('platform', None)
-            if (not valid_page_size) and (not valid_platform):
-                self.router.add(interface_def.route, interface_def.route)
-                self.interfaces.append(interface_def)
-            elif (isinstance(valid_page_size, (str,)) and valid_page_size == psize_name) or \
-                (isinstance(valid_page_size, (list, tuple)) and psize_name in valid_page_size):
-                self.router.add(interface_def.route, interface_def.route)
-                self.interfaces.append(interface_def)
-            elif (isinstance(valid_platform, (str,)) and valid_platform == platform_name) or \
-                (isinstance(valid_platform, (list, tuple)) and platform_name in valid_platform):
-                self.router.add(interface_def.route, interface_def.route)
-                self.interfaces.append(interface_def)
+            interface_type = interface_def.get('type', '')
+            if interface_type == 'page':
+                page_def = factory.load(interface_def, PageDefine)
+                valid_page_size = page_def.valid.get('page_size', None)
+                valid_platform = page_def.valid.get('platform', None)
+                if (not valid_page_size) and (not valid_platform):
+                    self.router.add(page_def.route, page_def.route)
+                    self.interfaces.append(page_def)
+                elif (isinstance(valid_page_size, (str,)) and valid_page_size == psize_name) or \
+                    (isinstance(valid_page_size, (list, tuple)) and psize_name in valid_page_size):
+                    self.router.add(page_def.route, page_def.route)
+                    self.interfaces.append(page_def)
+                elif (isinstance(valid_platform, (str,)) and valid_platform == platform_name) or \
+                    (isinstance(valid_platform, (list, tuple)) and platform_name in valid_platform):
+                    self.router.add(page_def.route, page_def.route)
+                    self.interfaces.append(page_def)
+            elif interface_type == 'component':
+                self.components.append(interface_def)
 
-        self.components = hola_def.components
-        self.variables_def = hola_def.variables
-        self.objects_def = hola_def.objects
-        self.attribute_def = hola_def.attributes
-        self.item_def = hola_def.items
-        self.itembox_def = hola_def.itemboxes
-        self.currency_def = hola_def.currencies
+
+        self.variables_def = []
+        self.objects_def = []
+        self.attribute_def = []
+        self.item_def = []
+        self.itembox_def = []
+        self.currency_def = []
+        for obj in hola_def.objects:
+            obj_type = obj.get('type', '')
+            if obj_type == 'currency':
+                self.currency_def.append(obj)
+            elif obj_type == 'item':
+                self.item_def.append(obj)
+            elif obj_type == 'itembox':
+                self.itembox_def.append(obj)
+            elif obj_type == 'attribute':
+                self.attribute_def.append(obj)
+            elif obj_type == 'variable':
+                self.variables_def.append(obj)
+
         self.action_def = {}
-        self.task_def = hola_def.tasks
         for action in hola_def.actions:
+            if action.get('type') != 'action':
+                continue
             name = action['name']
             if name in self.action_def:
                 raise Exception(f'duplicated name {name} in action define.')
@@ -1523,233 +1544,228 @@ class HolaService:
         if callable(handler):
             return await handler(element, context)
 
-        if element['type'] == 'component-ref':
-            component_name = self.eval_value(element['name'], context)
-            return await self.get_component(component_name, context)
-        elif element['type'] == 'item-action':
-            return await self.transform_item_action(element, context)
-        elif element['type'] == 'item-info-widget':
-            return await self.transform_item_info_widget(element, context)
-        elif element['type'] == 'item-widget':
-            return await self.transform_item_widget(element, context)
-        elif element['type'] == 'item-price':
-            return await self.transform_item_price(element, context)
-        elif element['type'] == 'change-list':
-            return await self.transform_change_list(element, context)
-        elif element['type'] == 'currency-text':
-            return await self.transform_currency_text(element, context)
-        elif element['type'] == 'attribute-text':
-            return await self.transform_attribute_text(element, context)
-        elif element['type'] == 'nav-menu':
-            return await self.transform_nav_menu(element, context)
-        elif element['type'] == 'menu-item':
-            return await self.transform_menu_item(element, context)
-        elif element['type'] == 'table-view':
-            return await self.transform_table_view(element, context)
-        elif element['type'] == 'card':
-            return await self.transform_card(element, context)
-        elif element['type'] == 'card-swiper':
-            return await self.transform_card_swiper(element, context)
-        elif element['type'] == 'narration':
-            return await self.transform_narration(element, context)
-        elif element["type"] == 'paragraph':
-            transformed = {
-                "type": "paragraph",
-                "text": self.eval_value(element["text"], context)
-            }
+        element_type = element['type'].replace('-', '_')
+        transform_func_name = f'transform_{element_type}'
+        transform_func = getattr(self, transform_func_name, None)
+        if not transform_func:
+            raise Exception(f"no transform for element {element}")
+        elif callable(transform_func):
+            return transform_func(element, context)
+        elif inspect.isawaitable(transform_func):
+            return await transform_func(element, context)
 
-            if "align" in element:
-                transformed["align"] = self.eval_value(element["align"], context)
 
-            return transformed
-        elif element["type"] == 'title':
-            return {
-                "type": "title",
-                "level": element.get('level', 3),
-                "title": self.eval_value(element["title"], context),
-                "sub_title": self.eval_value(element.get("sub_title"), context)
-            }
-        elif element["type"] == 'link':
-            return {
-                "type": "link",
-                "text": self.eval_value(element["text"], context),
-                "open_mode": self.eval_value(element.get("open_mode", "new"), context),
-                "target_url": self.eval_value(element.get("target_url", ""), context),
-            }
-        elif element["type"] == 'annotation-text':
-            return {
-                "type": "annotation-text",
-                "text": self.eval_value(element["text"], context),
-                "annotation": self.eval_value(element.get("annotation", ""), context)
-            }
-        elif element["type"] == 'icon':
-            return {
-                "type": "icon",
-                "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
-                "style": self.eval_object(element.get('style', {}), context)
-            }
-        elif element["type"] == 'icon-text':
-            return {
-                "type": "icon-text",
-                "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
-                "text": self.eval_value(element.get("text", ""), context)
-            }
-        elif element["type"] == 'icon-title':
-            return {
-                "type": "icon-title",
-                "icon": self.expand_link(self.eval_value(element.get("icon", ""), context)),
-                "count": self.eval_value(element.get("count", 3), context)
-            }
-        elif element["type"] == 'plain-text':
-            return {
-                "type": "plain-text",
-                "text": self.eval_value(element["text"], context)
-            }
-        elif element["type"] == 'bulleted-list':
-            return {
-                "type": "bulleted-list",
-                "texts": [self.eval_value(text, context) for text in element['texts']]
-            }
-        elif element["type"] == 'progress-bar':
-            transformed = {
-                "type": "progress-bar",
-                "style": self.eval_object(element.get('style', {}), context)
-            }
+    async def transform_side_bar(self, element, context):
+        return {
+            "type": "side-bar",
+        }
 
-            if 'percent' in element:
-                percent = self.eval_value(element['percent'], context)
-                transformed['percent'] = percent
+    async def transform_component_ref(self, element, context):
+        component_name = self.eval_value(element['name'], context)
+        component = self.get_component(component_name, context)
+        transformed = AutoList()
+        for element in component.get('elements', []):
+            transformed.add(await self.transform_element(copy.deepcopy(element), context))
+        return transformed
 
-            if 'value' in element:
-                value = self.eval_value(element['value'], context)
-                transformed['value'] = value
+    async def transform_paragraph(self, element, context):
+        transformed = {
+            "type": "paragraph",
+            "text": self.eval_value(element["text"], context)
+        }
 
-            if 'total' in element:
-                total = self.eval_value(element['total'], context)
-                transformed['total'] = total
+        if "align" in element:
+            transformed["align"] = self.eval_value(element["align"], context)
 
-            return transformed
+        return transformed
 
-        elif element["type"] == 'video':
-            transformed = {
-                "type": "video",
-                "video_url": self.eval_value(element.get("video_url", ""), context),
-                "autoplay": False
-            }
+    async def transform_title(self, element, context):
+        return {
+            "type": "title",
+            "level": element.get('level', 3),
+            "title": self.eval_value(element["title"], context),
+            "sub_title": self.eval_value(element.get("sub_title"), context)
+        }
 
-            if 'aspect' in element:
-                transformed["aspect"] = self.eval_value(element['aspect'], context)
+    async def transform_link(self, element, context):
+        return {
+            "type": "link",
+            "text": self.eval_value(element["text"], context),
+            "open_mode": self.eval_value(element.get("open_mode", "new"), context),
+            "target_url": self.eval_value(element.get("target_url", ""), context),
+        }
 
-            if 'poster_url' in element:
-                transformed["poster_url"] = self.eval_value(element['poster_url'], context)
+    async def transform_annotation_text(self, element, context):
+        return {
+            "type": "annotation-text",
+            "text": self.eval_value(element["text"], context),
+            "annotation": self.eval_value(element.get("annotation", ""), context)
+        }
 
-            if "autoplay" in element:
-                transformed["autoplay"] = self.eval_value(element["autoplay"], context)
+    async def transform_icon(self, element, context):
+        return {
+            "type": "icon",
+            "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
+            "style": self.eval_object(element.get('style', {}), context)
+        }
 
-            if "video_type" in element:
-                transformed["video_type"] = self.eval_value(element["video_type"], context)
+    async def transform_icon_text(self, element, context):
+        return {
+            "type": "icon-text",
+            "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
+            "text": self.eval_value(element.get("text", ""), context)
+        }
 
-            if 'style' in element:
-                style = self.eval_object(element['style'], context)
-                transformed['style'] = style
+    async def transform_icon_title(self, element, context):
+        return {
+            "type": "icon-title",
+            "icon": self.expand_link(self.eval_value(element.get("icon", ""), context)),
+            "count": self.eval_value(element.get("count", 3), context)
+        }
 
-            return transformed
+    async def transform_plain_text(self, element, context):
+        return {
+            "type": "plain-text",
+            "text": self.eval_value(element["text"], context)
+        }
 
-        elif element["type"] == 'image':
-            transformed = {
-                "type": "image",
-                "image_url": self.eval_value(element.get("image_url", ""), context),
-            }
 
-            if "image_type" in element:
-                transformed["video_type"] = self.eval_value(element["video_type"], context)
+    async def transform_bulleted_list(self, element, context):
+        return {
+            "type": "bulleted-list",
+            "texts": [self.eval_value(text, context) for text in element['texts']]
+        }
 
-            if 'style' in element:
-                style = self.eval_object(element['style'], context)
-                transformed['style'] = style
+    async def transform_progress_bar(self, element, context):
+        transformed = {
+            "type": "progress-bar",
+            "style": self.eval_object(element.get('style', {}), context)
+        }
 
-            return transformed
+        if 'percent' in element:
+            percent = self.eval_value(element['percent'], context)
+            transformed['percent'] = percent
 
-        elif element["type"] == 'button' or element["type"] == 'icon-button':
-            return await self.transform_button(element, context)
-        elif element["type"] == 'action':
-            transformed = {
-                "type": "action",
-                "display_name": self.eval_value(element.get("display_name", ""), context),
-                "action": element.get("action")
-            }
-            return transformed
+        if 'value' in element:
+            value = self.eval_value(element['value'], context)
+            transformed['value'] = value
 
-        elif element["type"] == 'star-rating':
-            return {
-                "type": "star-rating",
-                "rating": self.eval_value(element["rating"], context),
-                "animate": element.get('animate', True)
-            }
-        elif element["type"] == 'separator':
-            return {
-                "type": "separator"
-            }
-        elif element["type"] == 'row':
-            return await self.transform_row(element, context)
-        elif element["type"] == 'column':
-            return await self.transform_column(element, context)
-        elif element["type"] == 'navbar':
-            return await self.transform_navbar(element, context)
-        elif element["type"] == 'logo':
-            return await self.transform_logo(element, context)
-        elif element["type"] == 'header':
-            return await self.transform_header(element, context)
-        elif element["type"] == 'footer':
-            elements = AutoList()
-            text = self.eval_value(element.get('text'), context)
-            elements.add(await self.transform_element(element.get("element"), context))
-            right_elements = AutoList()
-            for el in element.get("right_elements", []):
-                right_elements.add(await self.transform_element(el, context))
-            left_elements = AutoList()
-            for el in element.get("left_elements", []):
-                left_elements.add(await self.transform_element(el, context))
-            return {
-                "type": "footer",
-                "text": text,
-                "element": elements.first,
-                "right_elements": right_elements,
-                "left_elements": left_elements
-            }
-        elif element["type"] == 'hero':
-            return await self.transform_hero(element, context)
+        if 'total' in element:
+            total = self.eval_value(element['total'], context)
+            transformed['total'] = total
 
-        elif element["type"] == 'decoration':
-            return {
-                "type": "decoration",
-                "name": element["name"],
-                "properties": self.eval_object(element.get('properties', {}), context)
-            }
-        elif element["type"] == 'motion':
-            return {
+        return transformed
+
+    async def transform_video(self, element, context):
+        transformed = {
+            "type": "video",
+            "video_url": self.eval_value(element.get("video_url", ""), context),
+            "autoplay": False
+        }
+
+        if 'aspect' in element:
+            transformed["aspect"] = self.eval_value(element['aspect'], context)
+
+        if 'poster_url' in element:
+            transformed["poster_url"] = self.eval_value(element['poster_url'], context)
+
+        if "autoplay" in element:
+            transformed["autoplay"] = self.eval_value(element["autoplay"], context)
+
+        if "video_type" in element:
+            transformed["video_type"] = self.eval_value(element["video_type"], context)
+
+        if 'style' in element:
+            style = self.eval_object(element['style'], context)
+            transformed['style'] = style
+
+        return transformed
+
+    async def transform_image(self, element, context):
+        transformed = {
+            "type": "image",
+            "image_url": self.eval_value(element.get("image_url", ""), context),
+        }
+
+        if "image_type" in element:
+            transformed["video_type"] = self.eval_value(element["video_type"], context)
+
+        if 'style' in element:
+            style = self.eval_object(element['style'], context)
+            transformed['style'] = style
+
+        return transformed
+
+    async def transform_icon_button(self, element, context):
+        return await self.transform_button(element, context)
+
+    async def transform_action(self, element, context):
+        transformed = {
+            "type": "action",
+            "display_name": self.eval_value(element.get("display_name", ""), context),
+            "action": element.get("action")
+        }
+        return transformed
+
+    async def transform_star_rating(self, element, context):
+        return {
+            "type": "star-rating",
+            "rating": self.eval_value(element["rating"], context),
+            "animate": element.get('animate', True)
+        }
+
+
+    async def transform_separator(self, element, context):
+        return {
+            "type": "separator"
+        }
+
+    async def transform_footer(self, element, context):
+        elements = AutoList()
+        text = self.eval_value(element.get('text'), context)
+        elements.add(await self.transform_element(element.get("element"), context))
+        right_elements = AutoList()
+        for el in element.get("right_elements", []):
+            right_elements.add(await self.transform_element(el, context))
+        left_elements = AutoList()
+        for el in element.get("left_elements", []):
+            left_elements.add(await self.transform_element(el, context))
+        return {
+            "type": "footer",
+            "text": text,
+            "element": elements.first,
+            "right_elements": right_elements,
+            "left_elements": left_elements
+        }
+
+    async def transform_decoration(self, element, context):
+        return {
+            "type": "decoration",
+            "name": element["name"],
+            "properties": self.eval_object(element.get('properties', {}), context)
+        }
+
+    async def transform_motion(self, element, context):
+        return {
                 "type": "motion",
                 "name": element["name"],
                 "properties": self.eval_object(element.get('properties', {}), context)
             }
-        elif element["type"] == 'action-bar':
-            elements = AutoList()
-            elements.add(await self.transform_element(element.get("element"), context))
-            for el in element.get("elements", []):
-                elements.add(await self.transform_element(el, context))
-            return {
-                "type": "action-bar",
-                "elements": elements
-            }
-        elif element["type"] == "modal":
-            return await self.transform_modal(element, context)
-        else:
-            raise Exception(f"no transform for element {element}")
 
-    async def get_component(self, name, context):
+    async def transform_action_bar(self, element, context):
+        elements = AutoList()
+        elements.add(await self.transform_element(element.get("element"), context))
+        for el in element.get("elements", []):
+            elements.add(await self.transform_element(el, context))
+        return {
+            "type": "action-bar",
+            "elements": elements
+        }
+
+    def get_component(self, name, context):
         for component in self.components:
-            if component.name == name:
-                return await self.transform_element(copy.deepcopy(component.component), context)
+            if component.get('name', '') == name:
+                return component
         raise Exception(f'component named {name} not found.')
 
 
@@ -1866,14 +1882,6 @@ class HolaService:
             if element["type"] in ["playable-view"]:
                 return element
         raise Exception(f'no playable found in interface {page_def.name}')
-
-    async def handle_page_trigger(self, obj_call, context):
-        component = await self.get_component(obj_call.name, context)
-        if component["type"] == 'narration':
-            if obj_call.action == 'show':
-                return ShowNarrationCommand(args=ShowNarrationCommandArg(
-                    narration = component
-                ))
 
     async def get_show_modal_command(self, open_modal, context):
         component = await self.transform_element(open_modal, context)
