@@ -1,6 +1,7 @@
 
 [server]
 debug = true
+mode = 'building' # 'building' or 'online'
 db_url = 'postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30'
 config_dir = './.highorderapps/'
 content_location = './.highorderapps/'
