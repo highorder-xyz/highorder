@@ -1560,7 +1560,7 @@ class HolaService:
             "type": "side-bar",
         }
 
-    async def transform_component_ref(self, element, context):
+    async def transform_component_use(self, element, context):
         component_name = self.eval_value(element['name'], context)
         component = self.get_component(component_name, context)
         transformed = AutoList()
@@ -1761,6 +1761,9 @@ class HolaService:
             "type": "action-bar",
             "elements": elements
         }
+
+    async def transform_query(self, element, context):
+        pass
 
     def get_component(self, name, context):
         for component in self.components:
@@ -2936,7 +2939,7 @@ class HolaService:
                 route='/',
                 platform = 'web',
                 vendor='unknown',
-                version='0.5.0'
+                version='0.1.0'
             )
             context = await self._create_context(page_context)
             ret_commands.add(await self.get_page('/', context=context))
