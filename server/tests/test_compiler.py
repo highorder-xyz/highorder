@@ -94,7 +94,61 @@ def test_tokenizer_simple_4():
             (TokenKind.PropertyName, 'size'),
             (TokenKind.Colon, ':'),
             (TokenKind.NumberLiteral, 5),
+            (TokenKind.LineBreak, '\n'),
             (TokenKind.RBrace, '}')
+        ]
+    )
+
+def test_tokenizer_simple_5():
+    compare_tokens(
+        '''Page { route: /
+            size: 5
+        }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.PropertyName, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.Division, '/'),
+            (TokenKind.LineBreak, '\n'),
+            (TokenKind.PropertyName, 'size'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.NumberLiteral, 5),
+            (TokenKind.LineBreak, '\n'),
+            (TokenKind.RBrace, '}')
+        ]
+    )
+
+def test_tokenizer_simple_6():
+    compare_tokens(
+        '''Page { route: /"
+            size: 5
+        }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.PropertyName, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.Division, '/'),
+            (TokenKind.StringLiteral, '\n            size: 5\n        }')
+        ]
+    )
+
+
+def test_tokenizer_simple_7():
+    compare_tokens(
+        '''Page { route: /"
+            size: "5"
+        }''',
+        [
+            (TokenKind.Identifier, 'Page'),
+            (TokenKind.LBrace, '{'),
+            (TokenKind.PropertyName, 'route'),
+            (TokenKind.Colon, ':'),
+            (TokenKind.Division, '/'),
+            (TokenKind.StringLiteral, '\n            size: '),
+            (TokenKind.NumberLiteral, 5),
+            (TokenKind.StringLiteral, '\n        }'),
         ]
     )
 

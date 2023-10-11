@@ -316,6 +316,7 @@ class Tokenizer:
         chars = []
         index = pos.index + 1
         if (index < len(code) and code[index] != '/') or (index == len(code)):
+            pos.move(1)
             return Token(
                 kind = TokenKind.Division ,
                 value = '/',
