@@ -36,7 +36,8 @@ import {
     ProgressBarElement,
     NavBarElement,
     LinkElement,
-    LogoElement
+    LogoElement,
+    InputElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -51,7 +52,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     ProgressBar,
     Header,
     Link,
-    Logo
+    Logo,
+    InputText
 } from './components'
 
 import { app_platform } from './platform';
@@ -1482,6 +1484,14 @@ export const App = defineComponent({
             })
         },
 
+        renderInput(element: InputElement, context: RenderContext): VNode {
+            return h(InputText, {
+                label: element.label ?? "",
+                password: element.password ?? false,
+                name: element.name ?? ""
+            })
+        },
+
         renderCardSwiper(element: CardSwiperElement, context: RenderContext): VNode {
             return h(CardSwiper, {
                 title: element.title ?? "",
@@ -1618,6 +1628,8 @@ export const App = defineComponent({
                 return this.renderTableView(element as TableViewElement, context)
             } else if (element.type === "card") {
                 return this.renderCard(element as CardElement, context)
+            } else if (element.type === "input") {
+                return this.renderInput(element as CardElement, context)
             } else if (element.type === "card-swiper") {
                 return this.renderCardSwiper(element as CardSwiperElement, context)
             } else {

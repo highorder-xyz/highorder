@@ -350,6 +350,13 @@ export interface CardElement{
     elements: HolaElement[]
 }
 
+export interface InputElement{
+    type: string
+    label?: string
+    name?: string
+    password?: boolean
+}
+
 export interface CardSwiperElement {
     type: string
     title: string

@@ -12,10 +12,26 @@ import 'video.js/dist/video-js.css'
 import { RichTextCompiler, RichTextPart, RichTextTag } from './common/richtext';
 import PrimeButton from 'primevue/button';
 import PrimeCard from 'primevue/card';
+import PrimeInputText from 'primevue/inputtext';
+import PrimePassword from 'primevue/password';
 import { PrimeIcons } from 'primevue/api';
 
 
 gsap.ticker.fps(10);
+
+function randomString(n: number, charset?: string): string {
+    let res = '';
+    let chars =
+        charset || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let charLen = chars.length;
+
+    for (var i = 0; i < n; i++) {
+        res += chars.charAt(Math.floor(Math.random() * charLen));
+    }
+
+    return res;
+}
+
 
 const icon_components: Record<string, string> = {
 }
@@ -1494,6 +1510,34 @@ export const Logo = defineComponent({
             children.push(h('div', {class: styles['h-logo-text']}, this.text))
         }
         return h('a', { class: [styles["h-row"]]}, children)
+    }
+});
+
+
+export const InputText = defineComponent({
+    name: 'InputText',
+    props: {
+        label: { type: String, default: ""},
+        name: { type: String, default: ""},
+        password: { type: Boolean, Default: false}
+    },
+
+    render() {
+        const children = []
+        let name = this.name
+        if(name.length == 0){
+            name = randomString(12)
+        }
+        if(this.label){
+            children.push(h('label', {for: name}, this.label))
+        }
+        if(this.password){
+            children.push(h(PrimePassword, {id: name, class:[styles["h-form-element"]]}))
+        } else {
+            children.push(h(PrimeInputText, {id: name,  class:[styles["h-form-element"]]}))
+        }
+
+        return h('div', { class: [styles["h-form-row"]]}, children)
     }
 });
 

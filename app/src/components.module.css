@@ -1566,3 +1566,15 @@
     justify-content: flex-start;
     align-items: center;
 }
+
+.h-form-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.h-form-element {
+    margin-left: 20px;
+}
