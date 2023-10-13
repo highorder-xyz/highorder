@@ -1567,14 +1567,19 @@
     align-items: center;
 }
 
-.h-form-row {
+.h-form-line {
     display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    margin-bottom: 12px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    margin-left: 12px;
+}
+
+.h-form-label {
+    margin-bottom: 8px;
 }
 
 .h-form-element {
-    margin-left: 20px;
+    margin-bottom: 8px;
 }

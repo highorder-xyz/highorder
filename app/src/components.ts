@@ -1529,7 +1529,7 @@ export const InputText = defineComponent({
             name = randomString(12)
         }
         if(this.label){
-            children.push(h('label', {for: name}, this.label))
+            children.push(h('label', {for: name, class:[styles["h-form-label"]]}, this.label))
         }
         if(this.password){
             children.push(h(PrimePassword, {id: name, class:[styles["h-form-element"]]}))
@@ -1537,7 +1537,7 @@ export const InputText = defineComponent({
             children.push(h(PrimeInputText, {id: name,  class:[styles["h-form-element"]]}))
         }
 
-        return h('div', { class: [styles["h-form-row"]]}, children)
+        return h('div', { class: [styles["h-form-line"]]}, children)
     }
 });
 
