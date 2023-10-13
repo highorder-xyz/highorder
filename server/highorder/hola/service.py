@@ -1443,6 +1443,15 @@ class HolaService:
             ret['elements'] = elements
         return ret
 
+    async def transform_input(self, element, context):
+        transformed = {
+            "type": "input",
+            "label": self.eval_value(element.get('label', ''), context),
+            "name": self.eval_value(element.get('name', ''), context),
+            "password": True if element.get('password') == True else False
+        }
+        return transformed
+
     async def transform_logo(self, obj, context):
         ret = {
             "type": "logo",
@@ -2706,6 +2715,25 @@ class HolaService:
             commands.add(await self.get_page_update(page_route, context=context))
         return commands
 
+    async def handle_reaction(self, reaction, context):
+        r_type = reaction.get('type', '')
+        if r_type == 'route-to':
+            route = reaction.get('route')
+            if not route:
+                await logger.warning('no route for route-to')
+            return await self.get_page(route, context)
+        return None
+
+
+    async def handle_permission(self, permission, context):
+        p_type = permission.get('type', '')
+        if p_type == 'condition-check':
+            ok = self.eval_condition(permission.get('condition'), context)
+            if not ok and 'on_false' in permission:
+                on_false = permission['on_false']
+                return await self.handle_reaction(on_false, context)
+        return None
+
     async def leave_page(self, page_route, context):
         origin_context = context
         try:
@@ -2738,6 +2766,12 @@ class HolaService:
         if route_args:
             context = copy.copy(origin_context)
             context.route_args = munchify(route_args)
+
+        if page_def.permissions:
+            for permission in page_def.permissions:
+                _commands = await self.handle_permission(permission, context)
+                if _commands:
+                    return _commands
 
         svc = await self.store_svc.load_page_state_service()
 
