@@ -1720,6 +1720,11 @@ class HolaService:
             "type": "separator"
         }
 
+    async def transform_divider(self, element, context):
+        return {
+            "type": "divider"
+        }
+
     async def transform_footer(self, element, context):
         elements = AutoList()
         text = self.eval_value(element.get('text'), context)
@@ -2519,7 +2524,7 @@ class HolaService:
                 name = args['name'],
                 args = args.get('args', {})
             )))
-        elif name == 'navigate_to':
+        elif name == 'route_to':
             commands.add(await self.get_page(args['route'], context))
         return commands
 
@@ -2701,7 +2706,7 @@ class HolaService:
             commands.add(await self.get_page_update(page_route, context=context))
         return commands
 
-    async def exit_page(self, page_route, context):
+    async def leave_page(self, page_route, context):
         origin_context = context
         try:
             page_def, route_args = self.get_page_def(page_route)
@@ -2711,11 +2716,11 @@ class HolaService:
             context = copy.copy(origin_context)
             context.route_args = munchify(route_args)
 
-        exit_hooks = list(filter(lambda x: x.name == 'before_exit', page_def.hooks))
-        if exit_hooks:
+        leave_hooks = list(filter(lambda x: x.name == 'before_leave', page_def.hooks))
+        if leave_hooks:
             commands = AutoList()
             svc = await self.store_svc.load_page_state_service()
-            hook = exit_hooks[0]
+            hook = leave_hooks[0]
             if hook.limit:
                 showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
                 hooked = not showed
@@ -2742,14 +2747,15 @@ class HolaService:
             before_commands = AutoList()
             before_hooks = list(filter(lambda x: x.name.startswith('before_'), page_def.hooks))
             normal_hooks = list(filter(lambda x: (not x.name.startswith('after_')) and (not x.name.startswith('before_')), page_def.hooks))
+
             for hook in before_hooks:
-                if hook.name == 'before_first_show':
+                if hook.name == 'before_first_enter':
                     tag = f'{hook.tag}_b'
                     showed = await svc.get_view_showed(page_route, tag)
                     if not showed:
                         before_commands.add(await self.handle_events(hook.handlers, context))
                         await svc.set_view_showed(page_route, tag)
-                elif hook.name == 'before_show':
+                elif hook.name == 'before_enter':
                     if hook.condition:
                         condition_true = self.eval_condition(hook.condition, context)
                         if not condition_true:
@@ -2767,7 +2773,7 @@ class HolaService:
                 return commands
 
             for hook in normal_hooks:
-                if hook.name == 'first_show':
+                if hook.name == 'first_enter':
                     tag = f'{hook.tag}'
                     showed = await svc.get_view_showed(page_route, tag)
                     if not showed:
@@ -2779,7 +2785,7 @@ class HolaService:
         if page_def.hooks:
             after_hooks = list(filter(lambda x: x.name.startswith('after_'), page_def.hooks))
             for hook in after_hooks:
-                if hook.name == 'after_show':
+                if hook.name == 'after_enter':
                     if hook.limit:
                         showed = await svc.get_set_view_hooked(page_route, hook.name, hook.tag, hook.limit)
                         if not showed:
@@ -2831,12 +2837,7 @@ class HolaService:
             return None
         return InitAdCommand(args={'configs': config_list})
 
-    async def get_session_start(self, args, context):
-        commands = AutoList()
-        commands.add(await self.get_init_ad(context=context))
-        # commands.add(await self.get_player_all(context=context))
-        commands.add(await self.get_page('/', context=context))
-        return commands
+
 
     def create_set_session_command(self, user, session):
         return SetSessionCommand(args=SetSessionCommandArg(
@@ -2892,24 +2893,23 @@ class HolaService:
             await self.load_variables_to_context(context = context)
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
-                ret_commands.add(await self.get_session_start(args, context=context))
+                ret_commands.add(await self.handle_session_start(args, req_context=req_context, context=context))
+            elif request_cmd.command == 'page_interact':
+                ret_commands.add(await self.handle_page_interact(args, req_context=req_context, context=context))
+            elif request_cmd.command == 'page_refresh':
+                ret_commands.add(await self.handle_page_refresh(args, req_context=req_context, context=context))
+            elif request_cmd.command == 'call_action':
+                ret_commands.add(await self.handle_call_action(args, req_context=req_context, context=context))
+            elif request_cmd.command == 'route_to':
+                ret_commands.add(await self.handle_route_to(args, req_context=req_context, context=context))
+            elif request_cmd.command == 'client_event':
+                ret_commands.add(await self.handle_client_event(args, req_context=req_context, context=context))
+            # the following commands are deprecated
             elif request_cmd.command == 'login':
                 ret_commands.add(await self.login(args))
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))
-            elif request_cmd.command == 'call_action':
-                name = args.get('name')
-                action_args = args.get("args", {})
-                ret_commands.add(await self.call_action(name, action_args,
-                    context=context))
-            elif request_cmd.command == 'navigate_to':
-                commands = await self.exit_page(req_context.route, context=context)
-                if commands:
-                    ret_commands.add(commands)
-                    return ret_commands
-                ret_commands.add(await self.get_page(args.get('route', '/'),
-                    context=context))
             elif request_cmd.command == 'narration_showed':
                 ret_commands.add(await self.narration_showed(args['name'],
                     context=context))
@@ -2946,3 +2946,41 @@ class HolaService:
         if request_cmd and request_cmd.command and len(ret_commands) == 0:
             raise Exception(f'no return commands for request command {request_cmd.command}')
         return ret_commands
+
+    async def handle_session_start(self, args, req_context, context):
+        commands = AutoList()
+        commands.add(await self.get_init_ad(context=context))
+        # commands.add(await self.get_player_all(context=context))
+        commands.add(await self.get_page('/', context=context))
+        return commands
+
+    async def handle_call_action(self, args, req_context, context):
+        name = args.get('name')
+        action_args = args.get("args", {})
+        return await self.call_action(name, action_args,
+            context=context)
+
+    async def handle_route_to(self, args, req_context, context):
+        commands = await self.leave_page(req_context.route, context=context)
+        if commands:
+            return commands
+        return await self.get_page(args.get('route', '/'),
+            context=context)
+
+    async def handle_page_interact(self, args, req_context, context):
+        commands = AutoList()
+        return commands
+
+    async def handle_page_refresh(self, args, req_context, context):
+        commands = AutoList()
+        route = req_context.route
+        commands.add(await self.get_page(req_context.route, context=context))
+        return commands
+
+    async def handle_client_event(self, args, req_context, context):
+        commands = AutoList()
+        name = args.get('name')
+        if name == 'ad_showed':
+            commands.add(await self.ad_showed(args,
+                    context=context))
+        return commands
