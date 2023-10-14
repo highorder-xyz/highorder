@@ -1547,21 +1547,20 @@ class HolaService:
             if not visible:
                 return None
 
-        el_name = element['type'].replace('-', '_').lower()
-        method_name = f'transform_{el_name}'
-        handler = getattr(self, method_name, None)
-        if callable(handler):
-            return await handler(element, context)
-
-        element_type = element['type'].replace('-', '_')
+        element_type = element['type'].replace('-', '_').lower()
         transform_func_name = f'transform_{element_type}'
         transform_func = getattr(self, transform_func_name, None)
+        transformed = None
         if not transform_func:
             raise Exception(f"no transform for element {element}")
+        elif inspect.iscoroutinefunction(transform_func):
+            transformed = await transform_func(element, context)
         elif callable(transform_func):
-            return transform_func(element, context)
-        elif inspect.isawaitable(transform_func):
-            return await transform_func(element, context)
+            transformed = transform_func(element, context)
+
+        if transformed and isinstance(transformed, dict) and ('style' not in transformed) and 'style' in element:
+            transformed['style'] = self.eval_object(element['style'], context)
+        return transformed
 
 
     async def transform_side_bar(self, element, context):

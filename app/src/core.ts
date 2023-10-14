@@ -348,6 +348,7 @@ export interface CardElement{
     image_src?: string
     show_border: boolean
     elements: HolaElement[]
+    style?: Record<string, any>
 }
 
 export interface InputElement{

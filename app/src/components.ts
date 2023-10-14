@@ -1549,9 +1549,11 @@ export const Card = defineComponent({
         text: { type: String, default: ""},
         image_src: { type: String, default: ""},
         showBorder: { type: Boolean, default: true },
+        style: { type: Object, default: {}},
     },
 
     render() {
+        const content_hint_tags = this.style.content_hint_tags ?? []
         return h(PrimeCard, { class: [styles["card"], styles["h-card"]] }, {
             "header": () => {
                 return h('img', {src: this.image_src})
@@ -1563,7 +1565,10 @@ export const Card = defineComponent({
                 return this.sub_title
             },
             "content": () => {
-                return [h('p', this.text), renderSlot(this.$slots, "default", {})]
+                return h('div', { class: [styles['h-content'], ...content_hint_tags]}, [
+                    h('p', this.text),
+                    renderSlot(this.$slots, "default", {})
+                ])
             }
 
         })

@@ -1476,7 +1476,8 @@ export const App = defineComponent({
                 title: element.title ?? "",
                 text: element.text ?? "",
                 image_src: element.image_src ?? "",
-                showBorder: element.show_border ?? true
+                showBorder: element.show_border ?? true,
+                style: element.style ?? {}
             }, {
                 default: () => {
                     return this.renderElementOrList(element.elements, context)

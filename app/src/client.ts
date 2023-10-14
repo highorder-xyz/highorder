@@ -493,7 +493,7 @@ export class ServiceOperation {
 
     async holaNavigateTo(route: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
-            "data": {"command":"navigate_to", "args":{"route": route}, "context":context}
+            "data": {"command":"route_to", "args":{"route": route}, "context":context}
         }
         return await this.holaRequest(reqArg)
     }

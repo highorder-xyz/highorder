@@ -7,8 +7,8 @@ export default defineConfig({
     server: {
         proxy: {
             // string shorthand
-            '/service': 'http://127.0.0.1:5000',
-            '/static': 'http://127.0.0.1:5000'
+            '/service': 'http://127.0.0.1:9000',
+            '/static': 'http://127.0.0.1:9000'
         },
         fs: {
             allow: [

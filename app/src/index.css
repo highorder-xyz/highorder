@@ -156,3 +156,7 @@ label * {
     justify-content: center;
     align-items: center;
 }
+
+.align-center {
+    align-items: center;
+}
