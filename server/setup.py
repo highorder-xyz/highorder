@@ -4,7 +4,7 @@ import re
 from setuptools import find_namespace_packages,  setup
 
 install_requires = [
-    'callpy>=0.4.0',
+    'callpy>=0.4.0dev',
     'aiobotocore',
     'asyncpg',
     'basepy',
@@ -14,7 +14,8 @@ install_requires = [
     'likepy',
     'postmodel',
     'aiofiles',
-    'redis'
+    'redis',
+    'rich'
 ]
 # pip install -e '.[test]'
 test_requires = [
