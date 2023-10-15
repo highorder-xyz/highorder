@@ -1522,6 +1522,22 @@ export const InputText = defineComponent({
         password: { type: Boolean, Default: false}
     },
 
+    data() {
+        return {
+            "text": ""
+        }
+    },
+
+    emits: {
+        textChanged: (text: string) => {return true;}
+    },
+
+    methods: {
+        valueChanged(value: string) {
+            this.text = value
+            this.$emit("textChanged", value)
+        }
+    },
     render() {
         const children = []
         let name = this.name
@@ -1529,12 +1545,25 @@ export const InputText = defineComponent({
             name = randomString(12)
         }
         if(this.label){
-            children.push(h('label', {for: name, class:[styles["h-form-label"]]}, this.label))
+            children.push(h('label', {
+                for: name,
+                class:[styles["h-form-label"]]
+            }, this.label))
         }
         if(this.password){
-            children.push(h(PrimePassword, {id: name, class:[styles["h-form-element"]]}))
+            children.push(h(PrimePassword, {
+                id: name,
+                class:[styles["h-form-element"]],
+                toggleMask: true,
+                modelValue: this.text,
+                "onUpdate:modelValue": this.valueChanged
+            }))
         } else {
-            children.push(h(PrimeInputText, {id: name,  class:[styles["h-form-element"]]}))
+            children.push(h(PrimeInputText, {id: name,
+                class:[styles["h-form-element"]],
+                modelValue: this.text,
+                "onUpdate:modelValue": this.valueChanged
+            }))
         }
 
         return h('div', { class: [styles["h-form-line"]]}, children)

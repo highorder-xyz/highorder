@@ -95,6 +95,14 @@ class HolaBulitin:
 
 builtin = HolaBulitin()
 
+
+class HolaServiceRegister:
+    _services = {}
+
+    @classmethod
+    def register(self, ns, name, func):
+        pass
+
 class AutoList(list):
     def add(self, list_or_obj):
         if isinstance(list_or_obj, (list, tuple)):
@@ -1385,6 +1393,7 @@ class HolaService:
         transformed = {
             "type": element["type"],
             "text": self.eval_value(element.get("text", ""), context),
+            "name": self.eval_value(element.get("name", ""), context),
             "icon": self.expand_link(self.eval_value(element.get("icon"), context)),
         }
         if "href" in element:
@@ -2758,6 +2767,50 @@ class HolaService:
                 return commands
         return None
 
+    async def get_page_interact_handler(self, page_route, name, event, context):
+        def walk_elements(elements):
+            for element in elements:
+                el_name = element.get('name')
+                if el_name and el_name == name:
+                    handler = element.get('events', {}).get(event)
+                    if handler:
+                        return handler
+
+                sub_elements = element.get('elements', [])
+                if sub_elements:
+                    handler = walk_elements(sub_elements)
+                    if handler:
+                        return handler
+            return None
+
+        page_def, route_args = self.get_page_def(page_route)
+        transformed_elements = AutoList()
+        for element in page_def.elements:
+            element_type = element['type']
+            if element_type == 'playable-view':
+                transformed_elements.add(context['playable'].to_dict())
+            else:
+                transformed_elements.add(await self.transform_element(copy.deepcopy(element), context))
+
+        return walk_elements(transformed_elements)
+
+    async def handle_page_interact_handlers(self, handlers, _locals, context):
+        commands = AutoList()
+        for handler in handlers:
+            commands.append(await self.handle_page_interact_handler(handler, _locals, context))
+        return commands
+
+    async def handle_page_interact_handler(self, handler, _locals, context):
+        handler_type = handler.get('type')
+        if handler_type == 'invoke-service':
+            return await self.handle_invoke_service(handler, _locals, context)
+        else:
+            await logger.warning(f'no handler for handler {handler_type}')
+
+    async def handle_invoke_service(self, handler, _locals, context):
+        name = handler.get('name')
+        handler_locals = handler.get('locals')
+
 
     async def get_page(self, page_route, context):
         origin_context = context
@@ -3002,6 +3055,19 @@ class HolaService:
 
     async def handle_page_interact(self, args, req_context, context):
         commands = AutoList()
+        name = args.get('name')
+        _event = args.get('event')
+        _locals = args.get('locals', {})
+        if name and _event:
+            handler = await self.get_page_interact_handler(req_context.route, name, _event, context)
+            if isinstance(handler, (list, tuple)):
+                handlers = handler
+            else:
+                handlers = [handler]
+            commands.add(await self.handle_page_interact_handlers(handlers, _locals, context))
+        else:
+            commands.add(await self.get_page(req_context.route, context))
+
         return commands
 
     async def handle_page_refresh(self, args, req_context, context):

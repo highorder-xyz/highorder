@@ -554,6 +554,35 @@ export const App = defineComponent({
             })
         },
 
+        pageInteract(name:string, event:string, page:Page, context: RenderContext){
+            const timerId = setTimeout(()=> {
+                this.loading = true;
+            }, 1000)
+            const app_core = AppCore.getCore(this.app_id)
+            app_core.pageInteract(name, event, page.locals).then((commands: HolaCommand[]) => {
+                clearTimeout(timerId)
+                this.loading = false
+                this.handleImmediateCommands(commands, context)
+            }).catch((err: Error) => {
+                clearTimeout(timerId)
+                this.loading = false
+                const modal_id = this.modal_helper.new_modal_id()
+                this.modal_helper.open(modal_id, {
+                    text: i18next.t('makesure_network_and_latest_version'),
+                    actionsVertical: true,
+                    actionConfirmText: i18next.t('retry_text'),
+                    onModalConfirmed: () => {
+                        this.alert_helper.show(i18next.t('retring_and_waiting'))
+                        app_platform.logEvent(AnalyticsEventKind.button_event, {
+                            route: this.page.route,
+                            text: "errdlg_confirm"
+                        })
+                        this.pageInteract(name, event, page, context)
+                    }
+                })
+            })
+        },
+
         navigateTo(route:string, context: RenderContext){
             const timerId = setTimeout(()=> {
                 this.loading = true;
@@ -1147,6 +1176,8 @@ export const App = defineComponent({
                         if (close_modal && context.modal_id !== undefined){
                             this.modal_helper.popup(context.modal_id)
                         }
+                    } else if(element.name) {
+                        this.pageInteract(element.name, 'click', this.page, context)
                     }
                     app_platform.logEvent(AnalyticsEventKind.button_event, {
                         route: this.page.route,
@@ -1486,10 +1517,16 @@ export const App = defineComponent({
         },
 
         renderInput(element: InputElement, context: RenderContext): VNode {
+            const name = element.name ?? ""
             return h(InputText, {
                 label: element.label ?? "",
                 password: element.password ?? false,
-                name: element.name ?? ""
+                name: name,
+                onTextChanged: (text: string) => {
+                    if(name.length > 0){
+                        this.page.locals[name] = text
+                    }
+                }
             })
         },
 

@@ -98,6 +98,7 @@ export interface ActionableElement{
 export interface ButtonElement {
     type: string;
     text: string;
+    name?: string;
     icon?: string;
     sub_text?: string;
     href?: string;
@@ -374,6 +375,7 @@ export interface HolaPage {
     type: string
     name: string
     route: string
+    locals?: Record<string, any>
     elements: HolaElement[]
 }
 
@@ -403,6 +405,7 @@ export class Page {
     name: string
     route: string
     elements: Array<HolaElement>
+    locals: Record<string, any>
     narration: HolaNarration
     narration_idx: number
     version: number
@@ -422,6 +425,7 @@ export class Page {
         this.name = "app"
         this.route = '/'
         this.elements = []
+        this.locals = {}
         this.narration = {
             type: "narration",
             name: "default",
@@ -629,6 +633,16 @@ export class AppCore {
     async callAction(args: Record<string, any>): Promise<HolaCommand[]> {
         try {
             const commands = await this.svc.holaCallAction(args, this.getPageContext())
+            return await this.handleCommandList(commands)
+        } catch(err: any) {
+            return await this.handleError(err)
+        }
+
+    }
+
+    async pageInteract(name: string, event:string, locals:object): Promise<HolaCommand[]> {
+        try {
+            const commands = await this.svc.holaPageInteract(name, event, locals, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)
@@ -861,6 +875,7 @@ export class AppCore {
             this.app_page.reset()
             this.app_page.name = page.name
             this.app_page.route = page.route
+            this.app_page.locals = page.locals ?? {}
             this.app_page.elements = page.elements
             app_platform.logEvent(AnalyticsEventKind.page_show, {route: page.route})
         } else if (command.name === 'update_page') {
