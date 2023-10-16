@@ -2,9 +2,9 @@
 from dataclasses import dataclass, field
 import inspect
 from highorder.account.service import (
-    AccountService, SessionService, SocialAccountService, UserProfileService, SessionStoreService
+    AccountService, SessionService, SocialAccountService, UserService, UserProfileService, SessionStoreService
 )
-from highorder.base.utils import time_random_id
+from highorder.base.utils import AutoList, time_random_id
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from basepy.config import settings
@@ -36,6 +36,7 @@ from likepy.restricted import restrictedexpr, restrictedpy
 from highorder.base.instant import InstantDataStoreService, UserInstantDataStoreService
 from basepy.asynclog import logger
 import zlib
+from .extension import HolaServiceRegister
 
 factory = dataclass_factory.Factory()
 
@@ -95,27 +96,6 @@ class HolaBulitin:
 
 builtin = HolaBulitin()
 
-
-class HolaServiceRegister:
-    _services = {}
-
-    @classmethod
-    def register(self, ns, name, func):
-        pass
-
-class AutoList(list):
-    def add(self, list_or_obj):
-        if isinstance(list_or_obj, (list, tuple)):
-            self.extend(list_or_obj)
-        elif list_or_obj:
-            self.append(list_or_obj)
-
-    @property
-    def first(self):
-        if len(self) > 0:
-            return self[0]
-        else:
-            return None
 
 class ShowMessageService:
     @classmethod
@@ -549,6 +529,7 @@ class HolaService:
     def __init__(self, app_id, session, config_loader):
         self.app_id = app_id
         self.user_id = session.user_id if session else None
+        self.user = None
         self.session = session
         self.config_loader = config_loader
         self.router = Router()
@@ -624,6 +605,8 @@ class HolaService:
                 session = self.session.get_data_dict(),
                 user = None
             )))
+        if self.user_id:
+            self.user = await UserService.load(self.app_id, self.user_id)
         self.store_svc = HolaStoreSerive(self.session, self)
 
     def get_content_url_root(self):
@@ -2810,6 +2793,46 @@ class HolaService:
     async def handle_invoke_service(self, handler, _locals, context):
         name = handler.get('name')
         handler_locals = handler.get('locals')
+        args = copy.deepcopy(_locals)
+        args['__info__'] = {
+            'app_id': self.app_id,
+            'session': self.session.get_data_dict(),
+            'user': self.user.get_data_dict() if self.user else {}
+        }
+        responses = await HolaServiceRegister.call(name, args)
+        commands = AutoList()
+        for ret in responses:
+            ret_type = ret.get('type')
+            if ret_type == 'service_command':
+                commands.add(await self.handle_service_command(ret['name'], ret.get('args', {}), context))
+            elif ret_type == 'command':
+                commands.add(ret)
+            else:
+                await logger.warning(f'unknown service response, {ret}')
+        return commands
+
+
+    async def handle_service_command(self, name, args, context):
+        if name == 'update_session':
+            return await self.handle_service_command_udpate_session(args, context)
+        elif name == 'call_succeed':
+            return await self.handle_service_command_call_succeed(args, context)
+        elif name == 'call_failed':
+            return await self.handle_service_command_call_failed(args, context)
+        else:
+            await logger.warning('no handler for service command {name}, with args: {args}')
+
+    async def handle_service_command_udpate_session(self, args, context):
+        user_data = args.get('user')
+        user_id = user_data['user_id']
+        self.session.user_id = user_id
+        self.user = await UserService.load(app_id = self.app_id, user_id=user_id)
+
+    async def handle_service_command_call_succeed(self, args, context):
+        pass
+
+    async def handle_service_command_call_failed(self, args, context):
+        pass
 
 
     async def get_page(self, page_route, context):

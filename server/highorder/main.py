@@ -86,6 +86,11 @@ async def app_error_handler(request, exc):
 from .hola.view import bp as hola_bp
 app.register_blueprint(hola_bp)
 
+from .account.extension import AccountServiceExtension
+from .hola.extension import HolaServiceRegister
+
+HolaServiceRegister.register(AccountServiceExtension)
+
 
 def main():
     debug = settings.server.get('debug', False)

@@ -19,6 +19,11 @@ class IDGenerator(object):
 
 
 
+def random_str(number=10):
+    generated = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(number))
+    return generated
+
+
 def random_id(prefix, number=10):
     assert len(prefix) == 2
     generated = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(number))
@@ -29,3 +34,18 @@ def time_random_id(prefix, number=6):
     assert len(prefix) == 2
     generated = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(number))
     return '{}{}{}'.format(prefix.upper(), IDGenerator.format_ts(), generated)
+
+
+class AutoList(list):
+    def add(self, list_or_obj):
+        if isinstance(list_or_obj, (list, tuple)):
+            self.extend(list_or_obj)
+        elif list_or_obj:
+            self.append(list_or_obj)
+
+    @property
+    def first(self):
+        if len(self) > 0:
+            return self[0]
+        else:
+            return None

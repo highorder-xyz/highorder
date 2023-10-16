@@ -1,6 +1,7 @@
 
-from .model import SessionStore, SocialAccount, User, Session, UserProfile
-from highorder.base.utils import time_random_id
+import hashlib
+from .model import SessionStore, SocialAccount, User, Session, UserAuth, UserProfile
+from highorder.base.utils import random_str, time_random_id
 from postmodel.transaction import in_transaction
 from dataclasses import dataclass
 from basepy.config import settings
@@ -80,6 +81,10 @@ class UserService:
     def user_name(self):
         return self.model.user_name
 
+    @property
+    def sessions(self):
+        return self.model.sessions
+
     async def get_profile(self):
         user_id = self.user_id
         app_id = self.app_id
@@ -105,6 +110,56 @@ class UserService:
             await session.save()
 
         return SessionService(session)
+
+
+class UserAuthService:
+    @classmethod
+    def get_password_hash(cls, password, salt):
+        m = hashlib.sha256(f'{salt}:{password}'.encode('utf-8'))
+        password_safe = m.hexdigest()
+        return password_safe
+
+    @classmethod
+    async def add_user(cls, app_id, name, password):
+        exist_user_auth = UserAuth.load(app_id=app_id, email=name)
+        if exist_user_auth:
+            password_hash = cls.get_password_hash(password, exist_user_auth.salt)
+            if password_hash != exist_user_auth.password_hash:
+                exist_user_auth.password_hash = password_hash
+                await exist_user_auth.save()
+            return exist_user_auth.user_id
+        else:
+            salt = random_str(6)
+            password_hash = cls.get_password_hash(password, salt)
+            user_id = time_random_id('UU', 10)
+            user = User(app_id=app_id, user_id=user_id, user_name=name, sessions={})
+            user_auth = UserAuth(app_id=app_id, user_id=user_id, email=name, salt=salt, password_hash=password_hash)
+
+            async with in_transaction():
+                await user.save()
+                await user_auth.save()
+
+            return user_id
+
+
+    @classmethod
+    async def check(cls, app_id, name, password):
+        model = await UserAuth.load(app_id=app_id, email=name)
+        if not model:
+            return False, {
+                "error_type": "auth_name_failed",
+                "error_msg": f"Name {name} error."
+            }
+        salt = model.salt
+        password_hash = cls.get_password_hash(password, salt)
+        if password_hash == model.password_hash:
+            return True, model.user_id
+        else:
+            return  False, {
+                "error_type": "auth_password_failed",
+                "error_msg": f"Name {name} password error."
+            }
+
 
 class SessionService:
     @classmethod
