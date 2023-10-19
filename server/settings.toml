@@ -10,3 +10,7 @@ simulator_root = '../simulator/dist/'
 redis_urls = [ "redis://127.0.0.1:6379" ]
 weixin_app_id = ''
 weixin_app_secret = ''
+
+[[server.setup_keys]]
+    client_key = 'console_client_key'
+    client_secret = 'console_client_secret'

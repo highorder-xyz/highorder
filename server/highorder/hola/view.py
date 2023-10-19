@@ -7,9 +7,11 @@ from highorder.base.loader import ConfigLoader
 from highorder.base import error
 from highorder.account.service import SessionService
 from .data import (
-    ClientRequestCommand
+    ClientRequestCommand,
+    SetupRequestCommand
 )
 import json
+from basepy.config import settings
 
 factory = dataclass_factory.Factory()
 
@@ -83,22 +85,6 @@ async def validate_client_request(request):
     request.session = session
     return True, None
 
-async def validate_client_lite_request(request):
-    app_id = request.headers.get('X-HighOrder-Application-Id')
-    assert app_id != None
-    session_token = request.headers.get('X-HighOrder-Session-Token')
-    request.app_id = app_id
-    app_config = await AppConfig.get(app_id)
-    request.config_loader = app_config.loader
-
-    user = None
-    session = None
-    if session_token:
-        session, user = await validate_session_token(session_token, app_id)
-
-    request.user = user
-    request.session = session
-    return True, None
 
 @bp.route('/main', methods=["POST", "GET"])
 async def hola_main(request):
@@ -117,6 +103,79 @@ async def hola_main(request):
                           ensure_ascii=False, indent=None, separators=(',', ':'))
 
     return Response(ret_data, content_type='application/json')
+
+
+async def validate_console(app_id, sign, request):
+    hex_sign, timestamp, client_key = sign.split(',', 3)
+    raw_data = await request.body()
+
+    app_config = await AppConfig.get(app_id)
+    client_secret = None
+    for setup_key in settings.server.get('setup_keys', []):
+        if setup_key['client_key'] == client_key:
+            client_secret = setup_key['client_secret']
+            break
+    request.config_loader = app_config.loader
+    if not client_secret:
+        return False
+
+    msg = bytes(f'{app_id}{timestamp}', encoding='utf-8') + raw_data
+    hex_sign_server = hmac.new(
+            bytes(client_secret, encoding='utf-8'),
+            msg,
+            hashlib.sha256
+        ).hexdigest()
+
+    if hex_sign_server == hex_sign:
+        return True
+    return False
+
+async def validate_setup_request(request):
+    sign = request.headers.get('X-HighOrder-Sign')
+    app_id = request.headers.get('X-HighOrder-Application-Id')
+    assert app_id != None
+
+    sign_valid  = await validate_console(app_id, sign, request)
+    if not sign_valid:
+        return False, error.client_invalid('sign not correct.')
+    request.app_id = app_id
+    return True, None
+
+
+@bp.route('/setup', methods=["POST", "GET"])
+async def hola_setup(request):
+    valid, err_response = await validate_setup_request(request)
+    if not valid:
+        return err_response
+    data = await request.json()
+    request_cmd = None
+    if 'command' in data:
+        request_cmd = factory.load(data, SetupRequestCommand)
+
+    #TODO handle setup request
+
+    ret_data = json.dumps({"ok":True, "data": factory.dump({})},
+                          ensure_ascii=False, indent=None, separators=(',', ':'))
+    return Response(ret_data, content_type='application/json')
+
+
+async def validate_client_lite_request(request):
+    app_id = request.headers.get('X-HighOrder-Application-Id')
+    assert app_id != None
+    session_token = request.headers.get('X-HighOrder-Session-Token')
+    request.app_id = app_id
+    app_config = await AppConfig.get(app_id)
+    request.config_loader = app_config.loader
+
+    user = None
+    session = None
+    if session_token:
+        session, user = await validate_session_token(session_token, app_id)
+
+    request.user = user
+    request.session = session
+    return True, None
+
 
 @bp.route('/lite', methods=["POST", "GET"])
 async def hola_lite(request):

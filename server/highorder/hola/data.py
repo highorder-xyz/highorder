@@ -334,6 +334,11 @@ class ClientRequestCommand:
 
 
 @dataclass
+class SetupRequestCommand:
+    command: str
+    args: dict = field(default_factory=dict)
+
+@dataclass
 class PlayableArchievement:
     rating: int
     features: dict = field(default_factory=dict)

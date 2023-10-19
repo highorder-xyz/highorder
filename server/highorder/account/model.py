@@ -42,7 +42,7 @@ class UserAuth(MetaverModel):
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
     salt = models.CharField(max_length=32)
-    password_hash = models.TextField(null=True)
+    password_hash = models.CharField(max_length=2048, null=True)
     email = models.CharField(max_length=128)
 
 
