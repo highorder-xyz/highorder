@@ -121,7 +121,7 @@ class UserAuthService:
 
     @classmethod
     async def add_user(cls, app_id, name, password):
-        exist_user_auth = UserAuth.load(app_id=app_id, email=name)
+        exist_user_auth = await UserAuth.load(app_id=app_id, email=name)
         if exist_user_auth:
             password_hash = cls.get_password_hash(password, exist_user_auth.salt)
             if password_hash != exist_user_auth.password_hash:

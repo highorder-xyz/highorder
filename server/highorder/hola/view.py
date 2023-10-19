@@ -1,6 +1,6 @@
 from callpy.web import Blueprint
 from callpy.web.response import Response
-from .service import HolaService
+from .service import HolaService, HolaSetupService
 import dataclass_factory
 import hmac, hashlib
 from highorder.base.loader import ConfigLoader
@@ -152,9 +152,10 @@ async def hola_setup(request):
     if 'command' in data:
         request_cmd = factory.load(data, SetupRequestCommand)
 
-    #TODO handle setup request
+    setup_svc = await HolaSetupService.create(request.app_id, request.config_loader)
+    info = await setup_svc.handle_request(request_cmd)
 
-    ret_data = json.dumps({"ok":True, "data": factory.dump({})},
+    ret_data = json.dumps({"ok":True, "data": factory.dump(info or {})},
                           ensure_ascii=False, indent=None, separators=(',', ':'))
     return Response(ret_data, content_type='application/json')
 

@@ -2,8 +2,9 @@
 from dataclasses import dataclass, field
 import inspect
 from highorder.account.service import (
-    AccountService, SessionService, SocialAccountService, UserService, UserProfileService, SessionStoreService
+    AccountService, SessionService, SocialAccountService, UserAuthService, UserService, UserProfileService, SessionStoreService
 )
+from highorder.base.compiler import Compiler
 from highorder.base.utils import AutoList, time_random_id
 from highorder.base.munch import munchify
 from highorder.base.router import Router
@@ -515,6 +516,93 @@ class HolaDataProcessSerivce:
 
 class HolaInterfaceService:
     pass
+
+
+class HolaSetupService:
+    @classmethod
+    async def create(cls, app_id, config_loader, **kwargs):
+        inst = cls(app_id, config_loader)
+        return inst
+
+    def __init__(self, app_id, config_loader):
+        self.app_id = app_id
+        self.config_loader = config_loader
+        self.currency_def = []
+        self.attribute_def = []
+        self.attributes = {}
+
+
+    async def load(self):
+        hola_dict = await self.config_loader.get_config("main.hola")
+        hola_def = factory.load(hola_dict, HolaInterfaceDefine)
+        for obj in hola_def.objects:
+            obj_type = obj.get('type', '')
+            if obj_type == 'currency':
+                self.currency_def.append(obj)
+            elif obj_type == 'attribute':
+                self.attribute_def.append(obj)
+                self.attributes[obj['name']] = obj
+
+    async def handle_request(self, request_cmd):
+        args = request_cmd.args
+        await self.load()
+        if request_cmd.command == 'app_setup':
+            return await self.handle_app_setup(args)
+        else:
+            await logger.error(f'no handler for request command {request_cmd.command}')
+        return None
+
+    async def handle_app_setup(self, args):
+        if 'hola' in args:
+            c = Compiler()
+            hola_ast = c.compile(args['hola'])
+        elif 'hola.json' in args:
+            hola_ast = args['hola.json']
+        else:
+            raise Exception('app_setup parameter error.')
+        info = AutoList()
+        for setup in hola_ast['objects']:
+            info.add(await self.execute_setup(setup))
+        return info
+
+    async def execute_setup(self, setup):
+        obj_type = setup['type']
+        if obj_type == 'user-init':
+            return await self.setup_user_init(setup)
+        else:
+            raise Exception(f'no setup executor for {obj_type}')
+
+    async def setup_user_init(self, setup):
+        auth = setup['auth']
+        attributes = {}
+        for key, value in setup.items():
+            if key in self.attributes:
+                attributes[key] = value
+
+        app_id = self.app_id
+        user_id = await UserAuthService.add_user(app_id, auth['name'], auth['password'])
+        player = await HolaPlayer.load(app_id=app_id, user_id=user_id)
+        if not player:
+            player = await HolaPlayer.create(app_id=app_id, user_id=user_id,
+                attribute=self.get_attribute_initial(),
+                currency=self.get_currency_initial())
+        player.attribute.update(attributes)
+        await player.save()
+
+    def get_attribute_initial(self):
+        attribute_initial = {}
+        for attribute in self.attribute_def:
+            initial = attribute.get('initial')
+            if initial != None:
+                attribute_initial[attribute["name"]] = initial
+        return attribute_initial
+
+    def get_currency_initial(self):
+        currency_initial = {}
+        for currency in self.currency_def:
+            initial = currency.get('initial', 0)
+            currency_initial[currency["name"]] = initial
+        return currency_initial
 
 
 class HolaService:
