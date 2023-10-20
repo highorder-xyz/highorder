@@ -869,27 +869,19 @@ class HolaService:
     async def _create_context(self, page_context):
         root_url = settings.server.get('content_url', '').strip('/')
         profile = await self.store_svc.get_profile()
-        core = {"attribute":{}, "currency":{}}
-        context = munchify({
-            "content": f'{root_url}/static/APP_{self.app_id}/content'
-        })
-        for prop in self.attribute_def:
-            core['attribute'][prop['name']] = self.eval_object_only(prop, context,
-                                    ["name", "icon", "display_name", "initial", "min", "max"])
-        for prop in self.currency_def:
-            core['currency'][prop['name']] = self.eval_object_only(prop, context,
-                                    ["name", "icon", "display_name", "initial", "min", "max"])
-        user = {}
+        user = self.user.get_data_dict() if self.user else {}
         user.update(profile)
-        if user:
-            user['weixin'] = {
-                'login': self.session.weixin_login
-            }
+        user['weixin'] = {
+            'login': self.session.weixin_login
+        }
+        if self.user:
+            user['authed'] = True
+        else:
+            user['authed'] = False
 
         ret =  {
             "user": user,
-            "session": factory.dump(page_context) or {},
-            "core": core,
+            "client": page_context or {},
             "builtin": builtin,
             "fn": builtin,
             "content": f'{root_url}/static/APP_{self.app_id}/content'
@@ -1613,10 +1605,6 @@ class HolaService:
             cond_value = self.eval_condition(element['condition'], context)
             if cond_value == False:
                 return None
-        if 'context' in element:
-            origin_context = context
-            context = copy.copy(origin_context)
-            await self.transform_context(element['context'], context)
 
         if 'locals' in element:
             context.locals = munchify({})
@@ -2846,35 +2834,51 @@ class HolaService:
                     handler = element.get('events', {}).get(event)
                     if handler:
                         return handler
-
-                sub_elements = element.get('elements', [])
-                if sub_elements:
-                    handler = walk_elements(sub_elements)
-                    if handler:
-                        return handler
             return None
 
         page_def, route_args = self.get_page_def(page_route)
-        transformed_elements = AutoList()
+        filtered = AutoList()
         for element in page_def.elements:
-            element_type = element['type']
-            if element_type == 'playable-view':
-                transformed_elements.add(context['playable'].to_dict())
-            else:
-                transformed_elements.add(await self.transform_element(copy.deepcopy(element), context))
+            filtered.add(await self.filter_interact_element(copy.deepcopy(element), context))
 
-        return walk_elements(transformed_elements)
+        return walk_elements(filtered)
+
+    async def filter_interact_element(self, element, context):
+        if not element:
+            return element
+
+        filtered = AutoList()
+        if 'condition' in element:
+            cond_value = self.eval_condition(element['condition'], context)
+            if cond_value == False:
+                return None
+
+        if 'visible' in element:
+            visible = self.eval_value(element['visible'], context)
+            if not visible:
+                return None
+
+        if 'name' in element and 'events' in element:
+            filtered.add(element)
+
+        if 'elements' in element:
+            for sub_element in element['elements']:
+                filtered.add(await self.filter_interact_element(sub_element, context))
+
+        return filtered
 
     async def handle_page_interact_handlers(self, handlers, _locals, context):
         commands = AutoList()
         for handler in handlers:
-            commands.append(await self.handle_page_interact_handler(handler, _locals, context))
+            commands.add(await self.handle_page_interact_handler(handler, _locals, context))
         return commands
 
     async def handle_page_interact_handler(self, handler, _locals, context):
         handler_type = handler.get('type')
         if handler_type == 'invoke-service':
             return await self.handle_invoke_service(handler, _locals, context)
+        elif handler_type == 'route-to':
+            return await self.handle_route_to(handler, context)
         else:
             await logger.warning(f'no handler for handler {handler_type}')
 
@@ -2892,29 +2896,34 @@ class HolaService:
         for ret in responses:
             ret_type = ret.get('type')
             if ret_type == 'service_command':
-                commands.add(await self.handle_service_command(ret['name'], ret.get('args', {}), context))
+                if ret['name'] == 'reload_session':
+                    commands.add(await self.handle_service_command_reload_session(args, context))
+                    context = await self._create_context(context.client)
+                    await self.load_variables_to_context(context = context)
+                    await self.load_player_to_context(context=context)
+                else:
+                    commands.add(await self.handle_service_command(ret['name'], ret.get('args', {}), context))
             elif ret_type == 'command':
                 commands.add(ret)
             else:
                 await logger.warning(f'unknown service response, {ret}')
         return commands
 
-
     async def handle_service_command(self, name, args, context):
-        if name == 'update_session':
-            return await self.handle_service_command_udpate_session(args, context)
-        elif name == 'call_succeed':
+        if name == 'call_succeed':
             return await self.handle_service_command_call_succeed(args, context)
         elif name == 'call_failed':
             return await self.handle_service_command_call_failed(args, context)
         else:
             await logger.warning('no handler for service command {name}, with args: {args}')
 
-    async def handle_service_command_udpate_session(self, args, context):
-        user_data = args.get('user')
-        user_id = user_data['user_id']
-        self.session.user_id = user_id
-        self.user = await UserService.load(app_id = self.app_id, user_id=user_id)
+    async def handle_service_command_reload_session(self, args, context):
+        session_token = self.session.session_token
+        session = await SessionService.load(app_id=self.app_id, session_token=session_token)
+        self.session = session
+        self.user_id = session.user_id
+        if self.user_id:
+            self.user = await UserService.load(app_id=self.app_id, user_id=self.user_id)
 
     async def handle_service_command_call_succeed(self, args, context):
         pass
@@ -3049,16 +3058,16 @@ class HolaService:
                 ShowAlertCommandArg(text='only anonymous login supported.', title='')
             ))
             return commands
-        user, session = await AccountService.create(self.app_id)
-        if user and session:
-            commands.add(SetSessionCommand(args=SetSessionCommandArg(
-                session = session.get_data_dict(),
-                user = user.get_data_dict()
-            )))
-        else:
-            commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
-            ))
+        # user, session = await AccountService.create(self.app_id)
+        # if user and session:
+        #     commands.add(SetSessionCommand(args=SetSessionCommandArg(
+        #         session = session.get_data_dict(),
+        #         user = user.get_data_dict()
+        #     )))
+        # else:
+        #     commands.add(ShowAlertCommand(
+        #         ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='登录')
+        #     ))
         return commands
 
 
@@ -3085,22 +3094,21 @@ class HolaService:
         ret_commands.add(self._commands)
         if request_cmd:
             args = request_cmd.args
-            req_context = request_cmd.context
-            context = await self._create_context(request_cmd.context)
+            context = await self._create_context(factory.dump(request_cmd.context))
             await self.load_variables_to_context(context = context)
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
-                ret_commands.add(await self.handle_session_start(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_session_start(args, context=context))
             elif request_cmd.command == 'page_interact':
-                ret_commands.add(await self.handle_page_interact(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_page_interact(args, context=context))
             elif request_cmd.command == 'page_refresh':
-                ret_commands.add(await self.handle_page_refresh(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_page_refresh(args, context=context))
             elif request_cmd.command == 'call_action':
-                ret_commands.add(await self.handle_call_action(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_call_action(args, context=context))
             elif request_cmd.command == 'route_to':
-                ret_commands.add(await self.handle_route_to(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_route_to(args, context=context))
             elif request_cmd.command == 'client_event':
-                ret_commands.add(await self.handle_client_event(args, req_context=req_context, context=context))
+                ret_commands.add(await self.handle_client_event(args, context=context))
             # the following commands are deprecated
             elif request_cmd.command == 'login':
                 ret_commands.add(await self.login(args))
@@ -3144,50 +3152,52 @@ class HolaService:
             raise Exception(f'no return commands for request command {request_cmd.command}')
         return ret_commands
 
-    async def handle_session_start(self, args, req_context, context):
+    async def handle_session_start(self, args, context):
         commands = AutoList()
         commands.add(await self.get_init_ad(context=context))
         # commands.add(await self.get_player_all(context=context))
         commands.add(await self.get_page('/', context=context))
         return commands
 
-    async def handle_call_action(self, args, req_context, context):
+    async def handle_call_action(self, args, context):
         name = args.get('name')
         action_args = args.get("args", {})
         return await self.call_action(name, action_args,
             context=context)
 
-    async def handle_route_to(self, args, req_context, context):
-        commands = await self.leave_page(req_context.route, context=context)
+    async def handle_route_to(self, args, context):
+        commands = await self.leave_page(context.client.route, context=context)
         if commands:
             return commands
         return await self.get_page(args.get('route', '/'),
             context=context)
 
-    async def handle_page_interact(self, args, req_context, context):
+    async def handle_page_interact(self, args, context):
         commands = AutoList()
         name = args.get('name')
         _event = args.get('event')
         _locals = args.get('locals', {})
         if name and _event:
-            handler = await self.get_page_interact_handler(req_context.route, name, _event, context)
+            handler = await self.get_page_interact_handler(context.client.route, name, _event, context)
+            if not handler:
+                raise Exception(f'no handler for {name}:{_event}')
             if isinstance(handler, (list, tuple)):
                 handlers = handler
             else:
                 handlers = [handler]
             commands.add(await self.handle_page_interact_handlers(handlers, _locals, context))
         else:
-            commands.add(await self.get_page(req_context.route, context))
+            commands.add(await self.get_page(context.client.route, context))
 
         return commands
 
-    async def handle_page_refresh(self, args, req_context, context):
+    async def handle_page_refresh(self, args, context):
         commands = AutoList()
-        route = req_context.route
-        commands.add(await self.get_page(req_context.route, context=context))
+        route = context.client.route
+        commands.add(await self.get_page(route, context=context))
         return commands
 
-    async def handle_client_event(self, args, req_context, context):
+    async def handle_client_event(self, args, context):
         commands = AutoList()
         name = args.get('name')
         if name == 'ad_showed':

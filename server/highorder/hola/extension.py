@@ -1,6 +1,6 @@
 
 import inspect
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass, asdict
 from .data import (
     SetSessionCommand, SetSessionCommandArg,
     ShowModalCommand, ShowModalCommandArg,
@@ -10,15 +10,9 @@ from typing import Any, Optional, List, TypeVar, Callable, Type, cast
 from highorder.base.utils import AutoList
 
 @dataclass
-class UpdateSessionContextArg:
-    session: Optional[dict] = None
-    user: Optional[dict] = None
-
-@dataclass
-class UpdateSessionContext:
-    args: UpdateSessionContextArg = field(default_factory=dict)
+class ReloadSessionContext:
     type: str = 'service_command'
-    name: str = 'update_session'
+    name: str = 'reload_session'
 
 @dataclass
 class ExtensionCallFailedArg:
@@ -73,7 +67,19 @@ class HolaServiceRegister:
         if isinstance(func, dict) or not callable(func):
             raise Exception(f'Service name {name} must have func name, like "module.function" format.')
 
-        if inspect.iscoroutine(func):
-            return await func(args)
+        if inspect.iscoroutinefunction(func) or inspect.iscoroutine(func):
+            ret = await func(args)
         else:
-            return func(args)
+            ret = func(args)
+
+        response = AutoList()
+        for r in ret:
+            if is_dataclass(r):
+                response.add(asdict(r))
+            elif isinstance(r, dict):
+                response.add(r)
+            else:
+                raise Exception('extension return wrong data type.')
+
+        return response
+

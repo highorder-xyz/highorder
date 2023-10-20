@@ -2,7 +2,7 @@
 from postmodel.transaction import in_transaction
 from .service import SessionService, UserAuthService, UserService
 from highorder.hola.extension import (
-    UpdateSessionContext, UpdateSessionContextArg,
+    ReloadSessionContext,
     SetSessionCommand, SetSessionCommandArg,
     ShowModalCommand, ShowModalCommandArg,
     ShowAlertCommand, ShowAlertCommandArg,
@@ -31,16 +31,15 @@ class AccountServiceExtension:
             user = await UserService.load(app_id = app_id, user_id = user_id)
             session_token = session_data['session_token']
             if session_token not in user.sessions:
-                user.sessions.append(session_token)
-                session = SessionService.load(app_id = app_id, session_token=session_token)
-                session.user_id = user_id
+                sessions = user.sessions.setdefault('sessions', [])
+                sessions.append(session_token)
+                session = await SessionService.load(app_id = app_id, session_token=session_token)
+                session.update(user_id = user_id)
                 async with in_transaction():
-                    user.save()
-                    session.save()
+                    await user.save()
+                    await session.save()
 
-            commands.add(UpdateSessionContext(args=UpdateSessionContextArg(
-                user = user.get_data_dict()
-            )))
+            commands.add(ReloadSessionContext())
             commands.add(SetSessionCommand(args=SetSessionCommandArg(
                 session = session_data,
                 user = user.get_data_dict()

@@ -111,6 +111,8 @@ class UserService:
 
         return SessionService(session)
 
+    async def save(self):
+        await self.model.save()
 
 class UserAuthService:
     @classmethod
@@ -249,6 +251,14 @@ class SessionService:
             return await UserService.load(self.model.app_id, self.model.user_id)
         else:
             return None
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self.model, key) and not key.startswith('__'):
+                setattr(self.model, key, value)
+
+    async def save(self):
+        await self.model.save()
 
 
 class SessionStoreService:

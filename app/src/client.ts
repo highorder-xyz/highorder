@@ -385,35 +385,35 @@ export class ServiceOperation {
 
     }
 
-    async anonymousLogin(context: PageContext) {
-        const local_uid = await this.getLocalUid()
-        console.log('anonymousLogin')
+    // async anonymousLogin(context: PageContext) {
+    //     const local_uid = await this.getLocalUid()
+    //     console.log('anonymousLogin')
 
-        let reqArg: RequestArgs = {
-            "data": {
-                "command":"login",
-                "args": {
-                    "anonymous": true,
-                    "local_uid": local_uid
-                },
-                "context": context
-            }
-        }
-        try {
-            let resp = await this.client.post('/service/hola/main', reqArg);
-            let body = (await resp.json()) as any;
-            const commands = body.data.commands
-            for(const command of commands){
-                if(command.name == 'set_session'){
-                    let _cmd = command as SetSessionCommand
-                    await this.setSession(_cmd.args.user, _cmd.args.session)
-                }
-            }
-        } catch (error) {
-            this.handleError(error as Error)
-        }
+    //     let reqArg: RequestArgs = {
+    //         "data": {
+    //             "command":"login",
+    //             "args": {
+    //                 "anonymous": true,
+    //                 "local_uid": local_uid
+    //             },
+    //             "context": context
+    //         }
+    //     }
+    //     try {
+    //         let resp = await this.client.post('/service/hola/main', reqArg);
+    //         let body = (await resp.json()) as any;
+    //         const commands = body.data.commands
+    //         for(const command of commands){
+    //             if(command.name == 'set_session'){
+    //                 let _cmd = command as SetSessionCommand
+    //                 await this.setSession(_cmd.args.user, _cmd.args.session)
+    //             }
+    //         }
+    //     } catch (error) {
+    //         this.handleError(error as Error)
+    //     }
 
-    }
+    // }
 
     async setSession(user:UserDetail, session:SessionDetail): Promise<{user: UserDetail, session:SessionDetail}> {
         try {
@@ -430,16 +430,16 @@ export class ServiceOperation {
 
     }
 
-    async checkAndCreateSession(context: PageContext){
-        if (this.user === undefined || this.user.user_id === undefined
-            || this.user.user_id.length === 0
-            || this.session === undefined
-            || this.session.session_token === undefined
-            || this.session.session_token.length === 0){
-            const data_store = await AppDataStore.get_store(this.app_id)
-            await this.anonymousLogin(context)
-        }
-    }
+    // async checkAndCreateSession(context: PageContext){
+    //     if (this.user === undefined || this.user.user_id === undefined
+    //         || this.user.user_id.length === 0
+    //         || this.session === undefined
+    //         || this.session.session_token === undefined
+    //         || this.session.session_token.length === 0){
+    //         const data_store = await AppDataStore.get_store(this.app_id)
+    //         await this.anonymousLogin(context)
+    //     }
+    // }
 
     async deleteSession(){
         const data_store = await AppDataStore.get_store(this.app_id)
@@ -450,7 +450,6 @@ export class ServiceOperation {
 
     async holaRequest(args: RequestArgs): Promise<HolaCommand[]> {
         try {
-            await this.checkAndCreateSession(args.data.context)
             let resp = await this.client.post('/service/hola/main', args);
             let body = (await resp.json()) as any;
             const commands = body.data.commands
