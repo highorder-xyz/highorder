@@ -45,7 +45,7 @@ export function init_components() {
 
 
 export function get_size_name(size: number) {
-    const names = ['extra_extra_large', 'extra_large', 'large', 'normal', 'medium', 'small', 'extra_small']
+    const names = ['xxlarge', 'xlarge', 'large', 'medium', 'small', 'xsmall', 'xxsmall']
     if (size < 0) {
         size = 0
     }
@@ -1633,6 +1633,28 @@ export const CardSwiper = defineComponent({
         })
     }
 });
+
+export const SideBar = defineComponent({
+    name: 'SideBar',
+    props: {
+        style: { type: Object, default: {} }
+    },
+    render() {
+        const style = {
+            "justify-content": this.style.get('justify', 'start'),
+            "align-items": this.style.get('align', 'center')
+        }
+        const viewClasses = [styles["h-sidebar"]]
+
+        const sizeName = get_size_name(this.$props.style.get('size_hint', 3))
+        viewClasses.push(styles[`hs-${sizeName}`])
+
+        return h('div', { class: viewClasses,
+            style: style
+        }, renderSlot(this.$slots, "default", {}))
+    }
+});
+
 
 export const Loader = defineComponent({
     name: 'Loader',

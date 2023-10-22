@@ -336,6 +336,12 @@ export interface TableViewElement {
     };
 }
 
+export interface SideBarElement {
+    type: string,
+    style?: Record<string, any>,
+    elements?: HolaElement[]
+}
+
 export interface LogoElement{
     type: string
     text?: string

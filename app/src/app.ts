@@ -37,7 +37,8 @@ import {
     NavBarElement,
     LinkElement,
     LogoElement,
-    InputElement
+    InputElement,
+    SideBarElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -53,7 +54,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     Header,
     Link,
     Logo,
-    InputText
+    InputText,
+    SideBar
 } from './components'
 
 import { app_platform } from './platform';
@@ -1502,6 +1504,18 @@ export const App = defineComponent({
             })
         },
 
+
+        renderSideBar(element: SideBarElement, context: RenderContext): VNode {
+            return h(SideBar, {
+                style: element.style ?? {}
+            }, {
+                "default": () => {
+                    const elements = element.elements ?? []
+                    return this.renderElementOrList(elements, context)
+                }
+            })
+        },
+
         renderCard(element: CardElement, context: RenderContext): VNode {
             return h(Card, {
                 title: element.title ?? "",
@@ -1664,6 +1678,8 @@ export const App = defineComponent({
                 return this.renderActionBar(element as ActionBarElement, context)
             } else if (element.type === "table-view") {
                 return this.renderTableView(element as TableViewElement, context)
+            } else if (element.type === "side-bar") {
+                return this.renderSideBar(element as SideBarElement, context)
             } else if (element.type === "card") {
                 return this.renderCard(element as CardElement, context)
             } else if (element.type === "input") {
