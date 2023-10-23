@@ -36,7 +36,8 @@
     "swiper": "^8.4.2",
     "tslib": "^2.3.1",
     "video.js": "^7.21.4",
-    "vue": "^3.2.37"
+    "vue": "^3.2.37",
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.4.3",

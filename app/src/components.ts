@@ -14,6 +14,7 @@ import PrimeButton from 'primevue/button';
 import PrimeCard from 'primevue/card';
 import PrimeInputText from 'primevue/inputtext';
 import PrimePassword from 'primevue/password';
+import PrimeMenu from 'primevue/menu';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -144,7 +145,7 @@ export const Button = defineComponent({
         }
     },
     emits: {
-        clicked: null
+        clicked: (evt:any) => {return true}
     },
     methods: {
         renderIcon(): VNode | undefined {
@@ -259,7 +260,7 @@ export const Button = defineComponent({
                 style: btnStyle,
                 disabled: this.disable,
                 ...styleTags,
-                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
+                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked", evt) }
             },
             {
                 // "default": () => {
@@ -1582,7 +1583,7 @@ export const Card = defineComponent({
     },
 
     render() {
-        const content_hint_tags = this.style.content_hint_tags ?? []
+        const content_tags = this.style.content_tags ?? []
         return h(PrimeCard, { class: [styles["card"], styles["h-card"]] }, {
             "header": () => {
                 return h('img', {src: this.image_src})
@@ -1594,7 +1595,7 @@ export const Card = defineComponent({
                 return this.sub_title
             },
             "content": () => {
-                return h('div', { class: [styles['h-content'], ...content_hint_tags]}, [
+                return h('div', { class: [styles['h-content'], ...content_tags]}, [
                     h('p', this.text),
                     renderSlot(this.$slots, "default", {})
                 ])
@@ -1641,12 +1642,12 @@ export const SideBar = defineComponent({
     },
     render() {
         const style = {
-            "justify-content": this.style.get('justify', 'start'),
-            "align-items": this.style.get('align', 'center')
+            "justify-content": this.style.justify ?? 'start',
+            "align-items": this.style.align ?? 'center'
         }
         const viewClasses = [styles["h-sidebar"]]
 
-        const sizeName = get_size_name(this.$props.style.get('size_hint', 3))
+        const sizeName = get_size_name(this.$props.style.size_hint ?? 3)
         viewClasses.push(styles[`hs-${sizeName}`])
 
         return h('div', { class: viewClasses,
@@ -1655,6 +1656,55 @@ export const SideBar = defineComponent({
     }
 });
 
+
+export const Menu = defineComponent({
+    name: 'Menu',
+    props: {
+        label: { type: String, default: "" },
+        icon: { type: String, default: "" },
+        popup: { type: Boolean, default: false},
+        items: { type: Array as PropType<Array<any>>, default: [] },
+        style: { type: Object, default: {} }
+    },
+    emits: {
+        menuItemClicked: (name: string) => {return true;}
+    },
+    methods: {
+        toggle(event: any) {
+            (this.$refs['_prime_menu'] as any).toggle(event)
+        }
+    },
+    data() {
+        const model:Record<string, any> = {
+            'items': []
+        }
+        if(this.label){
+            model['label'] = this.label
+        }
+        if(this.icon) {
+            model['icon'] = `pi pi-${this.icon}`
+        }
+        if(this.items.length > 0){
+            for(const it of this.items){
+                model['items'].push({
+                    label: it.label ?? "",
+                    icon: it.icon ? `pi pi-${it.icon}` : "",
+                    command: () => {
+                        if(it.name){
+                            this.$emit("menuItemClicked", {name: it.name})
+                        }
+                    }
+                })
+            }
+        }
+        return {
+            "menu_model": [model]
+        }
+    },
+    render() {
+        return h(PrimeMenu, { model: this.menu_model, popup: this.popup, ref:'_prime_menu'})
+    }
+});
 
 export const Loader = defineComponent({
     name: 'Loader',

@@ -38,7 +38,9 @@ import {
     LinkElement,
     LogoElement,
     InputElement,
-    SideBarElement
+    SideBarElement,
+    MenuElement,
+    MenuItemObject
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -55,7 +57,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     Link,
     Logo,
     InputText,
-    SideBar
+    SideBar,
+    Menu
 } from './components'
 
 import { app_platform } from './platform';
@@ -994,7 +997,11 @@ export const App = defineComponent({
                 for(const sub_element of elements){
                     const n = this.renderElement(sub_element as HolaElement, context)
                     if(n !== undefined){
-                        sub_nodes.push(n)
+                        if(Array.isArray(n)){
+                            sub_nodes.push(...n)
+                        } else {
+                            sub_nodes.push(n)
+                        }
                     }
                 }
             }
@@ -1114,7 +1121,9 @@ export const App = defineComponent({
 
         renderButton(element: ButtonElement, context: RenderContext){
             const actionFn = () => {
-                this.executeAction(element.action, element.args, context)
+                if(element.action){
+                    this.executeAction(element.action, element.args, context)
+                }
             }
 
             const style = this.tranformStyle(element.style ?? {})
@@ -1122,7 +1131,34 @@ export const App = defineComponent({
             if(element.action_props){
                 close_modal = element.action_props!['close_modal'] ?? false
             }
-            return h(Button, {
+            let menu: any = undefined
+            const menu_name = 'menu_xxxxxx222'
+            let modal: any = undefined
+            let click_handler = element.events?.click ?? null
+            if(click_handler){
+                let click_handlers:Array<any> = []
+                if(!Array.isArray(click_handler)){
+                    click_handlers = [click_handler]
+                } else {
+                    click_handlers = click_handler
+                }
+                for(const handler of click_handlers){
+                    if(['open-menu'].includes(handler.type)){
+                        const items = handler.menu.items ?? []
+                        menu = h(Menu, {
+                            items: items,
+                            popup: true,
+                            ref: menu_name
+                        }, {})
+                    } else if(['open-modal'].includes(handler.type)) {
+
+                    }
+                }
+            }
+
+
+
+            const btn = h(Button, {
                 text: element.text,
                 icon: element.icon,
                 href: element.href ?? "",
@@ -1180,6 +1216,10 @@ export const App = defineComponent({
                         }
                     } else if(element.name) {
                         this.pageInteract(element.name, 'click', this.page, context)
+                    } else {
+                        if(menu){
+                            (this.$refs[menu_name] as any).toggle(event)
+                        }
                     }
                     app_platform.logEvent(AnalyticsEventKind.button_event, {
                         route: this.page.route,
@@ -1187,11 +1227,20 @@ export const App = defineComponent({
                     })
                 }
             })
+
+            if(menu){
+                console.log('return menu and btn')
+                return h('div', {}, [btn, menu])
+            }else{
+                return btn
+            }
         },
 
         renderIconButton(element: ButtonElement, context: RenderContext){
             const actionFn = () => {
-                this.executeAction(element.action, element.args, context)
+                if(element.action){
+                    this.executeAction(element.action, element.args, context)
+                }
             }
 
             const style = this.tranformStyle(element.style ?? {})
@@ -1318,7 +1367,7 @@ export const App = defineComponent({
             return h(VideoPlayer, {...args, ...element.style})
         },
 
-        renderModalWidget(element:ModalWidgetElement, context:RenderContext): VNode | undefined {
+        renderModalWidget(element:ModalWidgetElement, context:RenderContext): VNode | VNode[] | undefined {
             if(!element){
                 return undefined
             }
@@ -1374,7 +1423,11 @@ export const App = defineComponent({
             for(const element of elements){
                 const el_node = this.renderModalWidget(element, context)
                 if(el_node){
-                    nodes.push(el_node)
+                    if(Array.isArray(el_node)){
+                        nodes.push(...el_node)
+                    } else {
+                        nodes.push(el_node)
+                    }
                 }
             }
             return nodes
@@ -1611,6 +1664,12 @@ export const App = defineComponent({
             return h(NavMenu, {...style, items: items})
         },
 
+        renderMenu(element: MenuElement, context: RenderContext): VNode {
+            const style = element.style ?? {}
+            const items: MenuItemObject[] = element.items ?? []
+            return h(Menu, {style:style, items: items, label: element.label ?? "", icon: element.icon ?? ""})
+        },
+
         renderNarration(context: RenderContext): VNode {
             const app_core = AppCore.getCore(this.app_id)
             const paragraph = this.page.narration.paragraphs[this.page.narration_idx]
@@ -1646,7 +1705,11 @@ export const App = defineComponent({
                 for(const el of element){
                     const rendered = this.renderElement(el, context)
                     if(rendered){
-                        elements.push(rendered)
+                        if(Array.isArray(rendered)){
+                            elements.push(...rendered)
+                        } else {
+                            elements.push(rendered)
+                        }
                     }
                 }
                 return elements
@@ -1655,7 +1718,7 @@ export const App = defineComponent({
             }
         },
 
-        renderElement(element: HolaElement, context: RenderContext): VNode | undefined {
+        renderElement(element: HolaElement, context: RenderContext): VNode | VNode[] | undefined {
             if (element.type === "navbar") {
                 return this.renderNavBar(element as NavBarElement, context)
             } else if (element.type === "header") {
@@ -1668,6 +1731,8 @@ export const App = defineComponent({
                 return this.renderHero(element as HeroElement, context)
             } else if (element.type === "nav-menu") {
                 return this.renderNavMenu(element as NavMenuElement, context)
+            } else if (element.type === "menu") {
+                return this.renderMenu(element as MenuElement, context)
             } else if (element.type === "decoration") {
                 return this.renderDecoration(element as DecorationElement, context)
             } else if (element.type === "motion") {
@@ -1700,7 +1765,12 @@ export const App = defineComponent({
                 }
                 const rendered = this.renderElement(element, context)
                 if(rendered){
-                    children.push(rendered)
+                    if(Array.isArray(rendered)){
+                        children.push(...rendered)
+                    } else {
+                        children.push(rendered)
+                    }
+
                 }
             }
             if (this.page.narration.paragraphs.length > 0) {

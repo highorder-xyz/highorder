@@ -510,6 +510,13 @@ class HolaStoreSerive:
         page_state_model.page_state = page_state
         await page_state_model.save()
 
+class HolaObjectService:
+    def __init__(self, name):
+        self.name = name
+
+    def query(self, ):
+        pass
+
 class HolaDataProcessSerivce:
     pass
 
@@ -876,6 +883,8 @@ class HolaService:
         }
         if self.user:
             user['authed'] = True
+            user['name'] = self.user.user_name
+            user['user_id'] = self.user.user_id
         else:
             user['authed'] = False
 
@@ -1499,6 +1508,26 @@ class HolaService:
             transformed['args'] = self.eval_object(element.get('args', {}), context)
         return transformed
 
+    async def transform_menu(self, element, context):
+        transformed = {
+            "type": element["type"],
+            "label": self.eval_value(element.get("label", ""), context),
+            "icon": self.eval_value(element.get("icon"), context),
+            "items": []
+        }
+
+        items = transformed['items']
+        for el in element.get('elements', []):
+            if el.get('type') == 'menu-item':
+                items.append({
+                    "label": self.eval_value(el.get("label", ""), context),
+                    "name": self.eval_value(el.get("name", ""), context),
+                    "icon": self.eval_value(el.get("icon"), context)
+                })
+
+        return transformed
+
+
     async def transform_navbar(self, obj, context):
         ret = {
             "type": "navbar",
@@ -1533,6 +1562,26 @@ class HolaService:
                 ret[name] = self.eval_value(obj[name], context=context)
         return ret
 
+    def wrap_menu_with_button(self, menu_element):
+        btn_element = {
+            "type": "button",
+            "text": menu_element["label"],
+            "icon": menu_element["icon"],
+            "style": {
+                "tags": ["text"]
+            },
+            "events": {}
+        }
+
+        btn_element["events"]["click"] = {
+            "type": "open-menu",
+            "menu": {
+                "items": menu_element["items"]
+            }
+        }
+
+        return btn_element
+
     async def transform_header(self, obj, context):
         ret = {
             "type": "header",
@@ -1542,6 +1591,8 @@ class HolaService:
                 elements = AutoList()
                 for element in obj[name]:
                     transformed = await self.transform_element(element, context)
+                    if element['type'] == 'menu':
+                        transformed = self.wrap_menu_with_button(transformed)
                     elements.add(transformed)
                 ret[name] = elements
         return ret
@@ -1620,7 +1671,7 @@ class HolaService:
         transform_func = getattr(self, transform_func_name, None)
         transformed = None
         if not transform_func:
-            raise Exception(f"no transform for element {element}")
+            raise Exception(f"no transform for element {element_type}")
         elif inspect.iscoroutinefunction(transform_func):
             transformed = await transform_func(element, context)
         elif callable(transform_func):

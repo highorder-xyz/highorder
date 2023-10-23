@@ -1,4 +1,5 @@
 import {createApp, defineAsyncComponent} from 'vue'
+import { RouterLink } from 'vue-router';
 import i18next from 'i18next';
 import resources from './common/locales.json'
 import PrimeVue from 'primevue/config';
@@ -42,6 +43,8 @@ export async function createHighOrderApp(app_configs: AppConfig[], init_options:
     const app = createApp(App)
     app.use(PrimeVue, { ripple: true })
     init_components()
+
+    app.component('router-link', RouterLink);
 
     app.component('SeaSunsetMotion', defineAsyncComponent(async () =>{
         const SeaSunsetMotion = await import('./motion/sea_sunset.js')

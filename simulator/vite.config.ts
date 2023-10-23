@@ -21,6 +21,6 @@ export default defineConfig({
     },
     publicDir: '../app/public',
     plugins: [
-        vue()
+        vue({})
     ]
 })

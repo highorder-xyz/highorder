@@ -109,10 +109,11 @@ export interface ButtonElement {
     open_modal?: Record<string, any>
     open_modal_args?: Record<string, any>;
     show_ad?:Record<string, any>
-    action: string;
+    action?: string;
     action_condition?: ActionableElement
     action_props?: Record<string, any>
-    args: Record<string, any>
+    args?: Record<string, any>
+    events?: Record<string, any>
 }
 
 export interface TitleElement {
@@ -300,6 +301,20 @@ export interface NavMenuElement {
     type: string
     style: Record<string, any>
     elements: MenuItemElement[]
+}
+
+export interface MenuItemObject {
+    label?: string;
+    name?: string;
+    icon?: string;
+}
+
+export interface MenuElement {
+    type: string
+    label?: string
+    icon?: string
+    style?: Record<string, any>
+    items: MenuItemObject[]
 }
 
 export interface HeaderElement {
