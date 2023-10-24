@@ -2981,9 +2981,11 @@ class HolaService:
             if ret_type == 'service_command':
                 if ret['name'] == 'reload_session':
                     commands.add(await self.handle_service_command_reload_session(args, context))
-                    context = await self._create_context(context.client)
-                    await self.load_variables_to_context(context = context)
-                    await self.load_player_to_context(context=context)
+                    new_context = await self._create_context(context.client)
+                    await self.load_variables_to_context(context = new_context)
+                    await self.load_player_to_context(context = new_context)
+                    context.clear()
+                    context.update(new_context)
                 else:
                     commands.add(await self.handle_service_command(ret['name'], ret.get('args', {}), context))
             elif ret_type == 'command':
@@ -3017,10 +3019,12 @@ class HolaService:
 
     async def get_page(self, page_route, context):
         origin_context = context
+        context = copy.copy(origin_context)
         page_def, route_args = self.get_page_def(page_route)
         if route_args:
-            context = copy.copy(origin_context)
             context.route_args = munchify(route_args)
+        _locals = page_def.locals
+        context.locals = munchify(_locals)
 
         if page_def.permissions:
             for permission in page_def.permissions:

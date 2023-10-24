@@ -898,6 +898,7 @@ export class AppCore {
             this.app_page.route = page.route
             this.app_page.locals = page.locals ?? {}
             this.app_page.elements = page.elements
+            this.app_page.version = this.app_page.version + 1
             app_platform.logEvent(AnalyticsEventKind.page_show, {route: page.route})
         } else if (command.name === 'update_page') {
             let updatepage_cmd = command as UpdatePageCommand

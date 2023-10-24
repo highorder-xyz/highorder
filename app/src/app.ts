@@ -1325,9 +1325,14 @@ export const App = defineComponent({
         renderRowLine(element: RowLineElement, context: RenderContext) {
             return h(Row, {...element.style}, {
                 default: () => {
-                    const nodes = []
+                    const nodes:VNode[] = []
                     for(const el of element.elements){
-                        nodes.push(this.renderElement(el, context))
+                        const sub_node = this.renderElement(el, context)
+                        if(Array.isArray(sub_node)){
+                            nodes.push(...sub_node)
+                        } else if(sub_node){
+                            nodes.push(sub_node)
+                        }
                     }
                     return nodes
                 }
@@ -1562,7 +1567,8 @@ export const App = defineComponent({
 
         renderSideBar(element: SideBarElement, context: RenderContext): VNode {
             return h(SideBar, {
-                style: element.style ?? {}
+                style: element.style ?? {},
+                elements: element.elements ?? []
             }, {
                 "default": () => {
                     const elements = element.elements ?? []
@@ -1587,9 +1593,10 @@ export const App = defineComponent({
 
         renderInput(element: InputElement, context: RenderContext): VNode {
             const name = element.name ?? ""
-            return h(InputText, {
+            const input = h(InputText, {
                 label: element.label ?? "",
                 password: element.password ?? false,
+                value: this.page.locals[name],
                 name: name,
                 onTextChanged: (text: string) => {
                     if(name.length > 0){
@@ -1597,6 +1604,7 @@ export const App = defineComponent({
                     }
                 }
             })
+            return input
         },
 
         renderCardSwiper(element: CardSwiperElement, context: RenderContext): VNode {
@@ -1669,7 +1677,7 @@ export const App = defineComponent({
         renderMenu(element: MenuElement, context: RenderContext): VNode {
             const style = element.style ?? {}
             const items: MenuItemObject[] = element.items ?? []
-            console.log('render Menu', element)
+            console.log('renderMenu', 'items=', items)
             return h(Menu, {
                 style:style,
                 items: items,
@@ -1808,6 +1816,7 @@ export const App = defineComponent({
         }
     },
     render() {
-        return [this.renderPage(), ...this.renderAdditional()]
+        const rendered = [this.renderPage(), ...this.renderAdditional()]
+        return rendered
     }
 })

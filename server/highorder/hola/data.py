@@ -187,6 +187,7 @@ class ModalCancel:
 class PageInterface:
     name: str
     route: str
+    locals: Optional[dict] = field(default_factory=dict)
     elements: Optional[List[dict]] = field(default_factory=list)
     type: str = 'page'
 

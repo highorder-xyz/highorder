@@ -1,5 +1,5 @@
 
-import { defineComponent, ComponentInternalInstance, h, VNode, PropType, DefineComponent, renderSlot, withModifiers } from 'vue';
+import { defineComponent, h, VNode, PropType, isVNode } from 'vue';
 import gsap from 'gsap'
 import styles from './components.module.css'
 import 'animate.css';
@@ -32,6 +32,14 @@ function randomString(n: number, charset?: string): string {
     }
 
     return res;
+}
+
+function array_push(arr: Array<any>, element: any){
+    if(Array.isArray(element)){
+        arr.push(...element)
+    } else if(isVNode(element)) {
+        arr.push(element)
+    }
 }
 
 
@@ -169,7 +177,7 @@ export const Button = defineComponent({
             if (this.$props.text) {
                 return h('div', { "class": textClasses }, h(RichText, { text: this.$props.text}))
             } else if(this.$slots.default !== undefined) {
-                return renderSlot(this.$slots, "default", {})
+                return this.$slots.default && this.$slots.default()
             }
         },
 
@@ -199,7 +207,7 @@ export const Button = defineComponent({
                 }
             }
             if (this.$props.text) {
-                row_children.push(this.renderInner())
+                array_push(row_children, this.renderInner())
             }
 
             if (this.$props.icon) {
@@ -734,7 +742,7 @@ export const Modal = defineComponent({
             }
 
             if (this.$slots['default']) {
-                const rendered = renderSlot(this.$slots, "default", {})
+                const rendered = this.$slots.default && this.$slots.default()
                 const element_style = {
                     "justify-content": this.element_justify,
                     "align-items": this.element_align
@@ -806,7 +814,10 @@ export const NavBar = defineComponent({
         },
         renderRight(): VNode[] {
             const items: VNode[] = []
-            items.push(renderSlot(this.$slots, "default", {}))
+            if(this.$slots.default){
+                array_push(items, this.$slots.default())
+            }
+
 
             if (this.$props.showPerson) {
                 items.push(h(IconButton, {
@@ -849,9 +860,9 @@ export const Header = defineComponent({
         const items: VNode[] = []
         return [
             h('div', { "class": [styles["header"], styles['h-header']] }, [
-                h('div', { "class": styles["header-start"] }, renderSlot(this.$slots, "start", {})),
-                h('div', { "class": styles["header-center"] }, renderSlot(this.$slots, "center", {})),
-                h('div', { "class": styles["header-end"] }, renderSlot(this.$slots, "end", {})),
+                h('div', { "class": styles["header-start"] }, this.$slots.start && this.$slots.start()),
+                h('div', { "class": styles["header-center"] }, this.$slots.center && this.$slots.center()),
+                h('div', { "class": styles["header-end"] }, this.$slots.end && this.$slots.end()),
             ]),
             h('div', {class: styles["h-header-holder"]})
         ]
@@ -884,7 +895,10 @@ export const Footer = defineComponent({
         },
         renderRight(): VNode[] {
             const items: VNode[] = []
-            items.push(renderSlot(this.$slots, "default", {}))
+            if(this.$slots.default){
+                array_push(items, this.$slots.default())
+            }
+
             for (const act of this.rightActions) {
                 items.push(this.renderAction(act))
             }
@@ -1185,6 +1199,7 @@ export const Row = defineComponent({
     render() {
         const style = { "justify-content": this.justify, "align-items": this.align}
         const viewClasses = [styles["h-row"]]
+        const slots = this.$slots
 
         if (this.width_size >= 0){
             const sizeName = get_size_name(this.$props.width_size)
@@ -1195,7 +1210,7 @@ export const Row = defineComponent({
         }
         return h('div', { class: viewClasses,
             style: style
-        }, renderSlot(this.$slots, "default", {}))
+        }, slots.default && slots.default())
     }
 });
 
@@ -1223,7 +1238,7 @@ export const Column = defineComponent({
 
         return h('div', { class: viewClasses,
             style: style
-        }, renderSlot(this.$slots, "default", {}))
+        }, this.$slots.default && this.$slots.default())
     }
 });
 
@@ -1525,12 +1540,13 @@ export const InputText = defineComponent({
     props: {
         label: { type: String, default: ""},
         name: { type: String, default: ""},
+        value: { type: String, default: ""},
         password: { type: Boolean, Default: false}
     },
 
     data() {
         return {
-            "text": ""
+            "text": this.$props.value
         }
     },
 
@@ -1561,13 +1577,15 @@ export const InputText = defineComponent({
                 id: name,
                 class:[styles["h-form-element"]],
                 toggleMask: true,
-                modelValue: this.text,
+                ref: 'input',
+                modelValue: this.value,
                 "onUpdate:modelValue": this.valueChanged
             }))
         } else {
             children.push(h(PrimeInputText, {id: name,
                 class:[styles["h-form-element"]],
-                modelValue: this.text,
+                modelValue: this.value,
+                ref: 'input',
                 "onUpdate:modelValue": this.valueChanged
             }))
         }
@@ -1602,7 +1620,7 @@ export const Card = defineComponent({
             "content": () => {
                 return h('div', { class: [styles['h-content'], ...content_tags]}, [
                     h('p', this.text),
-                    renderSlot(this.$slots, "default", {})
+                    this.$slots.default && this.$slots.default()
                 ])
             }
 
@@ -1643,7 +1661,8 @@ export const CardSwiper = defineComponent({
 export const SideBar = defineComponent({
     name: 'SideBar',
     props: {
-        style: { type: Object, default: {} }
+        style: { type: Object, default: {} },
+        elements: { type: Array, default: []}
     },
     render() {
         const style = {
@@ -1657,7 +1676,7 @@ export const SideBar = defineComponent({
 
         return h('div', { class: viewClasses,
             style: style
-        }, renderSlot(this.$slots, "default", {}))
+        }, this.$slots.default && this.$slots.default())
     }
 });
 
@@ -1674,39 +1693,40 @@ export const Menu = defineComponent({
     emits: {
         menuItemClicked: (name: string) => {return true;}
     },
+    computed: {
+        menu_model() {
+            const model:Record<string, any> = {
+                'items': []
+            }
+            if(this.label){
+                model['label'] = this.label
+            }
+            if(this.icon) {
+                model['icon'] = `pi pi-${this.icon}`
+            }
+            if(this.items.length > 0){
+                for(const it of this.items){
+                    model['items'].push({
+                        label: it.label ?? "",
+                        icon: it.icon ? `pi pi-${it.icon}` : "",
+                        command: () => {
+                            if(it.name){
+                                this.$emit("menuItemClicked", it.name)
+                            }
+                        }
+                    })
+                }
+            }
+            return [model]
+        }
+    },
     methods: {
         toggle(event: any) {
             (this.$refs['_prime_menu'] as any).toggle(event)
         }
     },
-    data() {
-        const model:Record<string, any> = {
-            'items': []
-        }
-        if(this.label){
-            model['label'] = this.label
-        }
-        if(this.icon) {
-            model['icon'] = `pi pi-${this.icon}`
-        }
-        if(this.items.length > 0){
-            for(const it of this.items){
-                model['items'].push({
-                    label: it.label ?? "",
-                    icon: it.icon ? `pi pi-${it.icon}` : "",
-                    command: () => {
-                        if(it.name){
-                            this.$emit("menuItemClicked", it.name)
-                        }
-                    }
-                })
-            }
-        }
-        return {
-            "menu_model": [model]
-        }
-    },
     render() {
+        console.log('render Menu', this.menu_model, this.items.values())
         return h(PrimeMenu, { model: this.menu_model, popup: this.popup, ref:'_prime_menu'})
     }
 });
