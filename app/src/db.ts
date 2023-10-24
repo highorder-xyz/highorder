@@ -148,6 +148,10 @@ export class AppDataStore {
         return await DataStore.get_app_kv([this.app_id,'user']) as UserDetail
     }
 
+    async deleteUser() {
+        await DataStore.delete_app_kv({app_id: this.app_id, key: 'user'})
+    }
+
     async saveSession(session: SessionDetail){
         await DataStore.save_app_kv({app_id: this.app_id, key: 'session', value: session})
     }

@@ -430,6 +430,19 @@ export class ServiceOperation {
 
     }
 
+    async clearSession(): Promise<void> {
+        try {
+            const data_store = await AppDataStore.get_store(this.app_id)
+            await data_store.deleteUser()
+            await data_store.deleteSession()
+            this.user = {user_id:'', user_name:''}
+            this.session = {session_token:'', session_type:'unknown', user_id:''}
+        } catch (error) {
+            this.handleError(error as Error)
+        }
+
+    }
+
     // async checkAndCreateSession(context: PageContext){
     //     if (this.user === undefined || this.user.user_id === undefined
     //         || this.user.user_id.length === 0

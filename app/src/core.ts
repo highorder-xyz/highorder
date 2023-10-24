@@ -927,6 +927,9 @@ export class AppCore {
             let _cmd = command as SetSessionCommand
             await this.svc.setSession(_cmd.args.user, _cmd.args.session)
             await this.navigateTo(this.app_page.route)
+        } else if (command.name === 'clear_session') {
+            await this.svc.clearSession()
+            await this.navigateTo(this.app_page.route)
         } else {
             return command
         }

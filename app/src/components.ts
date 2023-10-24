@@ -15,6 +15,7 @@ import PrimeCard from 'primevue/card';
 import PrimeInputText from 'primevue/inputtext';
 import PrimePassword from 'primevue/password';
 import PrimeMenu from 'primevue/menu';
+import PrimeDivider from 'primevue/divider';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -466,7 +467,7 @@ export const Divider = defineComponent({
     methods: {
     },
     render() {
-        return h('div', { "class": styles["divider"], style: { width: `${this.widthHint}%` } })
+        return h(PrimeDivider, {})
     }
 });
 
@@ -1178,15 +1179,19 @@ export const Row = defineComponent({
     props: {
         justify: { type: String, default: "start" },
         align: { type: String, default: "center" },
-        width_size: { type: Number, default: -1}
+        width_size: { type: Number, default: -1},
+        tags: { type:Array, default: []}
     },
     render() {
         const style = { "justify-content": this.justify, "align-items": this.align}
-        const viewClasses = [styles["row"]]
+        const viewClasses = [styles["h-row"]]
 
         if (this.width_size >= 0){
             const sizeName = get_size_name(this.$props.width_size)
             viewClasses.push(styles[`w_${sizeName}`])
+        }
+        for(const t of this.tags){
+            viewClasses.push(styles[t as string])
         }
         return h('div', { class: viewClasses,
             style: style
@@ -1691,7 +1696,7 @@ export const Menu = defineComponent({
                     icon: it.icon ? `pi pi-${it.icon}` : "",
                     command: () => {
                         if(it.name){
-                            this.$emit("menuItemClicked", {name: it.name})
+                            this.$emit("menuItemClicked", it.name)
                         }
                     }
                 })

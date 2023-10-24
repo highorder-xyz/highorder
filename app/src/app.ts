@@ -1051,7 +1051,7 @@ export const App = defineComponent({
             return h(Footer, { text: text, rightActions: right_actions })
         },
 
-        renderSeparator(element: SeparatorElement, context: RenderContext){
+        renderDivider(element: SeparatorElement, context: RenderContext){
             return h(Divider)
         },
 
@@ -1148,7 +1148,10 @@ export const App = defineComponent({
                         menu = h(Menu, {
                             items: items,
                             popup: true,
-                            ref: menu_name
+                            ref: menu_name,
+                            onMenuItemClicked: (name: string) => {
+                                this.pageInteract(name, 'click', this.page, context)
+                            }
                         }, {})
                     } else if(['open-modal'].includes(handler.type)) {
 
@@ -1370,8 +1373,8 @@ export const App = defineComponent({
             if(!element){
                 return undefined
             }
-            if (element.type == 'separator') {
-                return this.renderSeparator(element as SeparatorElement, context)
+            if (element.type == 'separator' || element.type == 'divider') {
+                return this.renderDivider(element as SeparatorElement, context)
             } else if (element.type == 'title') {
                 return this.renderTitle(element as TitleElement, context)
             } else if (element.type == 'link') {
@@ -1666,7 +1669,17 @@ export const App = defineComponent({
         renderMenu(element: MenuElement, context: RenderContext): VNode {
             const style = element.style ?? {}
             const items: MenuItemObject[] = element.items ?? []
-            return h(Menu, {style:style, items: items, label: element.label ?? "", icon: element.icon ?? ""})
+            console.log('render Menu', element)
+            return h(Menu, {
+                style:style,
+                items: items,
+                label: element.label ?? "",
+                icon: element.icon ?? "",
+                onMenuItemClicked: (name: string) => {
+                    console.log('menu item clicked', name)
+                    this.pageInteract(name, 'click', this.page, context)
+                }
+            })
         },
 
         renderNarration(context: RenderContext): VNode {

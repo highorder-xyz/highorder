@@ -150,6 +150,12 @@ class SetSessionCommand:
     name: str = 'set_session'
 
 @dataclass
+class ClearSessionCommand:
+    args: dict = field(default_factory=dict)
+    type: str = 'command'
+    name: str = 'clear_session'
+
+@dataclass
 class UpdatePageInterface:
     name: str
     route: str

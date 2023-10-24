@@ -172,6 +172,13 @@ class SessionService:
         return None
 
     @classmethod
+    async def delete(cls, app_id, session_token):
+        model = await Session.load(app_id=app_id, session_token=session_token)
+        if model:
+            await model.delete()
+        return None
+
+    @classmethod
     async def create(cls, app_id, **kwargs):
         session_type = kwargs.get('session_type', 'mobile')
         session_data = kwargs.get('session_data', {})

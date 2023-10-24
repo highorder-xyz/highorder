@@ -3,6 +3,7 @@ import inspect
 from dataclasses import dataclass, field, is_dataclass, asdict
 from .data import (
     SetSessionCommand, SetSessionCommandArg,
+    ClearSessionCommand,
     ShowModalCommand, ShowModalCommandArg,
     ShowAlertCommand, ShowAlertCommandArg,
 )

@@ -1696,7 +1696,8 @@ class HolaService:
     async def transform_foreach(self, element, context):
         transformed = AutoList()
         model = element.get('model')
-        model_data = await self.transform_model(element, context)
+        if model:
+            model_data = await self.transform_model(model, context)
         return transformed
 
 
@@ -2935,9 +2936,17 @@ class HolaService:
         if 'name' in element and 'events' in element:
             filtered.add(element)
 
-        if 'elements' in element:
-            for sub_element in element['elements']:
-                filtered.add(await self.filter_interact_element(sub_element, context))
+        for key, value in element.items():
+            if isinstance(value, dict):
+                filtered.add(await self.filter_interact_element(value, context))
+            elif isinstance(value, (list, tuple)):
+                for el in value:
+                    if isinstance(el, (dict)):
+                        filtered.add(await self.filter_interact_element(el, context))
+
+        # if 'elements' in element:
+        #     for sub_element in element['elements']:
+        #         filtered.add(await self.filter_interact_element(sub_element, context))
 
         return filtered
 

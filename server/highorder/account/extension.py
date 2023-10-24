@@ -1,4 +1,5 @@
 
+from highorder.hola.data import ClearSessionCommand
 from postmodel.transaction import in_transaction
 from .service import SessionService, UserAuthService, UserService
 from highorder.hola.extension import (
@@ -53,3 +54,12 @@ class AccountServiceExtension:
 
         return commands
 
+    @classmethod
+    async def logout(cls, args):
+        commands = AutoList()
+        info = args['__info__']
+        app_id = info['app_id']
+        session_token = info['session']['session_token']
+        await SessionService.delete(app_id, session_token)
+        commands.add(ClearSessionCommand())
+        return commands
