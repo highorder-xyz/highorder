@@ -1683,9 +1683,32 @@ class HolaService:
 
 
     async def transform_side_bar(self, element, context):
-        return {
+        transformed = {
             "type": "side-bar",
+            "elements": AutoList()
         }
+
+        for el in element.get('elements', []):
+            transformed['elements'].add(await self.transform_element(copy.deepcopy(el), context))
+
+        return transformed
+
+    async def transform_foreach(self, element, context):
+        transformed = AutoList()
+        model = element.get('model')
+        model_data = await self.transform_model(element, context)
+        return transformed
+
+
+    async def transform_model(self, element, context):
+        el_type = element.get('type')
+        if el_type == 'query':
+            return await self.transform_query(element, context)
+        else:
+            await logger.warning(f'no transform for model {el_type}.')
+
+    async def transform_query(self, element, context):
+        return []
 
     async def transform_component_use(self, element, context):
         component_name = self.eval_value(element['name'], context)

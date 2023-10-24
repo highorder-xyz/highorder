@@ -1229,8 +1229,7 @@ export const App = defineComponent({
             })
 
             if(menu){
-                console.log('return menu and btn')
-                return h('div', {}, [btn, menu])
+                return [btn, menu]
             }else{
                 return btn
             }
