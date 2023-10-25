@@ -1,0 +1,68 @@
+@top Program { expression* }
+
+@skip { whiteSpace | LineComment }
+
+value {
+  Null |
+  String |
+  Boolean |
+  Number |
+  List |
+  Object
+}
+
+List { "[" (lines | lines list_1<value> | lines list<value>)"]" }
+
+Boolean { @specialize<PropertyIdentifier, "true" | "false"> }
+Null { @specialize<PropertyIdentifier, "null"> }
+
+Property { PropertyName ":" value }
+PropertyName { PropertyIdentifier | String }
+
+ObjectChild { Object | Property }
+
+Object { ObjectName? "{" (lines | lines olist_1<ObjectChild> | lines olist<ObjectChild>) "}" }
+
+lines  { newLine* }
+
+list_1<item> { item lines }
+list<item> { (item comma lines | item newLine+ )+ item lines}
+
+olist_1<item> { item lines }
+olist<item> { (item comma lines | item newLine+)+ item lines}
+
+expression {
+    newLine |
+    Object
+}
+
+
+@tokens {
+  ObjectName { $[A-Z] $[a-zA-Z_\-0-9]* }
+
+  PropertyIdentifier { $[a-z_] $[a-zA-Z_\-0-9]* }
+
+  String { ('"' (!["\\] | "\\" _)* '"') | ( "'" (!['\\] | "\\" _)* "'" ) }
+
+  LineComment { "//" ![\n]* }
+
+  Number { '-'? int frac? exp?  }
+  int  { '0' | $[1-9] @digit* }
+  frac { '.' @digit+ }
+  exp  { $[eE] $[+\-]? @digit+ }
+
+//   string { '"' char* '"' }
+//   char { $[\u{20}\u{21}\u{23}-\u{5b}\u{5d}-\u{10ffff}] | "\\" esc }
+//   esc  { $["\\\/bfnrt] | "u" hex hex hex hex }
+//   hex  { $[0-9a-fA-F] }
+
+  whiteSpace { $[ \t]+ }
+  newLine { $[\r\n] }
+  comma { ","}
+
+  "{" "}" "[" "]"
+}
+
+@external propSource holaHighlighting from "./highlight"
+
+@detectDelim
