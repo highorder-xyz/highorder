@@ -873,7 +873,7 @@ class HolaService:
                 raise Exception('not allowed link format.')
 
 
-    async def _create_context(self, page_context):
+    async def _create_context(self, page_context, page_locals):
         root_url = settings.server.get('content_url', '').strip('/')
         profile = await self.store_svc.get_profile()
         user = self.user.get_data_dict() if self.user else {}
@@ -891,6 +891,7 @@ class HolaService:
         ret =  {
             "user": user,
             "client": page_context or {},
+            "locals": page_locals or {},
             "builtin": builtin,
             "fn": builtin,
             "content": f'{root_url}/static/APP_{self.app_id}/content'
@@ -2950,25 +2951,27 @@ class HolaService:
 
         return filtered
 
-    async def handle_page_interact_handlers(self, handlers, _locals, context):
+    async def handle_page_interact_handlers(self, handlers, context):
         commands = AutoList()
         for handler in handlers:
-            commands.add(await self.handle_page_interact_handler(handler, _locals, context))
+            commands.add(await self.handle_page_interact_handler(handler, context))
         return commands
 
-    async def handle_page_interact_handler(self, handler, _locals, context):
+    async def handle_page_interact_handler(self, handler, context):
         handler_type = handler.get('type')
         if handler_type == 'invoke-service':
-            return await self.handle_invoke_service(handler, _locals, context)
+            return await self.handle_invoke_service(handler, context)
         elif handler_type == 'route-to':
             return await self.handle_route_to(handler, context)
+        elif handler_type == 'refresh':
+            return await self.handle_refresh(handler, context)
         else:
             await logger.warning(f'no handler for handler {handler_type}')
 
-    async def handle_invoke_service(self, handler, _locals, context):
+    async def handle_invoke_service(self, handler, context):
         name = handler.get('name')
         handler_locals = handler.get('locals')
-        args = copy.deepcopy(_locals)
+        args = copy.deepcopy(context.locals or {})
         args['__info__'] = {
             'app_id': self.app_id,
             'session': self.session.get_data_dict(),
@@ -2981,7 +2984,7 @@ class HolaService:
             if ret_type == 'service_command':
                 if ret['name'] == 'reload_session':
                     commands.add(await self.handle_service_command_reload_session(args, context))
-                    new_context = await self._create_context(context.client)
+                    new_context = await self._create_context(context.client, context.locals)
                     await self.load_variables_to_context(context = new_context)
                     await self.load_player_to_context(context = new_context)
                     context.clear()
@@ -2993,6 +2996,10 @@ class HolaService:
             else:
                 await logger.warning(f'unknown service response, {ret}')
         return commands
+
+    async def handle_refresh(self, handler, context):
+        context.locals.update(handler.get('locals', {}))
+        return await self.get_page(context.client.route, context)
 
     async def handle_service_command(self, name, args, context):
         if name == 'call_succeed':
@@ -3023,8 +3030,10 @@ class HolaService:
         page_def, route_args = self.get_page_def(page_route)
         if route_args:
             context.route_args = munchify(route_args)
-        _locals = page_def.locals
-        context.locals = munchify(_locals)
+
+        for key, value in page_def.locals.items():
+            if key not in context.locals:
+                context.locals[key] = value
 
         if page_def.permissions:
             for permission in page_def.permissions:
@@ -3181,7 +3190,7 @@ class HolaService:
         ret_commands.add(self._commands)
         if request_cmd:
             args = request_cmd.args
-            context = await self._create_context(factory.dump(request_cmd.context))
+            context = await self._create_context(factory.dump(request_cmd.context), None)
             await self.load_variables_to_context(context = context)
             await self.load_player_to_context(context=context)
             if request_cmd.command == 'session_start':
@@ -3233,7 +3242,7 @@ class HolaService:
                 vendor='unknown',
                 version='0.1.0'
             )
-            context = await self._create_context(page_context)
+            context = await self._create_context(page_context, None)
             ret_commands.add(await self.get_page('/', context=context))
         if request_cmd and request_cmd.command and len(ret_commands) == 0:
             raise Exception(f'no return commands for request command {request_cmd.command}')
@@ -3264,6 +3273,10 @@ class HolaService:
         name = args.get('name')
         _event = args.get('event')
         _locals = args.get('locals', {})
+        orign_context = context
+        context = copy.deepcopy(orign_context)
+        context.locals = munchify(_locals)
+
         if name and _event:
             handler = await self.get_page_interact_handler(context.client.route, name, _event, context)
             if not handler:
@@ -3272,7 +3285,7 @@ class HolaService:
                 handlers = handler
             else:
                 handlers = [handler]
-            commands.add(await self.handle_page_interact_handlers(handlers, _locals, context))
+            commands.add(await self.handle_page_interact_handlers(handlers, context))
         else:
             commands.add(await self.get_page(context.client.route, context))
 
