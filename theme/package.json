@@ -1,0 +1,18 @@
+{
+  "name": "@highorder/theme",
+  "version": "0.1.0",
+  "description": "Theme for HighOrder Platform",
+  "homepage": "https://highorder.xyz/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/highorder-xyz/highorder-theme.git"
+  },
+  "keywords": [
+    "ui framework",
+    "component framework",
+    "ui library",
+    "component library",
+    "material"
+  ],
+  "license": "MIT"
+}
