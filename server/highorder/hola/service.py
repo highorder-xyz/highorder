@@ -1250,7 +1250,7 @@ class HolaService:
 
         return {'type':'nav-menu', 'style':style, 'elements':elements}
 
-    async def transform_menu_item(self, obj, context):
+    async def transform_nav_menu_item(self, obj, context):
         ret = {
             "type": "menu_item",
             "icon": self.expand_link(self.eval_value(obj.get("icon"), context)),
@@ -1277,6 +1277,15 @@ class HolaService:
             ret['open_modal_args'] = self.eval_object(obj['open_modal_args'], context)
 
         return ret
+
+    async def transform_menu_item(self, element, context):
+        transformed = {
+            "type": "menu-item",
+            "label": self.eval_value(element.get("label", ""), context),
+            "name": self.eval_value(element.get("name", ""), context),
+            "icon": self.eval_value(element.get("icon"), context)
+        }
+        return transformed
 
     async def transform_modal(self, obj, context):
         ret = {
@@ -1514,17 +1523,13 @@ class HolaService:
             "type": element["type"],
             "label": self.eval_value(element.get("label", ""), context),
             "icon": self.eval_value(element.get("icon"), context),
-            "items": []
+            "items": AutoList()
         }
 
         items = transformed['items']
         for el in element.get('elements', []):
             if el.get('type') == 'menu-item':
-                items.append({
-                    "label": self.eval_value(el.get("label", ""), context),
-                    "name": self.eval_value(el.get("name", ""), context),
-                    "icon": self.eval_value(el.get("icon"), context)
-                })
+                items.add(await self.transform_element(el, context))
 
         return transformed
 
