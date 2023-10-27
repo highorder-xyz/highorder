@@ -30,6 +30,7 @@ MANIFEST
 
 editor.json
 editor_session.json
+demoapp/
 
 data/*
 working_dir/*

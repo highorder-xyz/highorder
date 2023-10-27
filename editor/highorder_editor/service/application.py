@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 import tempfile
 from typing import List
-from editor.highorder_editor.service import EditorConfig
+from highorder_editor.service import EditorConfig
 
 from highorder_editor.base.helpers import (
     ApplicationFolder, random_string, get_media_type
@@ -15,7 +15,6 @@ from highorder_editor.base.fs import FileSystem
 import dataclass_factory
 from dataclass_factory.schema_helpers import isodatetime_schema
 import json
-from dictdiffer import diff
 import hmac
 import hashlib
 import httpx
@@ -25,43 +24,32 @@ factory = dataclass_factory.Factory(schemas={
         datetime: isodatetime_schema,
     })
 
-@dataclass
-class ApplicationClientKey:
-    app_id: str
-    client_key: str
-    client_secret: str
-    valid: bool
-
-@dataclass
-class ApplicationSummary:
-    app_id: str
-    app_name: str
-    client_keys: List[ApplicationClientKey] = field(default_factory=list)
-
-@dataclass
-class ApplicationManifest:
-    app_id: str
-    app_version: str
-    description: str
-    publish_type: str
-    publish_date: datetime
-
-
-
-
 class ApplicationStorage:
-    @threaded
     @classmethod
-    def write_app_configs(cls, package_data):
+    @threaded
+    def load_app_configs(cls, name):
         app_config_root = ApplicationFolder.get_app_root()
         if not os.path.exists(app_config_root):
             os.makedirs(app_config_root, exist_ok=True)
-        for key in package_data:
-            with open(os.path.join(app_config_root, f'{key}.json'), 'w') as f:
-                f.write(json.dumps(package_data[key], ensure_ascii=False))
+        fpath = os.path.join(app_config_root, f'{name}.json')
+        if not os.path.exists(fpath):
+            return {}
+        with open(fpath, 'r') as f:
+            return json.loads(f.read())
 
-    @threaded
     @classmethod
+    @threaded
+    def write_app_configs(cls, name, value):
+        app_config_root = ApplicationFolder.get_app_root()
+        if not os.path.exists(app_config_root):
+            os.makedirs(app_config_root, exist_ok=True)
+        with open(os.path.join(app_config_root, f'{name}.json'), 'w') as f:
+            f.write(json.dumps(value, ensure_ascii=False))
+
+
+
+    @classmethod
+    @threaded
     def write_app_hola(cls, name, code):
         app_config_root = ApplicationFolder.get_app_root()
         if not os.path.exists(app_config_root):
@@ -69,7 +57,21 @@ class ApplicationStorage:
         with open(os.path.join(app_config_root, name), 'w') as f:
             f.write(code)
 
-    def translate_upload_path(up_path):
+
+    @classmethod
+    @threaded
+    def load_app_hola(cls, name):
+        app_config_root = ApplicationFolder.get_app_root()
+        if not os.path.exists(app_config_root):
+            os.makedirs(app_config_root, exist_ok=True)
+        fpath = os.path.join(app_config_root, f'{name}')
+        if not os.path.exists(fpath):
+            return ''
+        with open(fpath, 'r') as f:
+            return f.read()
+
+    @classmethod
+    def translate_upload_path(cls, up_path):
         if up_path.startswith('/_f/'):
             return os.path.join(ApplicationFolder.get_upload_dir(), up_path[4:])
         return up_path
@@ -119,7 +121,7 @@ class ApplicationContentService:
             await FileSystem.copy_file(src_path, dest_path)
 
             others_meta = list(filter(lambda x: x['name'] != filename, files_meta))
-            others_meta.append(factory.dump(UploadedFileRecord(
+            others_meta.append(factory.dump(dict(
                 name=filename,
                 size=statinfo.st_size,
                 media_type = get_media_type(src_path),
@@ -220,177 +222,90 @@ class ApplicationDataFileService:
 class Application():
     def __init__(self, app_id, **kwargs):
         self.app_id = app_id
-        self.hola_model = None
-
-    @property
-    def name(self):
-        return self.model.name
-
-    @property
-    def description(self):
-        return self.model.description
+        self.name = kwargs.get('name', '')
+        self.description = kwargs.get('description', '')
+        self._app = None
 
     @classmethod
     async def load(cls, app_id = None):
         app = await EditorConfig.get_app()
-        if app_id == app['app_id']:
-            inst = cls(app_id)
-            await inst.check_app_info()
-            return inst
-        else:
+        if app_id and app_id != app['app_id']:
             return None
+        else:
+            inst = cls(**app)
+            _app_config = await ApplicationStorage.load_app_configs('app')
 
-    async def save_profile(self, name, description):
-        if name:
-            self.model.name = name
-        if description:
-            self.model.description = description
-        await self.model.save()
-
-    async def load_hola_model(self, force=True):
-        if not self.hola_model or force:
-            model = await ApplicationHolaModel.load(app_id=self.app_id)
-            if model == None:
-                model = await ApplicationHolaModel.create(
-                    app_id = self.app_id,
-                    hola = {},
-                    code = {}
+            if not _app_config:
+                _app_config = dict(
+                    app_id = app_id,
+                    app_name = app['name'],
+                    client_keys = [cls.gen_client_key(app_id)]
                 )
-            self.hola_model = model
+                inst._app = _app_config
+                await inst.write_app_info()
+            else:
+                inst._app = _app_config
+            return inst
 
-    async def get_hola_config(self):
-        await self.load_hola_model()
-        return self.hola_model.hola
+    async def get_hola_json(self, name="main.hola"):
+        fpath = os.path.join(ApplicationFolder.get_app_root(), f'{name}.json')
+        if os.path.exists(fpath):
+            with open(fpath, 'r') as f:
+                return f.read()
+        else:
+            return ''
 
-    async def get_hola_code(self):
-        await self.load_hola_model()
-        return self.hola_model.code.get('main.hola', '')
+    async def get_hola_code(self, name="main.hola"):
+        await ApplicationStorage.load_app_hola(name)
 
-    async def save_hola_config(self, config):
-        if not self.hola_model:
-            raise Exception('hola model not loaded')
-        self.hola_model.hola = config
-        await self.hola_model.save()
-        await write_app_configs(self.app_id, {'main.hola': config})
-
-    async def save_hola_code(self, code):
-        if not self.hola_model:
-            await self.load_hola_model()
-        self.hola_model.code = {"main.hola": code}
-        await self.hola_model.save()
-        await write_app_hola(self.app_id, 'main.hola', code)
+    async def save_hola_code(self, code, name="main.hola"):
+        await ApplicationStorage.write_app_hola(name, code)
 
     async def write_app_info(self):
-        client_keys = await self.get_valid_clientkeys()
-        app = ApplicationSummary(
-            app_id = self.app_id,
-            app_name = self.name,
-            client_keys = client_keys
-        )
-        await write_app_configs(self.app_id, {'app': factory.dump(app)})
-
-    async def check_app_info(self):
-        app_config_file = os.path.join(get_config_root(self.app_id), 'app.json')
-        if not os.path.exists(app_config_file):
-            await self.write_app_info()
-
+        await ApplicationStorage.write_app_configs('app', self._app)
 
     async def get_valid_clientkeys(self):
-        clientkeys = []
-        keys = await ApplicationClientKeyModel.filter(app_id=self.app_id).order_by('-created')
-        for key in keys:
-            clientkeys.append(ApplicationClientKey(app_id=key.app_id,
-                client_key=key.clientkey_id,
-                client_secret = key.clientkey_secret,
-                valid = key.valid))
-        return clientkeys
+        return self._app.get('client_keys', [])
 
     async def get_client_secret(self, client_key):
-        keys = await ApplicationClientKeyModel.filter(app_id=self.app_id, clientkey_id=client_key).order_by('-created').all()
-        if not keys:
+        client_keys = self._app.get('client_keys', [])
+        filtered = list(filter(lambda x: x['clientkey_id'] == client_key, client_keys))
+        if not filtered:
             return None
-        return keys[0].clientkey_secret
+        return filtered[0]['clientkey_secret']
 
-    async def create_client_key(self):
+    @classmethod
+    def gen_client_key(cls, app_id):
         key_id = random_string(8)
         key_secret = random_string(32)
-        clientkey = await ApplicationClientKeyModel.create(app_id = self.app_id,
-                clientkey_id = key_id, clientkey_secret = key_secret, valid=True
+        clientkey = dict(app_id = app_id,
+                clientkey_id = key_id,
+                clientkey_secret = key_secret,
+                valid=True
             )
-        await self.write_app_info()
         return clientkey
 
-    async def get_package_data(self):
-        publish_date = datetime.now()
-
-        package_data = {}
-        manifest = ApplicationManifest(
-            app_id = self.app_id,
-            app_version = '',
-            description = '',
-            publish_type = '',
-            publish_date = publish_date,
-        )
-
-        package_data['manifest'] = factory.dump(manifest)
-
-        client_keys = await self.get_valid_clientkeys()
-        app = ApplicationSummary(
-            app_id = self.app_id,
-            app_name = self.name,
-            client_keys = client_keys
-        )
-
-        package_data['app'] = factory.dump(app)
-
-        for key in ['content', 'datafile']:
-            model = await ApplicationConfigModel.load(app_id = self.app_id, key=key)
-            package_data[key] = model.config
-
-        hola_model = await ApplicationHolaModel.load(app_id = self.app_id)
-        package_data['main.hola'] = hola_model.hola
-        return package_data
+    async def create_client_key(self):
+        clientkey = self.gen_client_key(self.app_id)
+        client_keys = self._app.setdefault('client_keys', [])
+        client_keys.append(clientkey)
+        await self.write_app_info()
+        return clientkey
 
 
 class ApplicationSetupService:
     @classmethod
-    async def load_or_create(cls, app_id, server_name):
-        server = cls.get_server_byname(server_name)
-        if not server:
-            raise Exception(f'Server with name: {server_name} not exists.')
-        m = await ApplicationSetupModel.load(app_id=app_id, server_name=server_name)
-        if not m:
-            m = await ApplicationSetupModel.create(app_id=app_id, server_name=server_name, hola="")
-        inst = cls(m, server)
+    async def load(cls):
+        setup_hola = await ApplicationStorage.load_app_hola('setup.hola')
+        inst = cls(setup_hola)
         return inst
 
-    def __init__(self, model, server):
-        self.model = model
-        self.server = server
+    def __init__(self, hola):
+        self.hola = hola
 
-    @property
-    def app_id(self):
-        return self.model.app_id
-
-    @property
-    def server_name(self):
-        return self.model.server_name
-
-    @property
-    def hola(self):
-        return self.model.hola
-
-    @property
-    def last_run_date(self):
-        return self.model.last_run_date
-
-    @property
-    def last_run_hola(self):
-        return self.model.last_run_hola
-
-    async def save_setup_hola(self, hola_code=""):
-        self.model.hola = hola_code
-        await self.model.save()
+    async def save_setup_hola(self, code=""):
+        self.hola = code
+        await ApplicationStorage.write_app_hola('setup.hola', code)
 
     def get_sign(self, client_key, client_secret, body):
         assert isinstance(body, (bytes))
@@ -428,12 +343,10 @@ class ApplicationSetupService:
 
 
     async def run_setup(self):
-        hola_code = self.model.hola
+        hola_code = self.hola
         response = await self.call_setup_service(hola_code)
         if response['ok']:
-            self.model.last_run_hola = hola_code
-            self.model.last_run_date = datetime.now()
-            await self.model.save()
+            return
         else:
             error_type = response['error_type']
             error_msg = response['error_msg']

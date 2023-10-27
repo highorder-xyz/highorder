@@ -142,7 +142,7 @@ async def application_home(q:Q):
     render_layout_main(q)
     render_header(q)
     app = await Application.load()
-    application_id = app.application_id
+    application_id = app.app_id
     goto_page(q, f'#application/{application_id}/app')
     await q.page.save()
 
@@ -171,11 +171,6 @@ class ApplicationGeneralView:
             value=f"{name}", required=True, trigger=False))
         items.append(ui.textbox(name='application_description', label='Application Description',
             value=f"{description}", required=True, trigger=False))
-        items.append(
-            ui.buttons(justify="center", items=[
-                    ui.button(name='application_profile_save', value=f'{self.app.app_id}', label='Save Application Profile', primary=True),
-                ])
-        )
         q.page['profile'] = ui.form_card(box='content', items=items)
 
     async def render_app_info(self, **kwargs):
@@ -198,7 +193,6 @@ class ApplicationGeneralView:
     async def render_all(self):
         q = self.q
         reset_page_container(q, self.app, page_name='app', right_panel=True)
-
         await self.render_app_info()
         await self.render_profile()
 
@@ -224,7 +218,7 @@ class ClientKeysView:
         rows = []
         for idx, clientkey in enumerate(clientkeys):
             rows.append(
-                ui.table_row(name=f"{clientkey.client_key}", cells=[clientkey.client_key, clientkey.client_secret])
+                ui.table_row(name=f"{clientkey['clientkey_id']}", cells=[clientkey['clientkey_id'], clientkey['clientkey_secret']])
             )
         commands = [
             ui.command(name='copy_client_key_secret', label='Copy Client Key & Secret', icon='Copy'),
@@ -867,7 +861,7 @@ class ApplicationASTView:
     async def render_all(self):
         q = self.q
         app = self.app
-        config = await app.get_hola_config()
+        config = await app.get_hola_json()
         q.page.drop()
         q.page['meta'] = ui.meta_card(box='',
             layouts=[
@@ -901,13 +895,9 @@ class ApplicationSetupView:
     def __init__(self, q:Q, app:Application):
         self.q = q
         self.app = app
-        self.selected = None
 
     async def load_setup_service(self):
-        server_name = self.q.args.server_selected or (self.selected and self.selected['name'])
-        if not server_name:
-            return None
-        svc = await ApplicationSetupService.load_or_create(self.app.app_id, server_name)
+        svc = await ApplicationSetupService.load()
         return svc
 
 
@@ -930,36 +920,29 @@ class ApplicationSetupView:
                     await self.update_status(f'Saved ({now}).', 'succeed')
             return
         elif q.args.run_setup:
-            if not q.args.server_selected:
-                popup_error_msg(q, 'A server must be selected to setup.\n If no server yet, please add in settings.toml.')
-            else:
-                server_name = self.q.args.server_selected
-                server = ApplicationSetupService.get_server_byname(server_name)
-                server_info = server['description']
-
-                await self.show_setup_process_dialog(server_info)
-                await self.render_header()
-                q.page['meta'].notification_bar = None
-                await q.page.save()
-                try:
-                    setup_svc = await self.load_setup_service()
-                    await setup_svc.run_setup()
-                    await asyncio.sleep(1.0)
-                    setup_date = get_readable_date(setup_svc.last_run_date, short=True)
-                    status_widget = get_status_widget(f'Setup OK ({setup_date})', 'succeed')
-                    await self.render_header(status_widget)
-                except Exception as ex:
-                    status_widget = get_status_widget(f'Setup Failed.', 'failed')
-                    await self.render_header(status_widget)
-                    popup_exception(q, ex)
-                await self.close_dialog()
+            await self.show_setup_process_dialog()
+            await self.render_header()
+            q.page['meta'].notification_bar = None
+            await q.page.save()
+            try:
+                setup_svc = await self.load_setup_service()
+                await setup_svc.run_setup()
+                await asyncio.sleep(1.0)
+                setup_date = get_readable_date(setup_svc.last_run_date, short=True)
+                status_widget = get_status_widget(f'Setup OK ({setup_date})', 'succeed')
+                await self.render_header(status_widget)
+            except Exception as ex:
+                status_widget = get_status_widget(f'Setup Failed.', 'failed')
+                await self.render_header(status_widget)
+                popup_exception(q, ex)
+            await self.close_dialog()
         else:
             await self.render_all()
 
-    async def show_setup_process_dialog(self, server_info):
+    async def show_setup_process_dialog(self):
         self.q.page['meta'].dialog = ui.dialog(title='Setup Server',
             items=[
-                ui.text(f'Setup "{server_info}"... It may take several minutes')
+                ui.text(f'Setup Server... It may take several minutes')
             ],
             closable = False,
             blocking = True
@@ -976,24 +959,11 @@ class ApplicationSetupView:
         q = self.q
         app = self.app
         _staus_widget = status_widget or ui.markup(content="")
-        choices = []
-        for server_conf in ApplicationSetupService.get_servers():
-            choices.append(ui.choice(
-                name = server_conf['name'],
-                label = server_conf['description']
-            ))
-        if not choices:
-            selected = None
-        else:
-            selected = q.args.server_selected or choices[0].name
-        self.selected = ApplicationSetupService.get_server_byname(selected)
         q.page['setup_action'] = ui.form_card(
             box=ui.box(zone='content_header'),
             title="",
             items=[
                 ui.inline([
-                    ui.dropdown(name='server_selected', width="300px", label='',
-                                trigger=True, choices=choices, value=selected),
                     ui.button(name='run_setup', label='Run Setup'),
                     _staus_widget
                 ], justify="start")
