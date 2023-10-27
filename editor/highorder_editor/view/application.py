@@ -136,11 +136,13 @@ def render_hola_editor(q, hola_content):
         content=f'<div class="hola_editor_container"><div id="hola_editor{random_id}" class="hola_editor"></div></div>'
     )
 
-@on('#application/{application_id:str}')
-async def application_home(q:Q, application_id:str):
+@on('#application')
+async def application_home(q:Q):
     q.page.drop()
     render_layout_main(q)
     render_header(q)
+    app = await Application.load()
+    application_id = app.application_id
     goto_page(q, f'#application/{application_id}/app')
     await q.page.save()
 

@@ -1,19 +1,5 @@
 
-import traceback
-from highorder_editor.service import Session, User
 from wavegui import Q, ui
-
-async def load_user(session_id, q):
-    session = await Session.load(session_id=session_id)
-    if session:
-        user = await User.load(user_id=session.user_id)
-        if user:
-            q.user['user_id'] = user.user_id
-            q.user['email'] = user.email
-            q.user['nickname'] = user.nickname
-            q.user['instance'] = user
-            return True
-    return False
 
 
 def render_layout_main(q:Q, right_panel=False, content_header=True, content_footer=False):
@@ -69,15 +55,7 @@ def render_layout_simple(q:Q):
     ])
 
 def render_header(q:Q):
-    user_commands = [
-        ui.command(name='#profile', label='Profile', icon='Contact'),
-        ui.command(name='#logout', label='Logout', icon='SignOut')
-    ]
-
     items = []
-    items.append(ui.button(name="#home", icon="Home", label="Home"))
-    if 'nickname' in q.user:
-        items.append(ui.menu(icon="Contact", name="user_menu", items=user_commands))
 
     q.page['header'] = ui.header_card(
         box = 'header',
@@ -91,16 +69,10 @@ def render_header(q:Q):
 def render_compact_header(q:Q):
     commands = []
     commands.extend([
-        ui.command(name='#home', label='Go Home', icon='Home'),
-        ui.command(name='#home', label='Switch App', icon='AllApps')
+        ui.command(name='#logout', label='Logout', icon='SignOut')
     ])
     items = []
-    if 'nickname' in q.user:
-        commands.extend([
-            ui.command(name='#profile', label='Profile', icon='Contact'),
-            ui.command(name='#logout', label='Logout', icon='SignOut')
-        ])
-        items.append(ui.menu(icon="", name="user_menu", items=commands))
+    items.append(ui.menu(icon="", name="user_menu", items=commands))
 
     q.page['header'] = ui.header_card(
         box = 'header',

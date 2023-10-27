@@ -2,11 +2,13 @@
 import traceback
 from highorder_editor.base.helpers import ApplicationFolder
 from wavegui import app, Q, ui, on, handle_on
-from basepy.config import settings
 from basepy.asynclog import logger
 import os
+import importlib
+import importlib.resources
 from highorder_editor.service import Auth, Session
-from .common import load_user, popup_exception, render_header, goto_page, render_layout_simple, popup_wrong_page_error
+from .common import popup_exception, render_header, goto_page, render_layout_simple, popup_wrong_page_error
+from . import application
 
 def render_login_form(email=None, password=None, email_error=None, password_error=None):
     return ui.form_card(box='content', items=[
@@ -28,10 +30,13 @@ async def editor_home(q: Q):
             popup_exception(q, ex)
             await logger.error(traceback.format_exc())
 
-    await load_user(q.session.session_id, q)
-    user = q.user['instance']
+    session = await Session.load(q.session.session_id)
+    if session:
+        user = session['user_name']
+    else:
+        user = None
     if not q.args['#']:
-        goto_page(q, '#home')
+        goto_page(q, '#application')
         await q.page.save()
         return
 
@@ -53,10 +58,9 @@ async def login_submit(q:Q):
         success, user = await Auth.check_pass(q.args.email, q.args.password)
 
         if success:
-            await Session.create(session_id=session_id, user_id=user.user_id)
+            await Session.save(session_id, user['name'])
 
-        ok = await load_user(session_id, q)
-        if ok:
+        if success:
             q.page.drop()
             q.page['meta'] = ui.meta_card(box='', redirect = '#')
         else:
@@ -85,8 +89,10 @@ async def logout(q:Q):
     await q.page.save()
 
 def start_view(appfolder, port, www_dir=None):
-    if www_dir:
-        app.setup_static(www_dir)
+    if www_dir is None:
+        with importlib.resources.path('highorder_editor', '__init__.py') as f:
+            www_dir = os.path.join(os.path.dirname(f), 'www')
+    app.setup_static(www_dir)
     app.setup_info(name="HighOrder Editor", description="The Editor of HighOrder",
         icon="/editor/static/favicon.ico",
         logo="/editor/static/highorder192.png",

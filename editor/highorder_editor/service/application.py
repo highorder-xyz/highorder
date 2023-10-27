@@ -3,15 +3,14 @@
 from dataclasses import dataclass, field
 import tempfile
 from typing import List
+from editor.highorder_editor.service import EditorConfig
 
 from highorder_editor.base.helpers import (
-    get_app_build_root, get_config_root, get_publish_content_root, get_content_root, get_datafile_root, get_media_type,
-    get_publish_package_root, get_publish_release_root, get_upload_dir, random_string
+    ApplicationFolder, random_string, get_media_type
 )
 from datetime import datetime
 import os
 from basepy.asynclib.threaded import threaded
-from basepy.config import settings
 from highorder_editor.base.fs import FileSystem
 import dataclass_factory
 from dataclass_factory.schema_helpers import isodatetime_schema
@@ -48,27 +47,33 @@ class ApplicationManifest:
     publish_date: datetime
 
 
-@threaded
-def write_app_configs(app_id, package_data):
-    app_config_root = get_config_root(app_id)
-    if not os.path.exists(app_config_root):
-        os.makedirs(app_config_root, exist_ok=True)
-    for key in package_data:
-        with open(os.path.join(app_config_root, f'{key}.json'), 'w') as f:
-            f.write(json.dumps(package_data[key], ensure_ascii=False))
 
-@threaded
-def write_app_hola(app_id, name, code):
-    app_config_root = get_config_root(app_id)
-    if not os.path.exists(app_config_root):
-        os.makedirs(app_config_root, exist_ok=True)
-    with open(os.path.join(app_config_root, name), 'w') as f:
-        f.write(code)
 
-def translate_upload_path(up_path):
-    if up_path.startswith('/_f/'):
-        return os.path.join(get_upload_dir(), up_path[4:])
-    return up_path
+class ApplicationStorage:
+    @threaded
+    @classmethod
+    def write_app_configs(cls, package_data):
+        app_config_root = ApplicationFolder.get_app_root()
+        if not os.path.exists(app_config_root):
+            os.makedirs(app_config_root, exist_ok=True)
+        for key in package_data:
+            with open(os.path.join(app_config_root, f'{key}.json'), 'w') as f:
+                f.write(json.dumps(package_data[key], ensure_ascii=False))
+
+    @threaded
+    @classmethod
+    def write_app_hola(cls, name, code):
+        app_config_root = ApplicationFolder.get_app_root()
+        if not os.path.exists(app_config_root):
+            os.makedirs(app_config_root, exist_ok=True)
+        with open(os.path.join(app_config_root, name), 'w') as f:
+            f.write(code)
+
+    def translate_upload_path(up_path):
+        if up_path.startswith('/_f/'):
+            return os.path.join(ApplicationFolder.get_upload_dir(), up_path[4:])
+        return up_path
+
 
 class ApplicationContentService:
     def __init__(self, model, **kwargs):
@@ -207,27 +212,15 @@ class ApplicationDataFileService:
         dest = os.path.join(get_datafile_root(app_id=self.model.app_id), filename)
         await FileSystem.remove(dest)
 
-
     async def save(self):
         await self.model.save()
         await write_app_configs(self.model.app_id, {'datafile': self.model.config})
 
 
 class Application():
-    def __init__(self, model, **kwargs):
-        assert model != None
-        self.model = model
-        self.members = []
-        self.workspace_name = None
+    def __init__(self, app_id, **kwargs):
+        self.app_id = app_id
         self.hola_model = None
-
-    @property
-    def app_id(self):
-        return self.model.app_id
-
-    @property
-    def workspace_id(self):
-        return self.model.workspace_id
 
     @property
     def name(self):
@@ -238,13 +231,14 @@ class Application():
         return self.model.description
 
     @classmethod
-    async def load(cls, app_id):
-        m = await ApplicationModel.load(app_id=app_id)
-        if not m:
+    async def load(cls, app_id = None):
+        app = await EditorConfig.get_app()
+        if app_id == app['app_id']:
+            inst = cls(app_id)
+            await inst.check_app_info()
+            return inst
+        else:
             return None
-        inst = cls(m)
-        await inst.check_app_info()
-        return inst
 
     async def save_profile(self, name, description):
         if name:
@@ -263,12 +257,6 @@ class Application():
                     code = {}
                 )
             self.hola_model = model
-
-    async def get_state(self):
-        state = await ApplicationStateModel.load(app_id=self.app_id)
-        if not state:
-            state = await ApplicationStateModel.create(app_id=self.app_id)
-        return state
 
     async def get_hola_config(self):
         await self.load_hola_model()
@@ -332,23 +320,6 @@ class Application():
         await self.write_app_info()
         return clientkey
 
-    def next_major_version(self, version):
-        major, minor = version.split('.')
-        major = int(major)
-        minor = int(minor)
-        major = major + 1
-        minor = 0
-        return f'{major}.{minor}', major*10000 + minor
-
-    def next_minor_version(self, version):
-        major, minor = version.split('.')
-        major = int(major)
-        minor = int(minor)
-        minor = minor + 1
-        if minor > 9999:
-            raise Exception('minor version not allowed to be greater than 9999. ')
-        return f'{major}.{minor}', major*10000 + minor
-
     async def get_package_data(self):
         publish_date = datetime.now()
 
@@ -379,175 +350,6 @@ class Application():
         hola_model = await ApplicationHolaModel.load(app_id = self.app_id)
         package_data['main.hola'] = hola_model.hola
         return package_data
-
-    async def do_create_package(self, latest_package, description):
-        package_data = await self.get_package_data()
-        publish_date = package_data['manifest']['publish_date']
-
-        if latest_package:
-            latest_package_data = latest_package.package_data
-            latest_version = latest_package.app_version
-            first = {
-                'hola': latest_package_data['hola'],
-            }
-            second = {
-                'hola': package_data['hola'],
-            }
-
-            d = list(diff(first, second))
-            if len(d) > 0:
-                publish_type = 'major'
-                app_version, version_number = self.next_major_version(latest_version)
-            else:
-                first = {
-                    'content': latest_package_data['content'],
-                    'datafile': latest_package_data['datafile'],
-                }
-                second = {
-                    'content': package_data['content'],
-                    'datafile': package_data['datafile']
-                }
-
-                datadiff = list(diff(first, second))
-                if len(datadiff) > 0:
-                    publish_type = 'minor'
-                    app_version, version_number = self.next_minor_version(latest_version)
-                else:
-                    raise Exception('No changes found to latest release, No package need to be created.')
-
-        else:
-            app_version = '1.0'
-            version_number = '10000'
-            publish_type = 'major'
-
-        manifest = package_data['manifest']
-        manifest['app_version'] = app_version
-        manifest['description'] = description
-        manifest['publish_type'] = publish_type
-
-        await write_app_configs(self.app_id, package_data)
-
-        target_path = os.path.join(get_publish_package_root(self.app_id), f'APP_{self.app_id}_{app_version}_core.zip')
-        await FileSystem.zip_folder_to(get_app_build_root(self.app_id), target_path=target_path, subfolders=['app', 'datafile'])
-
-
-        content_folder = os.path.join(get_app_build_root(self.app_id), 'content')
-        if not os.path.exists(content_folder):
-            os.makedirs(content_folder, exist_ok=True)
-        await FileSystem.update_folder_checksum(content_folder)
-
-        content_path = os.path.join(get_publish_package_root(self.app_id), f'APP_{self.app_id}_{app_version}_content.zip')
-        await FileSystem.zip_folder_to(get_app_build_root(self.app_id), target_path=content_path, subfolders=['content'])
-
-        await ApplicationPublishModel.create(
-            app_id = self.app_id,
-            app_version = app_version,
-            description = description,
-            version_number = version_number,
-            publish_type = publish_type,
-            publish_date = publish_date,
-            package_data = package_data,
-        )
-
-        state = await self.get_state()
-        state.latest_version = app_version
-        await state.save()
-
-    async def create_package(self, description):
-        state = await self.get_state()
-        if not state or state.latest_version == None:
-            latest_package = None
-        else:
-            latest_package = await ApplicationPublishModel.load(app_id=self.app_id, app_version=state.latest_version)
-        return await self.do_create_package(latest_package=latest_package, description=description)
-
-    async def publish_package(self, version):
-        if version == 'building':
-            await self.publish_building()
-            return
-        package = await ApplicationPublishModel.load(app_id=self.app_id, app_version=version)
-        if not package:
-            raise Exception(f'package version {version} not exists')
-        _, temp_content_file = tempfile.mkstemp()
-        content_file = os.path.join(get_publish_package_root(self.app_id), f'APP_{self.app_id}_{version}_content.zip')
-        await FileSystem.copy_file(content_file, temp_content_file)
-
-        await FileSystem.unzip_to(temp_content_file, get_publish_content_root(self.app_id), subfolder="content")
-        await FileSystem.remove(temp_content_file)
-
-
-        core_file = os.path.join(get_publish_package_root(self.app_id), f'APP_{self.app_id}_{version}_core.zip')
-        release_file = os.path.join(get_publish_release_root(self.app_id), f'APP_{self.app_id}_{version}.zip')
-
-        await FileSystem.copy_file(core_file, release_file)
-        await self.update_publish_state(version)
-
-    async def update_publish_state(self, version):
-        state = await self.get_state()
-        current_version = state.current_version
-
-        previous_version = state.previous_version if version == current_version else current_version
-
-        prevprev_version = None if (previous_version == state.previous_version or version == state.previous_version) else state.previous_version
-
-        release_data = json.dumps({
-            'current': version,
-            'previous': previous_version,
-            'release_date': datetime.now().isoformat()
-        }).encode('utf-8')
-        release_file = os.path.join(get_publish_release_root(self.app_id), f'release.json')
-        await FileSystem.write(release_file, release_data)
-
-        if prevprev_version:
-            prevprev_file = os.path.join(get_publish_release_root(self.app_id), f'APP_{self.app_id}_{prevprev_version}.zip')
-            await FileSystem.delete(prevprev_file)
-
-        state.previous_version = previous_version
-        state.current_version = version
-        await state.save()
-
-
-    async def publish_building(self):
-        package_data = await self.get_package_data()
-        now = datetime.now()
-        version = 'b{}'.format(now.strftime('%y%m%d%H%M%S'))
-        manifest = package_data['manifest']
-        manifest['app_version'] = version
-        manifest['description'] = f"auto building package of {version}"
-        manifest['publish_type'] = "major"
-
-        await write_app_configs(self.app_id, package_data)
-
-        target_path = os.path.join(get_publish_release_root(self.app_id), f'APP_{self.app_id}_{version}.zip')
-        await FileSystem.zip_folder_to(get_app_build_root(self.app_id), target_path=target_path, subfolders=['app', 'datafile'])
-
-        content_folder = os.path.join(get_app_build_root(self.app_id), 'content')
-        await FileSystem.update_folder_checksum(content_folder)
-
-        await FileSystem.copy_dir_to(get_app_build_root(self.app_id), get_publish_content_root(self.app_id), subfolder="content")
-
-        await self.update_publish_state(version)
-
-
-    async def get_all_packages(self):
-        ret = []
-        all_packages = await ApplicationPublishModel.filter(app_id=self.app_id).order_by("-version_number")
-        for pub in all_packages:
-            ret.append(ApplicationManifest(app_id=pub.app_id, app_version=pub.app_version,
-                description=pub.description,
-                publish_type=pub.publish_type,
-                publish_date=pub.publish_date))
-        return ret
-
-    async def get_all_publish(self):
-        ret = []
-        all_pub = await ApplicationPublishModel.filter(app_id=self.app_id).order_by("-created")
-        for pub in all_pub:
-            ret.append(ApplicationManifest(app_id=pub.app_id, app_version=pub.app_version,
-                description=pub.description,
-                publish_type=pub.publish_type,
-                publish_date=pub.publish_date))
-        return ret
 
 
 class ApplicationSetupService:
