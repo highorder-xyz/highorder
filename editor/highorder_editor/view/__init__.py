@@ -84,11 +84,12 @@ async def login(q:Q):
 async def logout(q:Q):
     session_id = q.session.session_id
     await Session.delete(session_id)
-    # goto_page(q, '#home')
+    goto_page(q, '#')
     q.page['meta'] = ui.meta_card(box='', script=ui.inline_script(content="location.reload(true);"))
     await q.page.save()
 
-def start_view(appfolder, port, www_dir=None):
+
+def setup_editor(appfolder, www_dir=None):
     if www_dir is None:
         with importlib.resources.path('highorder_editor', '__init__.py') as f:
             www_dir = os.path.join(os.path.dirname(f), 'www')
@@ -106,5 +107,9 @@ def start_view(appfolder, port, www_dir=None):
     server = WaveServer.setup(init_options=dict(upload_dir=upload_dir), on_startup = [], static_dirs ={
         'simulator': simulator_dir
     })
-    server.run_forever()
+    return server
+
+def start_view(appfolder, port, www_dir=None):
+    server = setup_editor(appfolder, www_dir=www_dir)
+    server.run_forever(port=port)
     # app.run(on_startup = [], init_options=dict(upload_dir=upload_dir), port=port)

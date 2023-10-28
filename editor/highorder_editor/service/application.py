@@ -122,12 +122,12 @@ class ApplicationContentService:
             await FileSystem.copy_file(src_path, dest_path)
 
             others_meta = list(filter(lambda x: x['name'] != filename, files_meta))
-            others_meta.append(factory.dump(dict(
+            others_meta.append(dict(
                 name=filename,
                 size=statinfo.st_size,
                 media_type = get_media_type(src_path),
                 uploaded=datetime.now().isoformat()
-            )))
+            ))
             files_meta = others_meta
 
         self._content[collection]['files'] = files_meta
@@ -244,12 +244,10 @@ class Application():
             return inst
 
     async def get_hola_json(self, name="main.hola"):
-        fpath = os.path.join(ApplicationFolder.get_app_root(), f'{name}.json')
-        if os.path.exists(fpath):
-            with open(fpath, 'r') as f:
-                return f.read()
-        else:
-            return ''
+        return await ApplicationStorage.load_app_configs(name)
+
+    async def save_hola_json(self, json_obj, name="main.hola"):
+        await ApplicationStorage.write_app_configs(name, json_obj)
 
     async def get_hola_code(self, name="main.hola"):
         return await ApplicationStorage.load_app_hola(name)
@@ -265,18 +263,18 @@ class Application():
 
     async def get_client_secret(self, client_key):
         client_keys = self._app.get('client_keys', [])
-        filtered = list(filter(lambda x: x['clientkey_id'] == client_key, client_keys))
+        filtered = list(filter(lambda x: x['client_key'] == client_key, client_keys))
         if not filtered:
             return None
-        return filtered[0]['clientkey_secret']
+        return filtered[0]['client_secret']
 
     @classmethod
     def gen_client_key(cls, app_id):
         key_id = random_string(8)
         key_secret = random_string(32)
         clientkey = dict(app_id = app_id,
-                clientkey_id = key_id,
-                clientkey_secret = key_secret,
+                client_key = key_id,
+                client_secret = key_secret,
                 valid=True
             )
         return clientkey

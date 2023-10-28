@@ -19,7 +19,6 @@ from .boot import boot_components
 app = CallPy('highorder')
 
 webapp_root = settings.server.get('webapp_root', None)
-simulator_root = settings.server.get('simulator_root', None)
 
 @app.route('/')
 async def index(request):
@@ -37,24 +36,6 @@ async def favicon(request):
 
 if webapp_root:
     app.static('/assets', os.path.abspath(os.path.join(webapp_root, 'assets')))
-
-if simulator_root:
-    @app.route('/simulator/')
-    async def simulator(request):
-        args = request.args
-        if 'app_id' in args and 'client_key' in args and simulator_root:
-            return FileResponse(os.path.join(simulator_root, 'index.html'))
-        return 'highorder server ok'
-
-    @app.route('/simulator/favicon.ico')
-    async def simulator_favicon(request):
-        favicon_path = os.path.join(simulator_root, 'favicon.ico')
-        if simulator_root and os.path.exists(favicon_path):
-            return FileResponse(os.path.join(simulator_root, 'favicon.ico'))
-        return response.abort(404)
-
-
-    app.static('/simulator/assets', os.path.abspath(os.path.join(simulator_root, 'assets')))
 
 content_location = settings.server.get('content_location', None)
 if content_location:
@@ -85,6 +66,11 @@ async def app_error_handler(request, exc):
 
 from .hola.view import bp as hola_bp
 app.register_blueprint(hola_bp)
+
+if settings.server.get('run_editor', False) == True:
+    from highorder_editor.view import setup_editor
+    editor_app = setup_editor(os.getcwd())
+    app.dispatch_app(['/editor', '/wave-static', '/_f', '/_s', '/manifest.json', '/simulator'], editor_app)
 
 from .account.extension import AccountServiceExtension
 from .hola.extension import HolaServiceRegister

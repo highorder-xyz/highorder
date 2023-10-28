@@ -38,8 +38,8 @@ def get_simulator_params(appkey, device_name):
     platform = DEVICE_PLATFORM_MAP[device_name]
     page_size = DEVICE_SIZE_MAP[device_name]
     return f'app_id={appkey["app_id"]}' \
-        f'&client_key={appkey["clientkey_id"]}' \
-        f'&client_secret={appkey["clientkey_secret"]}' \
+        f'&client_key={appkey["client_key"]}' \
+        f'&client_secret={appkey["client_secret"]}' \
         f'&platform={platform}' \
         f'&page_size={page_size[0]}x{page_size[1]}'
 
@@ -219,7 +219,7 @@ class ClientKeysView:
         rows = []
         for idx, clientkey in enumerate(clientkeys):
             rows.append(
-                ui.table_row(name=f"{clientkey['clientkey_id']}", cells=[clientkey['clientkey_id'], clientkey['clientkey_secret']])
+                ui.table_row(name=f"{clientkey['client_key']}", cells=[clientkey['client_key'], clientkey['client_secret']])
             )
         commands = [
             ui.command(name='copy_client_key_secret', label='Copy Client Key & Secret', icon='Copy'),
@@ -566,7 +566,7 @@ class ApplicationHolaEditorView:
                     c = Compiler()
                     json_obj = c.compile(new_code)
                     await app.save_hola_code(new_code)
-                    await app.save_hola_config(json_obj)
+                    await app.save_hola_json(json_obj)
                 except Exception as ex:
                     await self.update_status(f'Not Saved (Syntax ERROR).', 'failed')
                     await logger.exception(ex)

@@ -98,10 +98,27 @@ class FileCache:
             meta = {'size': statinfo.st_size, 'modified': statinfo.st_mtime, 'exist':True}
             return meta
 
+class ApplicationFolder:
+    _root_dir = os.path.abspath(os.getcwd())
+
+    @classmethod
+    def setup_root(cls, root_dir):
+        cls._root_dir = root_dir
+
+    @classmethod
+    def get_app_root(cls, app_id):
+        if settings.server.get('mode', 'single') == 'single':
+            return cls._root_dir
+        elif settings.server.get('config_dir'):
+            return os.path.abspath(os.path.join(settings.server.config_dir, f'APP_{app_id}'))
+        else:
+            return os.path.abspath(os.path.join(cls._root_dir, f'APP_{app_id}'))
+
+
 class ConfigLoader:
     def __init__(self, app_id):
         self.app_id = app_id
-        self.config_dir = os.path.abspath(os.path.join(settings.server.config_dir, f'APP_{app_id}'))
+        self.config_dir = ApplicationFolder.get_app_root(app_id)
         self.config_file = None
         self.max_cached = -1
         self._client_keys = None

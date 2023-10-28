@@ -1,5 +1,6 @@
 import asyncio
 import typer
+import os
 
 app = typer.Typer()
 
@@ -14,6 +15,15 @@ async def init_postmodel():
 def init_model():
     asyncio.run(init_postmodel())
     typer.echo(f"Init DB Models Completed.")
+
+@app.command()
+def create(project:str):
+    typer.echo(f"Help.")
+
+@app.command()
+def init():
+    typer.echo(f"Init Project In Folder {os.getcwd()}.")
+
 
 @app.command()
 def help():
