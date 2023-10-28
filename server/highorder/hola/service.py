@@ -580,7 +580,9 @@ class HolaSetupService:
             raise Exception(f'no setup executor for {obj_type}')
 
     async def setup_user_init(self, setup):
-        auth = setup['auth']
+        auth = setup.get('auth')
+        if not auth:
+            return
         attributes = {}
         for key, value in setup.items():
             if key in self.attributes:

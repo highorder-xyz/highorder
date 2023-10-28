@@ -903,7 +903,7 @@ class ApplicationSetupView:
 
     async def load_setup_service(self):
         root_url = get_root_url(self.q)
-        svc = await ApplicationSetupService.load(root_url)
+        svc = await ApplicationSetupService.load(self.app.app_id, root_url)
         return svc
 
 
@@ -934,8 +934,7 @@ class ApplicationSetupView:
                 setup_svc = await self.load_setup_service()
                 await setup_svc.run_setup()
                 await asyncio.sleep(1.0)
-                setup_date = get_readable_date(setup_svc.last_run_date, short=True)
-                status_widget = get_status_widget(f'Setup OK ({setup_date})', 'succeed')
+                status_widget = get_status_widget(f'Setup OK', 'succeed')
                 await self.render_header(status_widget)
             except Exception as ex:
                 status_widget = get_status_widget(f'Setup Failed.', 'failed')

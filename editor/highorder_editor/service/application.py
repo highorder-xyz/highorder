@@ -289,12 +289,13 @@ class Application():
 
 class ApplicationSetupService:
     @classmethod
-    async def load(cls, server_url):
+    async def load(cls, app_id, server_url):
         setup_hola = await ApplicationStorage.load_app_hola('setup.hola')
-        inst = cls(setup_hola, server_url)
+        inst = cls(app_id, setup_hola, server_url)
         return inst
 
-    def __init__(self, hola, server_url):
+    def __init__(self, app_id, hola, server_url):
+        self.app_id = app_id
         self.hola = hola
         self.server_url = server_url
 
