@@ -72,7 +72,7 @@ class UploadedFileRecord:
     def __init__(self, **kwargs):
         self.name = kwargs['name']
         self.size=kwargs['size']
-        self.media_type = kwargs['media_type'],
+        self.media_type = kwargs['media_type']
         self.uploaded=datetime.fromisoformat(kwargs['uploaded'])
 
 
@@ -114,7 +114,7 @@ class ApplicationContentService:
         collection_root = self.get_collection_root(collection)
         uploaded = []
         for file in data_files:
-            src_path = ApplicationFolder.translate_upload_path(file)
+            src_path = ApplicationStorage.translate_upload_path(file)
             filename = os.path.basename(file)
             uploaded.append(src_path)
             dest_path = os.path.join(collection_root, filename)

@@ -137,6 +137,10 @@ def render_hola_editor(q, hola_content):
         content=f'<div class="hola_editor_container"><div id="hola_editor{random_id}" class="hola_editor"></div></div>'
     )
 
+def get_editor_root(origin):
+    parsed = urlparse(origin)
+    return f'{parsed.scheme}://{parsed.netloc}/editor'
+
 @on('#application')
 async def application_home(q:Q):
     q.page.drop()
@@ -325,8 +329,8 @@ class ApplicationContentView:
         items=[
             ui.text(content=name),
         ]
-        url_root = self.q.headers['origin']
-        link = f'{url_root}/static/APP_{self.app.app_id}/content/{collection}/{name}'
+        url_root = get_editor_root(self.q.headers['origin'])
+        link = f'{url_root}/appfile/content/{collection}/{name}'
         if ext.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
             items.append(
                 ui.image(title=name, path=link, width="400px")
@@ -477,8 +481,8 @@ class ApplicationDataFileView:
         items=[
             ui.text(content=name),
         ]
-        url_root = self.q.headers['origin']
-        link = f'{url_root}/static/APP_{self.app.app_id}/datafile/{name}'
+        url_root = get_editor_root(self.q.headers['origin'])
+        link = f'{url_root}/appfile/datafile/{name}'
         items.append(ui.link(label = "Open in New Tab", path=link, download=True, button=True, target='_blank'))
         self.q.page['meta'].dialog = ui.dialog(title='',
             items = items,

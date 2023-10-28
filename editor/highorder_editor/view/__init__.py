@@ -9,6 +9,7 @@ import importlib.resources
 from highorder_editor.service import Auth, Session
 from .common import popup_exception, render_header, goto_page, render_layout_simple, popup_wrong_page_error
 from . import application
+from starlette.responses import FileResponse
 
 def render_login_form(email=None, password=None, email_error=None, password_error=None):
     return ui.form_card(box='simple_content', items=[
@@ -89,15 +90,23 @@ async def logout(q:Q):
     await q.page.save()
 
 
+async def hanlde_appfile(request):
+    file_path = request.path_params['file_path']
+    local_file_path = os.path.join(ApplicationFolder.root_folder, file_path)
+    return FileResponse(local_file_path)
+
 def setup_editor(appfolder, www_dir=None):
     if www_dir is None:
         with importlib.resources.path('highorder_editor', '__init__.py') as f:
             www_dir = os.path.join(os.path.dirname(f), 'www')
     app.setup_static(www_dir, 'static')
+    app.setup_handler(hanlde_appfile, 'appfile')
     app.setup_info(name="HighOrder Editor", description="The Editor of HighOrder",
         icon="/editor/static/favicon.ico",
         logo="/editor/static/highorder192.png",
         manifest="/editor/static/manifest.json")
+
+
     ApplicationFolder.set_root(appfolder)
     upload_dir = os.path.abspath(ApplicationFolder.get_upload_dir())
 
