@@ -341,6 +341,7 @@ const highorder_app_config = {
     appId: options.app_id ?? "",
     baseUrl: options.base_url ?? "",
     privacyUrl: options.privacy_url ?? `/static/APP_${options.app_id}/content/main/privacy.html`,
+    assetsUrl: options.assets_url ?? '/assets',
     clientKey: options.client_key ?? "",
     clientSecret: options.client_secret ?? ""
 }

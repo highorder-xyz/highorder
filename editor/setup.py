@@ -6,9 +6,6 @@ install_requires = [
     'basepy',
     'httpx',
     'wavegui',
-    'typer',
-    'dataclasses-json',
-    'dictdiffer',
     'rich'
 ]
 here = os.path.dirname(os.path.abspath(__file__))

@@ -34,6 +34,13 @@ class EditorConfig:
             cls.load()
         return cls._config['app']
 
+    @classmethod
+    async def get_server(cls):
+        if cls._config is None:
+            cls.load()
+        server = cls._config.get('server', {})
+        return server
+
 
 class EditorSession:
     filename = 'editor_session.json'

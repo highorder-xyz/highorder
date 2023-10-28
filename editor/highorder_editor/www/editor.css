@@ -44,6 +44,10 @@ div[data-test="content_tableview"] {
     min-height: 280px;
 }
 
+div[data-test="simple_header"] {
+    padding: 7px;
+}
+
 .hola_status_text {
     height: 32px;
     margin-left: 8px;

@@ -509,6 +509,7 @@ export interface AppConfig {
     appId: string,
     baseUrl: string,
     privacyUrl: string,
+    assetsUrl: string,
     clientKey: string,
     clientSecret: string
 }

@@ -1,5 +1,6 @@
 
 from wavegui import Q, ui
+from urllib.parse import urlparse
 
 
 def render_layout_main(q:Q, right_panel=False, content_header=True, content_footer=False):
@@ -42,23 +43,34 @@ def render_layout_simple(q:Q):
         ui.layout(
             breakpoint='xl',
             width='99%',
+            max_width='400px',
             zones=[
                 ui.zone('header'),
-                ui.zone('body', direction=ui.ZoneDirection.ROW, zones=[
-                    ui.zone('sidebar', size='20%'),
-                    ui.zone('content', size='60%', direction=ui.ZoneDirection.COLUMN, justify="start"),
-                    ui.zone('sidebar_right', size='20%'),
+                ui.zone('body', direction=ui.ZoneDirection.COLUMN,size="400px", zones=[
+                    ui.zone('simple_header', direction=ui.ZoneDirection.COLUMN),
+                    ui.zone('simple_content', direction=ui.ZoneDirection.COLUMN),
                 ]),
                 ui.zone('footer'),
             ]
-        )
-    ])
+        )],
+        stylesheets = [
+            ui.stylesheet(path='/editor/static/editor.css')
+        ]
+    )
+
+
+def get_root_url(q:Q):
+    origin = q.headers['origin']
+    parsed = urlparse(origin)
+    root_url = f'{parsed.scheme}://{parsed.netloc}'
+    return root_url
+
 
 def render_header(q:Q):
     items = []
 
     q.page['header'] = ui.header_card(
-        box = 'header',
+        box = 'simple_header',
         title='HighOrder Editor',
         subtitle='instant build, instant run',
         image="/editor/static/images/highorder_logo.png",

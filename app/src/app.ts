@@ -137,14 +137,16 @@ export function renderDecorationComponent(name: string, props: any, children:any
     return h('div', {...props}, 'not exits decoration')
 }
 
-export function switchTheme(newTheme:string, linkElementId:string, callback:Function) {
+export function switchTheme(app_id:string, newTheme:string, linkElementId:string, callback:Function) {
     const linkElement = document.getElementById(linkElementId);
     if (linkElement === null){
         console.log(`theme node ID ${linkElementId} not exits, switchTheme failed.`)
         return
     }
     const cloneLinkElement = linkElement!.cloneNode(true) as HTMLElement;
-    const newThemeUrl = `/assets/themes/${newTheme}/theme.css`;
+    const app_core = AppCore.getCore(app_id)
+    const assetsUrl = app_core.config.assetsUrl
+    const newThemeUrl = `${assetsUrl}/themes/${newTheme}/theme.css`;
 
     cloneLinkElement.setAttribute('id', linkElementId + '-clone');
     cloneLinkElement.setAttribute('href', newThemeUrl);
@@ -159,8 +161,8 @@ export function switchTheme(newTheme:string, linkElementId:string, callback:Func
     linkElement.parentNode && linkElement.parentNode.insertBefore(cloneLinkElement, linkElement.nextSibling);
 }
 
-export function changeTheme(newTheme:string, callback:Function) {
-    return switchTheme(newTheme, 'theme-link', callback)
+export function changeTheme(app_id:string, newTheme:string, callback:Function) {
+    return switchTheme(app_id, newTheme, 'theme-link', callback)
 }
 
 export interface AlertOption{
@@ -453,7 +455,7 @@ export const App = defineComponent({
         const theme = app_platform.getTheme()
         if(typeof theme  === 'string' && theme.length > 0){
             if(theme in themes_all){
-                changeTheme(theme, () => {})
+                changeTheme(this.app_id, theme, () => {})
             } else {
                 console.log(`Theme ${theme} not supported.`)
             }

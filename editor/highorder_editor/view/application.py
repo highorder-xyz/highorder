@@ -3,13 +3,14 @@ import re
 from highorder_editor.service.application import Application, ApplicationContentService, ApplicationDataFileService, ApplicationSetupService
 from wavegui import Q, ui, on
 from wavegui.types import Label
-from .common import popup_error_msg, popup_exception, render_compact_header, render_header, goto_page, popup_internal_error, render_layout_main
+from .common import get_root_url, popup_error_msg, popup_exception, render_compact_header, render_header, goto_page, popup_internal_error, render_layout_main
 from highorder_editor.base.helpers import get_readable_date, get_readable_filesize, random_string
 import json
 import datetime
 import os
 from highorder.base.compiler import Compiler
 import asyncio
+from urllib.parse import urlparse
 
 from basepy.asynclog import logger
 
@@ -36,9 +37,9 @@ DEVICE_PLATFORM_MAP = {
 def get_simulator_params(appkey, device_name):
     platform = DEVICE_PLATFORM_MAP[device_name]
     page_size = DEVICE_SIZE_MAP[device_name]
-    return f'app_id={appkey.app_id}' \
-        f'&client_key={appkey.client_key}' \
-        f'&client_secret={appkey.client_secret}' \
+    return f'app_id={appkey["app_id"]}' \
+        f'&client_key={appkey["clientkey_id"]}' \
+        f'&client_secret={appkey["clientkey_secret"]}' \
         f'&platform={platform}' \
         f'&page_size={page_size[0]}x{page_size[1]}'
 
@@ -285,7 +286,7 @@ class ApplicationContentView:
 
     async def get_service(self):
         if self.service == None:
-            self.service = await ApplicationContentService.load(app_id=self.app.app_id)
+            self.service = await ApplicationContentService.load()
         return self.service
 
     async def get_collections(self):
@@ -450,7 +451,7 @@ class ApplicationDataFileView:
 
     async def get_service(self):
         if self.service == None:
-            self.service = await ApplicationDataFileService.load(app_id=self.app.app_id)
+            self.service = await ApplicationDataFileService.load()
         return self.service
 
     async def save_datafile(self, data_files):
@@ -897,7 +898,8 @@ class ApplicationSetupView:
         self.app = app
 
     async def load_setup_service(self):
-        svc = await ApplicationSetupService.load()
+        root_url = get_root_url(self.q)
+        svc = await ApplicationSetupService.load(root_url)
         return svc
 
 
