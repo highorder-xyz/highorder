@@ -1,13 +1,30 @@
 import os
-from basepy.asynclib.threaded import threaded
 import json
-from basepy.config import settings
-from .configdata import ApplicationSummary
 import dataclass_factory
 import time
 from zipfile import ZipFile
+from dataclasses import dataclass, field
+from typing import List
+from datetime import datetime
+from basepy.config import settings
+from basepy.asynclib.threaded import threaded
 
 factory = dataclass_factory.Factory()
+
+@dataclass
+class ApplicationClientKey:
+    app_id: str
+    client_key: str
+    client_secret: str
+    valid: bool
+
+@dataclass
+class ApplicationSummary:
+    app_id: str
+    app_name: str
+    client_keys: List[ApplicationClientKey] = field(default_factory=list)
+
+
 
 class FileCache:
     _cache = {}
@@ -113,6 +130,17 @@ class ApplicationFolder:
             return os.path.abspath(os.path.join(settings.server.config_dir, f'APP_{app_id}'))
         else:
             return os.path.abspath(os.path.join(cls._root_dir, f'APP_{app_id}'))
+
+    @classmethod
+    def get_content_url_root(cls, app_id, host_url):
+        server_mode = settings.server.get('mode', 'single')
+        if server_mode == 'multi':
+            root_url = settings.server.get('content_url', '').strip('/')
+            if not root_url:
+                root_url = host_url
+            return f'{root_url}/static/APP_{app_id}/content'
+        else:
+            return f'{host_url}/static/content'
 
 
 class ConfigLoader:

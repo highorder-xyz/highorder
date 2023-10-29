@@ -96,7 +96,12 @@ async def hola_main(request):
     if 'command' in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
+    hola_svc = await HolaService.create(request.app_id,
+                request.session,
+                request.config_loader,
+                request_cmd.context,
+                host_url = request.host_url
+            )
     commands = await hola_svc.handle_request(request_cmd)
 
     ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},
@@ -188,7 +193,12 @@ async def hola_lite(request):
     if 'command' in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    hola_svc = await HolaService.create(request.app_id, request.session, request.config_loader, request_cmd.context)
+    hola_svc = await HolaService.create(request.app_id,
+                    request.session,
+                    request.config_loader,
+                    request_cmd.context,
+                    host_url = request.host_url
+                )
     commands = await hola_svc.handle_request(request_cmd)
 
     ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},

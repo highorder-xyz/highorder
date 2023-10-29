@@ -11,6 +11,8 @@ from callpy import CallPy
 from callpy.web import response
 from callpy.web.response import FileResponse
 import os
+import importlib
+import importlib.resources
 
 from .base import error
 
@@ -18,7 +20,13 @@ from .boot import boot_components
 
 app = CallPy('highorder')
 
+server_mode = settings.server.get('mode', 'single')
+config_dir = os.path.abspath(settings.server.get('config_dir') or os.getcwd())
+
 webapp_root = settings.server.get('webapp_root', None)
+if not webapp_root:
+    with importlib.resources.path('highorder', '__init__.py') as f:
+        webapp_root = os.path.join(os.path.dirname(f), 'webapp')
 
 @app.route('/')
 async def index(request):
@@ -37,11 +45,13 @@ async def favicon(request):
 if webapp_root:
     app.static('/assets', os.path.abspath(os.path.join(webapp_root, 'assets')))
 
-content_location = settings.server.get('content_location', None)
-if content_location:
-    if not os.path.exists(content_location):
-        os.makedirs(content_location, exist_ok=True)
-    app.static('/static', os.path.abspath(content_location))
+
+content_url = settings.server.get('content_url', None)
+if not content_url:
+    if server_mode == 'multi':
+        app.static('/static/<app_folder_name>/content', os.path.join(config_dir, '{app_folder_name}/content'))
+    else:
+        app.static('/static/content', os.path.join(config_dir, 'content'))
 
 
 @app.before_start

@@ -35,6 +35,7 @@ import json
 import dataclass_factory
 from likepy.restricted import restrictedexpr, restrictedpy
 from highorder.base.instant import InstantDataStoreService, UserInstantDataStoreService
+from highorder.base.loader import ApplicationFolder
 from basepy.asynclog import logger
 import zlib
 from .extension import HolaServiceRegister
@@ -618,18 +619,19 @@ class HolaService:
 
     @classmethod
     async def create(cls, app_id, session, config_loader, request_context, **kwargs):
-        inst = cls(app_id, session, config_loader)
+        inst = cls(app_id, session, config_loader, **kwargs)
         await inst.load(request_context)
         return inst
 
 
-    def __init__(self, app_id, session, config_loader):
+    def __init__(self, app_id, session, config_loader, **kwargs):
         self.app_id = app_id
         self.user_id = session.user_id if session else None
         self.user = None
         self.session = session
         self.config_loader = config_loader
         self.router = Router()
+        self.host_url = kwargs.get('host_url', '')
         self._commands = AutoList()
 
     async def load(self, request_context):
@@ -705,10 +707,6 @@ class HolaService:
         if self.user_id:
             self.user = await UserService.load(self.app_id, self.user_id)
         self.store_svc = HolaStoreSerive(self.session, self)
-
-    def get_content_url_root(self):
-        root_url = settings.server.get('content_url', '').strip('/')
-        return f'{root_url}/static/APP_{self.app_id}/content'
 
     def get_object_by_name(self, name):
         filtered = list(filter(lambda x: x['name'] == name, self.objects_def))
@@ -863,20 +861,19 @@ class HolaService:
         if isinstance(raw_link, str):
             if raw_link == '~' or raw_link.startswith('~/'):
                 relative = raw_link[1:].lstrip('/')
-                content_root_url = self.get_content_url_root()
+                content_root_url = ApplicationFolder.get_content_url_root(self.app_id, self.host_url)
                 return f'{content_root_url}/{relative}'
             else:
                 return raw_link
         elif isinstance(raw_link, (dict, Mapping)):
             if 'format' in raw_link:
                 expr = raw_link['format']
-                return expr.format(content = self.get_content_url_root())
+                return expr.format(content = ApplicationFolder.get_content_url_root(self.app_id, self.host_url))
             else:
                 raise Exception('not allowed link format.')
 
 
     async def _create_context(self, page_context, page_locals):
-        root_url = settings.server.get('content_url', '').strip('/')
         profile = await self.store_svc.get_profile()
         user = self.user.get_data_dict() if self.user else {}
         user.update(profile)
@@ -896,7 +893,7 @@ class HolaService:
             "locals": page_locals or {},
             "builtin": builtin,
             "fn": builtin,
-            "content": f'{root_url}/static/APP_{self.app_id}/content'
+            "content": ApplicationFolder.get_content_url_root(self.app_id, self.host_url)
         }
         ret.update(dict(
             playable = {},
@@ -1938,17 +1935,17 @@ class HolaService:
 
     def transform_playable(self, playable_config):
         def transform_config_object(config):
-            root_url = settings.server.get('content_url', '').strip('/')
+            content_url_root = ApplicationFolder.get_content_url_root(self.app_id)
             if not isinstance(config, dict):
                 return
             for k, v in config.items():
                 if k == 'href' or k.endswith('_href') or k.endswith('_link') or k.endswith('_url'):
                     config[k] = v.format(
-                        content = f'{root_url}/static/APP_{self.app_id}/content'
+                        content = content_url_root
                     )
                 elif k.endswith('_hrefs') or k.endswith('_links') or k.endswith('_urls'):
                     config[k] = list(map(lambda x: x.format(
-                        content = f'{root_url}/static/APP_{self.app_id}/content'
+                        content = content_url_root
                     ), v))
                 elif isinstance(v, (dict, Mapping)):
                     transform_config_object(v)

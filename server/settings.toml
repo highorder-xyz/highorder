@@ -6,10 +6,8 @@ mode = 'single' # 'single' or 'multi'
 run_editor = true
 db_url = 'postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30'
 config_dir = './.highorderapps/'
-content_location = './.highorderapps/'
 #content_url = ''
 webapp_root = '../webapp/dist/'
-simulator_root = '../simulator/dist/'
 redis_urls = [ "redis://127.0.0.1:6379" ]
 weixin_app_id = ''
 weixin_app_secret = ''
