@@ -1,6 +1,7 @@
 
 import ast
 
+
 def camel_to_snake(s):
     return ''.join(['_'+c.lower() if c.isupper() else c for c in s]).lstrip('_')
 
@@ -82,6 +83,7 @@ class FilterExprTransformer:
 
     def transform(self, expr):
         expr_ast = self.parse(expr)
+        # print(ast.dump(expr_ast, indent='\t'))
         f_expr = self.transform_node(expr_ast)
         return f_expr
 
@@ -108,6 +110,11 @@ class FilterExprTransformer:
             key_name = f'{name}'
         target = self.transform_node(node.comparators[0])
         return self.expr_cls(**{key_name: target})
+
+    def transform_call(self, node):
+        func_name = self.transform_node(node.func)
+        args = [self.transform_node(arg) for arg in node.args]
+        return self.expr_cls(**{func_name: args})
 
     def transform_attribute(self, node):
         keys = []
