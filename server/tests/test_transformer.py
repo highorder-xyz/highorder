@@ -34,7 +34,7 @@ def test_filter_expr_1():
         "type": "expression",
         "operator": "AND",
         "negate": False,
-        "value__name": "aaa"
+        "value.name": "aaa"
     })
 
 def test_filter_expr_2():
@@ -49,13 +49,13 @@ def test_filter_expr_2():
                 "type": "expression",
                 "operator": "AND",
                 "negate": False,
-                "model_item__name": "aaa"
+                "model_item.name": "aaa"
             },
             {
                 "type": "expression",
                 "operator": "AND",
                 "negate": False,
-                "model_item__type__name": "bb"
+                "model_item.type.name": "bb"
             }
         ]
     })
@@ -67,5 +67,5 @@ def test_filter_expr_3():
         "type": "expression",
         "operator": "AND",
         "negate": False,
-        "model_item__name__contains":["abc"]
+        "model_item.name__contains":["abc"]
     })

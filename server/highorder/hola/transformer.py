@@ -118,9 +118,13 @@ class FilterExprTransformer:
 
     def transform_attribute(self, node):
         keys = []
+        suffix = ''
         keys.append(self.transform_node(node.value))
-        keys.append(node.attr)
-        return '__'.join(keys)
+        if node.attr in ['contains', 'has_key', 'has_keys', 'has_anykeys', 'startswith', 'endswith']:
+            suffix = f'__{node.attr}'
+        else:
+            keys.append(node.attr)
+        return '.'.join(keys) + suffix
 
     def transform_name(self, node):
         name = node.id

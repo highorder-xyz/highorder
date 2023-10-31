@@ -117,7 +117,7 @@ class AppCreator:
             f.write(json.dumps(editor_config, ensure_ascii=False, indent=4))
         with open(os.path.join(folder, 'settings.toml'), 'w') as f:
             f.write(toml.dumps(server_config))
-        type.echo('App `{app_name}` created.')
+        typer.echo('App `{app_name}` created.')
 
 
 
