@@ -5,7 +5,7 @@ from highorder.account.service import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService, UserProfileService, SessionStoreService
 )
 from highorder.base.compiler import Compiler
-from highorder.base.utils import AutoList, time_random_id
+from highorder.base.utils import AutoList, time_random_id, IDPrefix
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from basepy.config import settings
@@ -29,7 +29,11 @@ from .model import (
     HolaPlayer,
     HolaPlayerItembox,
     HolaVariable,
+    HolaObject
 )
+from postmodel.models import QueryExpression
+from postmodel.transaction import in_transaction
+from .transformer import FilterExprTransformer
 import json
 
 import dataclass_factory
@@ -511,12 +515,115 @@ class HolaStoreSerive:
         page_state_model.page_state = page_state
         await page_state_model.save()
 
-class HolaObjectService:
-    def __init__(self, name):
+
+class HolaDataObject:
+    def __init__(self, model, **kwargs):
+        self.__model = model
+        self._app_id = model.app_id
+        self._name = model.object_name
+        self._id = model.object_id
+        self.__kv = model.value
+
+    def __getattr__(self, k): return self.__kv.get(k)
+
+    def __getitem__(self, k): return self.__kv.get(k)
+
+    def __setattr__(self, k, v): self.__kv[k] = v
+
+    def __setitem__(self, k, v): self.__kv[k] = v
+
+    def __contains__(self, k): return k in self.__kv
+
+    def __delattr__(self, k): del self.__kv[k]
+
+    def __delitem__(self, k): del self.__kv[k]
+
+    def __repr__(self): return repr(self.__kv)
+
+    def __str__(self): return ', '.join([f'{k}:{repr(v)}' for k, v in self.__kv.items()])
+
+    def to_dict(self):
+        return self.__kv
+
+    def update(self, *args, **kwargs):
+        for k, v in dict(*args, **kwargs).items():
+            self.__kv[k] = v
+
+    def get(self, k, d=None):
+        if k not in self.__kv:
+            return d
+        return self.__kv[k]
+
+    def setdefault(self, k, d=None):
+        if k not in self:
+            self.__kv[k] = d
+        return self.__kv[k]
+
+    async def save(self):
+        await self.__model.save()
+
+    async def delete():
+        await self.__model.delete()
+        self.__model = None
+        self.__kv = {}
+
+class HolaDataObjectService:
+    def __init__(self, app_id, name):
+        self.app_id = app_id
         self.name = name
 
-    def query(self, ):
-        pass
+    def new(self, *args, **kwargs):
+        value = dict(*args, **kwargs)
+        m = HolaObject(
+            app_id = self.app_id,
+            object_name = self.name,
+            object_id = '',
+            value = value
+        )
+        return HolaDataObject(m)
+
+    async def create(self, *args, **kwargs):
+        value = dict(*args, **kwargs)
+        m = await HolaObject.create(
+            app_id = self.app_id,
+            object_name = self.name,
+            object_id = time_random_id(IDPrefix.OBJECT, 30),
+            value = value
+        )
+        return HolaDataObject(m)
+
+    def builde_query_expr(self, filter_expr, **kwargs):
+        ft = FilterExprTransformer(QueryExpression)
+        qexpr = ft.transform(filter_expr)
+        qexpr = QueryExpression(app_id=self.app_id, object_name = self.name) and qexpr
+        order_by = kwargs.get('order_by')
+        limit = kwargs.get('limit')
+        query_expr = HolaObject.filter(qexpr)
+        if order_by:
+            query_expr = query_expr.order_by(*order_by)
+        if limit:
+            query_expr = query_expr.limit(limit)
+        return query_expr
+
+    async def query(self, filter_expr, **kwargs):
+        query_expr = self.builde_query_expr(filter_expr, **kwargs)
+        hobjects = list(await query_expr.all())
+        return [HolaDataObject(m) for m in hobjects]
+
+    async def save(self, *args, **kwargs):
+        async with in_transaction():
+            for m in args:
+                await m.save(**kwargs)
+
+    async def delete(self, *args, **kwargs):
+        async with in_transaction():
+            for m in args:
+                await m.delete()
+
+    async def delete_from(self, filter_expr, **kwargs):
+        query_expr = self.builde_query_expr(filter_expr, **kwargs)
+        await query_expr.all().delete()
+
 
 class HolaDataProcessSerivce:
     pass

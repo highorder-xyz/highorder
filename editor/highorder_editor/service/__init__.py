@@ -86,8 +86,10 @@ class EditorSession:
                 user_name = user_name,
                 expired_at = expired_at
             )
-            sessions = cls._config.setdefault('sessions', [])
+            sessions = cls._config.get('sessions', [])
+            sessions = list(filter(lambda x:x["session_id"] != session_id, sessions))
             sessions.append(session)
+            cls._config['sessions'] = sessions
         else:
             session['user_name'] = user_name
             session['expired_at'] = expired_at

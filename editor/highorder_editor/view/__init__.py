@@ -32,6 +32,7 @@ async def editor_home(q: Q):
             await logger.error(traceback.format_exc())
 
     session = await Session.load(q.session.session_id)
+
     if session:
         user = session['user_name']
     else:

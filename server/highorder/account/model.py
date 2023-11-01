@@ -2,7 +2,7 @@
 from email.policy import default
 from highorder.base.model import MetaverModel
 from postmodel import models
-from highorder.base.utils import random_id, time_random_id
+from highorder.base.utils import random_id, time_random_id, IDPrefix
 from functools import partial
 
 import json
@@ -15,7 +15,7 @@ class User(MetaverModel):
         unique_together = (('app_id', 'user_name'),)
 
     app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256, default=partial(time_random_id, 'UU', 10))
+    user_id = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.USER, 10))
     user_name = models.CharField(max_length=256)
     deactive = models.BooleanField(default=False)
     is_frozen = models.BooleanField(default=False)
@@ -28,7 +28,7 @@ class UserProfile(MetaverModel):
         primary_key = ('app_id', 'user_id')
 
     app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256, default=partial(time_random_id, 'UP', 10))
+    user_id = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.PROFILE, 10))
     nick_name = models.CharField(max_length=256)
     avatar_url = models.CharField(max_length=2048)
     extra = models.JSONField()
@@ -81,7 +81,7 @@ class Session(MetaverModel):
         table = 'session'
         primary_key = ('app_id', 'session_token')
 
-    session_token = models.CharField(max_length=256, default=partial(time_random_id, 'SS', 20))
+    session_token = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.SESSION, 20))
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256, null=True)
     expire_time = models.DatetimeField(null=True)

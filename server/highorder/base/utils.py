@@ -1,7 +1,13 @@
 import string
 import random
 from datetime import datetime
+from enum import Enum
 
+class IDPrefix(Enum):
+    USER = 'UU'
+    PROFILE = 'UP'
+    SESSION = 'SS'
+    OBJECT = 'OB'
 
 class IDGenerator(object):
     shift_list = [35, 30, 25, 20, 15, 10, 5, 0]

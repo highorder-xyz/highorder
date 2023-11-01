@@ -1,7 +1,7 @@
 
 import hashlib
 from .model import SessionStore, SocialAccount, User, Session, UserAuth, UserProfile
-from highorder.base.utils import random_str, time_random_id
+from highorder.base.utils import random_str, time_random_id, IDPrefix
 from postmodel.transaction import in_transaction
 from dataclasses import dataclass
 from basepy.config import settings
@@ -23,7 +23,7 @@ class AccountService:
 
     @classmethod
     async def create(cls, app_id, **kwargs):
-        user_id = time_random_id('UU', 10)
+        user_id = time_random_id(IDPrefix.USER, 10)
         name = kwargs.get("name") or user_id
         user = User(app_id=app_id, user_id=user_id, user_name=name, sessions={})
         session_type = kwargs.get('session_type', 'mobile')
@@ -133,7 +133,7 @@ class UserAuthService:
         else:
             salt = random_str(6)
             password_hash = cls.get_password_hash(password, salt)
-            user_id = time_random_id('UU', 10)
+            user_id = time_random_id(IDPrefix.USER, 10)
             user = User(app_id=app_id, user_id=user_id, user_name=name, sessions={})
             user_auth = UserAuth(app_id=app_id, user_id=user_id, email=name, salt=salt, password_hash=password_hash)
 
