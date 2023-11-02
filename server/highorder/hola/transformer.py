@@ -82,10 +82,35 @@ class FilterExprTransformer:
 
 
     def transform(self, expr):
-        expr_ast = self.parse(expr)
-        # print(ast.dump(expr_ast, indent='\t'))
-        f_expr = self.transform_node(expr_ast)
+        if not expr:
+            f_expr = self.expr_cls()
+        else:
+            expr_ast = self.parse(expr)
+            # print(ast.dump(expr_ast, indent='\t'))
+            f_expr = self.transform_node(expr_ast)
         return f_expr
+
+    def transform_order_by(self, order_by):
+        ready_order_by = order_by or []
+        if not isinstance(ready_order_by, (list, tuple)):
+            ready_order_by = [ready_order_by]
+        transformed_order_by = [self.transform_order_by_each(x) for x in ready_order_by]
+        return transformed_order_by
+
+    def transform_order_by_each(self, order_by):
+        if order_by[0] == '-':
+            prefix = '-'
+            parts = order_by[1:].split('.')
+        else:
+            prefix = ''
+            parts = order_by.split('.')
+
+        key = parts[0]
+        if key in self.name_replace:
+            parts[0] = self.name_replace[key]
+
+        transformed = '.'.join(parts)
+        return f'{prefix}{transformed}'
 
     def transform_node(self, node):
         name = camel_to_snake(node.__class__.__name__)

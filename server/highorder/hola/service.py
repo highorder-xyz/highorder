@@ -592,21 +592,21 @@ class HolaDataObjectService:
         )
         return HolaDataObject(m)
 
-    def builde_query_expr(self, filter_expr, **kwargs):
-        ft = FilterExprTransformer(QueryExpression)
+    def build_query_expr(self, filter_expr, **kwargs):
+        ft = FilterExprTransformer(QueryExpression, name_replace = {"it": "value"}, **kwargs)
         qexpr = ft.transform(filter_expr)
         qexpr = QueryExpression(app_id=self.app_id, object_name = self.name) and qexpr
         order_by = kwargs.get('order_by')
         limit = kwargs.get('limit')
         query_expr = HolaObject.filter(qexpr)
         if order_by:
-            query_expr = query_expr.order_by(*order_by)
+            query_expr = query_expr.order_by(*ft.transform_order_by(order_by))
         if limit:
             query_expr = query_expr.limit(limit)
         return query_expr
 
     async def query(self, filter_expr, **kwargs):
-        query_expr = self.builde_query_expr(filter_expr, **kwargs)
+        query_expr = self.build_query_expr(filter_expr, **kwargs)
         hobjects = list(await query_expr.all())
         return [HolaDataObject(m) for m in hobjects]
 
@@ -1807,9 +1807,16 @@ class HolaService:
 
     async def transform_foreach(self, element, context):
         transformed = AutoList()
+        origin_context = context
         model = element.get('model')
         if model:
             model_data = await self.transform_model(model, context)
+            context = copy.deepcopy(origin_context)
+            for sub_element in element.get('elements', []):
+                for obj in model_data:
+                    context.it = obj
+                    transformed.add(await self.transform_element(sub_element, context))
+
         return transformed
 
 
@@ -1821,7 +1828,18 @@ class HolaService:
             await logger.warning(f'no transform for model {el_type}.')
 
     async def transform_query(self, element, context):
-        return []
+        name = element['from'].split('.')[-1]
+        filter_expr = element.get('filter') or ''
+        order_by = element.get('order_by')
+        limit = element.get('limit')
+        kwargs = {}
+        if order_by:
+            kwargs['order_by'] = order_by
+        if limit:
+            kwargs['limit'] = limit
+        dataobj_svc = HolaDataObjectService(self.app_id, name)
+        objects = await dataobj_svc.query(filter_expr, **kwargs)
+        return objects
 
     async def transform_component_use(self, element, context):
         component_name = self.eval_value(element['name'], context)
@@ -2029,9 +2047,6 @@ class HolaService:
             "type": "action-bar",
             "elements": elements
         }
-
-    async def transform_query(self, element, context):
-        pass
 
     def get_component(self, name, context):
         for component in self.components:
@@ -3384,8 +3399,8 @@ class HolaService:
         name = args.get('name')
         _event = args.get('event')
         _locals = args.get('locals', {})
-        orign_context = context
-        context = copy.deepcopy(orign_context)
+        origin_context = context
+        context = copy.deepcopy(origin_context)
         context.locals = munchify(_locals)
 
         if name and _event:

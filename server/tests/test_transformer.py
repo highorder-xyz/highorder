@@ -69,3 +69,12 @@ def test_filter_expr_3():
         "negate": False,
         "model_item.name__contains":["abc"]
     })
+
+def test_filter_expr_4():
+    expr = ''
+    t = FilterExprTransformer(name_replace = {"model_item": "value"})
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False
+    })
