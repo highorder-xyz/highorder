@@ -91,7 +91,7 @@ async def logout(q:Q):
     await q.page.save()
 
 
-async def hanlde_appfile(request):
+async def handle_appfile(request):
     file_path = request.path_params['file_path']
     local_file_path = os.path.join(ApplicationFolder.root_folder, file_path)
     return FileResponse(local_file_path)
@@ -101,7 +101,7 @@ def setup_editor(appfolder, www_dir=None):
         with importlib.resources.path('highorder_editor', '__init__.py') as f:
             www_dir = os.path.join(os.path.dirname(f), 'www')
     app.setup_static(www_dir, 'static')
-    app.setup_handler(hanlde_appfile, 'appfile')
+    app.setup_handler(handle_appfile, 'appfile')
     app.setup_info(name="HighOrder Editor", description="The Editor of HighOrder",
         icon="/editor/static/favicon.ico",
         logo="/editor/static/highorder192.png",

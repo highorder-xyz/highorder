@@ -78,7 +78,7 @@ class FileCache:
             return meta, None
 
         if isinstance(filepath, str):
-            with open(filepath, 'rb') as f:
+            with open(filepath, 'r', encoding='utf-8') as f:
                 data = f.read()
                 if parse_method == 'json':
                     data = json.loads(data)

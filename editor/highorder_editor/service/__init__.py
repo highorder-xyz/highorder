@@ -15,8 +15,8 @@ class EditorConfig:
         if not os.path.exists(fpath):
             cls._config = {}
             return
-        with open(fpath, 'rb') as f:
-            cls._config = json.loads(f.read().decode('utf-8'))
+        with open(fpath, 'r', encoding='utf-8') as f:
+            cls._config = json.loads(f.read())
 
     @classmethod
     async def get_user(cls, name):
@@ -52,14 +52,14 @@ class EditorSession:
         if not os.path.exists(fpath):
             cls._config = {}
             return
-        with open(fpath, 'rb') as f:
-            cls._config = json.loads(f.read().decode('utf-8'))
+        with open(fpath, 'r', encoding='utf-8') as f:
+            cls._config = json.loads(f.read())
 
     @classmethod
     def save_config(cls):
         fpath = os.path.join(ApplicationFolder.root_folder, cls.filename)
-        with open(fpath, 'wb') as f:
-            f.write(json.dumps(cls._config, ensure_ascii=False).encode('utf-8'))
+        with open(fpath, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(cls._config, ensure_ascii=False))
 
     @classmethod
     async def get_session(cls, session_id):
