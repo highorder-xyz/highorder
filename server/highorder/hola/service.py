@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass, field
 import inspect
-from highorder.account.service import (
+from .account import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService, UserProfileService, SessionStoreService
 )
 from highorder.base.compiler import Compiler
@@ -1782,7 +1782,9 @@ class HolaService:
     async def transform_locals(self, locals_def, context):
         locals_gen = {}
         for name, value in locals_def.items():
-            if "load" in value:
+            if value.get('type') in ['query']:
+                locals_gen[name] = await self.transform_query(value, context)
+            elif "load" in value:
                 locals_gen[name] = await self.load_value(value['load'], context)
             else:
                 locals_gen[name] = self.eval_value(value, context)
@@ -3440,6 +3442,7 @@ class HolaService:
         commands = AutoList()
         name = args.get('name')
         _event = args.get('event')
+        _handler = args.get('handler')
         _locals = args.get('locals', {})
         origin_context = context
         context = copy.deepcopy(origin_context)
@@ -3453,6 +3456,10 @@ class HolaService:
                 handlers = handler
             else:
                 handlers = [handler]
+            commands.add(await self.handle_page_interact_handlers(handlers, context))
+        elif _handler:
+            st = StampToken()
+            handlers = st.load(_handler)
             commands.add(await self.handle_page_interact_handlers(handlers, context))
         else:
             commands.add(await self.get_page(context.client.route, context))

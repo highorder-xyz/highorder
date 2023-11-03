@@ -1746,9 +1746,8 @@ export const Menu = defineComponent({
                         label: it.label ?? "",
                         icon: it.icon ? `pi pi-${it.icon}` : "",
                         command: () => {
-                            if(it.name){
-                                this.$emit("menuItemClicked", it.name)
-                            }
+                            const handlers = it.handlers ?? {}
+                            this.$emit("menuItemClicked", handlers.click ?? "")
                         }
                     })
                 }

@@ -5,7 +5,7 @@ import dataclass_factory
 import hmac, hashlib
 from highorder.base.loader import ConfigLoader
 from highorder.base import error
-from highorder.account.service import SessionService
+from highorder.hola.account import SessionService
 from .data import (
     ClientRequestCommand,
     SetupRequestCommand

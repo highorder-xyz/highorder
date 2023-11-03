@@ -82,7 +82,7 @@ if settings.server.get('run_editor', False) == True:
     editor_app = setup_editor(os.getcwd())
     app.dispatch_app(['/editor', '/wave-static', '/_f', '/_s', '/manifest.json', '/simulator'], editor_app)
 
-from .account.extension import AccountServiceExtension
+from .hola.account import AccountServiceExtension
 from .hola.extension import HolaServiceRegister
 
 HolaServiceRegister.register(AccountServiceExtension)

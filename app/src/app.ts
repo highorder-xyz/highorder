@@ -563,12 +563,12 @@ export const App = defineComponent({
             })
         },
 
-        pageInteract(name:string, event:string, page:Page, context: RenderContext){
+        pageInteract(name:string, event:string, handler:string, page:Page, context: RenderContext){
             const timerId = setTimeout(()=> {
                 this.loading = true;
             }, 1000)
             const app_core = AppCore.getCore(this.app_id)
-            app_core.pageInteract(name, event, page.locals).then((commands: HolaCommand[]) => {
+            app_core.pageInteract(name, event, handler, page.locals).then((commands: HolaCommand[]) => {
                 clearTimeout(timerId)
                 this.loading = false
                 this.handleImmediateCommands(commands, context)
@@ -586,7 +586,7 @@ export const App = defineComponent({
                             route: this.page.route,
                             text: "errdlg_confirm"
                         })
-                        this.pageInteract(name, event, page, context)
+                        this.pageInteract(name, event, handler, page, context)
                     }
                 })
             })
@@ -1153,9 +1153,8 @@ export const App = defineComponent({
                             items: items,
                             popup: true,
                             ref: menu_name,
-                            onMenuItemClicked: (name: string) => {
-                                console.log('menu_item clicked', name)
-                                this.pageInteract(name, 'click', this.page, context)
+                            onMenuItemClicked: (handler: string) => {
+                                this.pageInteract("", 'click', handler, this.page, context)
                             }
                         }, {})
                     } else if(['open-modal'].includes(handler.type)) {
@@ -1222,8 +1221,10 @@ export const App = defineComponent({
                         if (close_modal && context.modal_id !== undefined){
                             this.modal_helper.popup(context.modal_id)
                         }
+                    } else if(element.handlers) {
+                        this.pageInteract("", 'click', element.handlers.click ?? "", this.page, context)
                     } else if(element.name) {
-                        this.pageInteract(element.name, 'click', this.page, context)
+                        this.pageInteract(element.name, 'click', "", this.page, context)
                     } else {
                         if(menu){
                             (this.$refs[menu_name] as any).toggle(event)
@@ -1700,9 +1701,9 @@ export const App = defineComponent({
                 items: items,
                 label: element.label ?? "",
                 icon: element.icon ?? "",
-                onMenuItemClicked: (name: string) => {
+                onMenuItemClicked: (handler: string) => {
                     console.log('menu item clicked', name)
-                    this.pageInteract(name, 'click', this.page, context)
+                    this.pageInteract("", 'click', handler ?? '', this.page, context)
                 }
             })
         },

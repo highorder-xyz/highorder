@@ -102,6 +102,7 @@ export interface ButtonElement {
     icon?: string;
     sub_text?: string;
     href?: string;
+    handlers?: Record<string, string>
     open_new?: boolean;
     disable?: boolean;
     disable_text?: string;
@@ -307,6 +308,7 @@ export interface MenuItemObject {
     label?: string;
     name?: string;
     icon?: string;
+    handlers?: Record<string, string>;
 }
 
 export interface MenuElement {
@@ -670,9 +672,9 @@ export class AppCore {
 
     }
 
-    async pageInteract(name: string, event:string, locals:object): Promise<HolaCommand[]> {
+    async pageInteract(name: string, event:string, handler:string, locals:object): Promise<HolaCommand[]> {
         try {
-            const commands = await this.svc.holaPageInteract(name, event, locals, this.getPageContext())
+            const commands = await this.svc.holaPageInteract(name, event, handler, locals, this.getPageContext())
             return await this.handleCommandList(commands)
         } catch(err: any) {
             return await this.handleError(err)

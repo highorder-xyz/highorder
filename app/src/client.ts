@@ -503,9 +503,16 @@ export class ServiceOperation {
         return await this.holaRequest(reqArg)
     }
 
-    async holaPageInteract(name: string, event:string, locals:Record<string, any>, context: PageContext): Promise<HolaCommand[]> {
+    async holaPageInteract(name: string, event:string, handler:string, locals:Record<string, any>, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {
-            "data": {"command":"page_interact", "args":{"name": name, 'event':event, 'locals': locals}, "context":context}
+            "data": {
+                "command":"page_interact",
+                "args":{
+                    "name": name, 'event':event,
+                    'handler': handler, locals: locals
+                },
+                "context":context
+            }
         }
         return await this.holaRequest(reqArg)
     }
