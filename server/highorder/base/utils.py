@@ -1,9 +1,14 @@
 import string
 import random
 from datetime import datetime
-from enum import Enum
+import time
 
-class IDPrefix(Enum):
+import base64
+import hashlib
+import json
+import hmac
+
+class IDPrefix:
     USER = 'UU'
     PROFILE = 'UP'
     SESSION = 'SS'
@@ -55,3 +60,75 @@ class AutoList(list):
             return self[0]
         else:
             return None
+
+
+class StampToken:
+    DEFAULT_STAMP = {
+        "stamp_id": "stamp_id",
+        "stamp_secret": "stamp_secret",
+        "hash_method": "sha256"
+    }
+    def __init__(self, stamps = None):
+        self.version = 'v1'
+        self.stamps = stamps or []
+        self.stamps.insert(0, self.DEFAULT_STAMP)
+
+    def signature(self, stamp_id, body):
+        stamp = next(filter(lambda x: x['stamp_id'] == stamp_id, self.stamps), None)
+        if not stamp:
+            raise Exception('no related stamp info found for stamp_id {stamp_id}')
+        secret = stamp['stamp_secret']
+        hash_method = stamp['hash_method']
+        if hash_method == 'sha256':
+            sign = hmac.new(
+                bytes(secret, 'latin-1'),
+                msg=body,
+                digestmod=hashlib.sha256
+            ).hexdigest().lower()
+        return sign
+
+
+    def make(self, stamp_id, content):
+        body = json.dumps({
+            "m": {
+                "ts": int(time.time()),
+            },
+            "c": content
+        }, separators=(',', ':'))
+        body = base64.b64encode(body.encode('utf-8'))
+        sign = self.signature(stamp_id, body)
+        return f'{self.version}.{stamp_id}.{sign}.' + body.decode('utf-8')
+
+
+    def verify(self, token):
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        try:
+            version, stamp_id, sign, body = token.split('.')
+        except:
+            return False
+
+        _sign = self.signature(stamp_id, body.encode('utf-8'))
+        if _sign == sign:
+            return True
+        return False
+
+    def load(self, token, ignore_error=False):
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        try:
+            version, stamp_id, sign, body = token.split('.')
+        except:
+            return None
+
+        _sign = self.signature(stamp_id, body.encode('utf-8'))
+        if _sign != sign:
+            if ignore_error:
+                return None
+            else:
+                raise Exception(f'sign not right.')
+
+        body = bytes(body, encoding='utf-8')
+        obj = json.loads(base64.b64decode(body).decode('utf-8'))
+        return obj['c']
+

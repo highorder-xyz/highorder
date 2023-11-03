@@ -345,6 +345,10 @@ if(pageSizeParts.length >= 2){
 
 const language = (options.language ?? getLanguageTag()) ?? "zh-CN"
 
+if(import.meta.env.PROD){
+    console.log = function() {}
+}
+
 app_platform.register(new SimulatorHostPlatform(platfrom, pageSize, language))
 
 createHighOrderApp(app_configs, init_options).then((app: any) => {

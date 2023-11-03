@@ -215,7 +215,7 @@ export interface ColumnElement {
 export type ModalWidgetElement = ItemWidgetElement | TitleElement
     | SeparatorElement | ParagraphElement | BulletedListElement
     | RowLineElement | ColumnElement | ButtonElement | StarRatingElement
-    | PlainTextObject | AnnotationTextObject ;
+    | PlainTextObject | AnnotationTextObject | DataTableElement;
 
 export interface ModalElement {
     type: string;
@@ -371,6 +371,14 @@ export interface CardElement{
     show_border: boolean
     elements: HolaElement[]
     style?: Record<string, any>
+}
+
+export interface DataTableElement {
+    type: string
+    data: object[]
+    columns: object[]
+    style?: Record<string, any>
+    paginator?: Record<string, any>
 }
 
 export interface InputElement{

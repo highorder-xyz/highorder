@@ -5,7 +5,7 @@ from highorder.account.service import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService, UserProfileService, SessionStoreService
 )
 from highorder.base.compiler import Compiler
-from highorder.base.utils import AutoList, time_random_id, IDPrefix
+from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from basepy.config import settings
@@ -1391,6 +1391,16 @@ class HolaService:
             "name": self.eval_value(element.get("name", ""), context),
             "icon": self.eval_value(element.get("icon"), context)
         }
+
+        if 'events' in element:
+            handlers = {}
+            st = StampToken()
+            for key, value in element['events'].items():
+                v = self.eval_list_or_object(value, context)
+                token = st.make('stamp_id', v)
+                handlers[key] = token
+            transformed['handlers'] = handlers
+
         return transformed
 
     async def transform_modal(self, obj, context):
@@ -1456,6 +1466,28 @@ class HolaService:
                 elements.append(sub_elements)
 
         return elements
+
+    async def transform_data_table(self, element, context):
+        transformed = {
+            "type": "data-table",
+            "data": [],
+            "columns": AutoList()
+        }
+
+        data = element.get('locals', {}).get('data')
+        if data:
+            table_data = await self.transform_element(data, context)
+            transformed['data'] = [x.to_dict() for x in table_data]
+
+        for el in element.get('elements', []):
+            if el['type'] == 'TableColumn':
+                el_transformed = await self.transform_table_column(el, context)
+                transformed['columns'].add(el_transformed)
+
+        if 'paginator' in element:
+            transformed['paginator'] = element.get('paginator')
+
+        return transformed
 
     async def transform_table_view(self, obj, context):
         ret = {
@@ -2450,10 +2482,12 @@ class HolaService:
             return self.eval_value(ref_object["value"], context)
         return None
 
-    def eval_object_only(self, obj, context, only_keys):
+    def eval_object_only(self, obj, context, only_keys = None):
         ret = {}
         for k, v in obj.items():
-            if k in only_keys:
+            if only_keys and k in only_keys:
+                ret[k] = self.eval_value(v, context)
+            else:
                 ret[k] = self.eval_value(v, context)
 
         return ret
@@ -2473,6 +2507,14 @@ class HolaService:
                 else:
                     ret[k] = self.eval_value(v, context)
         return ret
+
+    def eval_list_or_object(self, obj, context):
+        if isinstance(obj, (list, tuple)):
+            return [self.eval_object_only(x, context) for x in obj]
+        elif isinstance(obj, (dict, Mapping)):
+            return self.eval_object_only(obj, context)
+        else:
+            raise Exception(f'eval list or object, but {type(obj)} given.')
 
     async def run_change(self, change, context):
         if 'condition' in change:

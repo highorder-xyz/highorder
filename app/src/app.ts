@@ -40,7 +40,8 @@ import {
     InputElement,
     SideBarElement,
     MenuElement,
-    MenuItemObject
+    MenuItemObject,
+    DataTableElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -58,7 +59,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     Logo,
     InputText,
     SideBar,
-    Menu
+    Menu,
+    DataTable
 } from './components'
 
 import { app_platform } from './platform';
@@ -1152,6 +1154,7 @@ export const App = defineComponent({
                             popup: true,
                             ref: menu_name,
                             onMenuItemClicked: (name: string) => {
+                                console.log('menu_item clicked', name)
                                 this.pageInteract(name, 'click', this.page, context)
                             }
                         }, {})
@@ -1420,6 +1423,8 @@ export const App = defineComponent({
                 return this.renderVideo(element as VideoElement, context)
             } else if (element.type == 'nav-menu') {
                 return this.renderNavMenu(element as NavMenuElement, context)
+            } else if (element.type == 'data-table') {
+                return this.renderDataTable(element as DataTableElement, context)
             } else if (element.type == 'motion') {
                 return this.renderMotion(element as MotionElement, context)
             } else {
@@ -1674,6 +1679,16 @@ export const App = defineComponent({
                 })
             }
             return h(NavMenu, {...style, items: items})
+        },
+
+        renderDataTable(element: DataTableElement, context: RenderContext): VNode {
+            const style = element.style ?? {}
+            return h(DataTable, {
+                data: element.data ?? [],
+                columns: element.columns ?? [],
+                style: style,
+                paginator: element.paginator
+            })
         },
 
         renderMenu(element: MenuElement, context: RenderContext): VNode {

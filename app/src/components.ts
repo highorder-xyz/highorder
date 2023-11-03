@@ -16,6 +16,8 @@ import PrimeInputText from 'primevue/inputtext';
 import PrimePassword from 'primevue/password';
 import PrimeMenu from 'primevue/menu';
 import PrimeDivider from 'primevue/divider';
+import PrimeDataTable from 'primevue/datatable';
+import PrimeColumn from 'primevue/column';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -1591,6 +1593,40 @@ export const InputText = defineComponent({
         }
 
         return h('div', { class: [styles["h-form-line"]]}, children)
+    }
+});
+
+export const DataTable = defineComponent({
+    name: 'DataTable',
+    props: {
+        data: { type: Array, default: [] },
+        columns: { type: Array, default: [] },
+        paginator: { type: Object, default: {}},
+        style: { type: Object, default: {}},
+    },
+
+    render() {
+        const rows = this.paginator.rows
+        const props: any = {}
+        if(rows){
+            props['rows'] = rows
+            props['paginator'] = true
+        }
+        return h(PrimeDataTable,
+            {
+                class: [styles["h-data-table"]],
+                value: this.data,
+                ...props
+            },
+            {
+                "default": () => {
+                    const nodes: VNode[] = []
+                    for(const col of this.columns){
+                        nodes.push(h(PrimeColumn, {},))
+                    }
+                    return nodes
+                }
+            })
     }
 });
 

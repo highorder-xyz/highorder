@@ -348,9 +348,14 @@ const highorder_app_config = {
 
 const init_options: Record<string, any> = {}
 
+if(import.meta.env.PROD){
+    console.log = function() {}
+}
+
 if(options.theme !== undefined ){
     init_options.theme = options.theme
 }
+
 console.log(highorder_app_config)
 
 app_configs.push(highorder_app_config)
