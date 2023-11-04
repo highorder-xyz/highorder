@@ -39,7 +39,7 @@ async def get_redis():
             await conn.close()
 
 
-class InstantDataStoreService:
+class InstantDataStorageService:
     def __init__(self, app_id, name):
         self.key_prefix = f'a:{app_id[2:]}:{name}'
 
@@ -169,7 +169,7 @@ class InstantDataStoreService:
 
 
 
-class UserInstantDataStoreService(InstantDataStoreService):
+class UserInstantDataStorageService(InstantDataStorageService):
     def __init__(self, user_id, name):
         self.key_prefix = f'u:{user_id[2:]}:{name}'
 

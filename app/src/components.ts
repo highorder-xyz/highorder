@@ -1622,7 +1622,11 @@ export const DataTable = defineComponent({
                 "default": () => {
                     const nodes: VNode[] = []
                     for(const col of this.columns){
-                        nodes.push(h(PrimeColumn, {},))
+                        const col_value = {
+                            'field': col['field'],
+                            'header': col['label']
+                        }
+                        nodes.push(h(PrimeColumn, {...col_value}, {}))
                     }
                     return nodes
                 }

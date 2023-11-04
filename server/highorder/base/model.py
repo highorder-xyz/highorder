@@ -1,6 +1,8 @@
 from postmodel import models
 import copy
 
+DB_NAME = 'highorder'
+
 class MetaverModel(models.Model):
     created = models.DatetimeField(auto_now_add=True)
     updated = models.DatetimeField(auto_now=True)

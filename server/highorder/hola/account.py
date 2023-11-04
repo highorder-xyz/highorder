@@ -1,7 +1,8 @@
 
 import hashlib
-from .model import SessionStore, SocialAccount, User, Session, UserAuth, UserProfile
+from .model import SocialAccount, User, Session, UserAuth
 from highorder.base.utils import random_str, time_random_id, IDPrefix
+from highorder.base.model import DB_NAME
 from postmodel.transaction import in_transaction
 from dataclasses import dataclass
 from basepy.config import settings
@@ -51,7 +52,7 @@ class AccountService:
             ip = ip)
         user.sessions["sessions"] = [session.session_token]
 
-        async with in_transaction():
+        async with in_transaction(DB_NAME):
             await user.save()
             await session.save()
 
@@ -96,11 +97,6 @@ class UserService:
     def sessions(self):
         return self.model.sessions
 
-    async def get_profile(self):
-        user_id = self.user_id
-        app_id = self.app_id
-        return await UserProfileService.load_or_create(app_id, user_id)
-
     async def new_session(self, **kwargs):
         session_type = kwargs.get('session_type', 'mobile')
         session_data = kwargs.get('session_data', {})
@@ -116,7 +112,7 @@ class UserService:
             ip = ip)
         self.model.sessions["sessions"].append(session.session_token)
 
-        async with in_transaction():
+        async with in_transaction(DB_NAME):
             await self.model.save()
             await session.save()
 
@@ -148,7 +144,7 @@ class UserAuthService:
             user = User(app_id=app_id, user_id=user_id, user_name=name, sessions={})
             user_auth = UserAuth(app_id=app_id, user_id=user_id, email=name, salt=salt, password_hash=password_hash)
 
-            async with in_transaction():
+            async with in_transaction(DB_NAME):
                 await user.save()
                 await user_auth.save()
 
@@ -204,7 +200,7 @@ class SessionService:
             country_code = country_code,
             ip = ip)
 
-        async with in_transaction():
+        async with in_transaction(DB_NAME):
             await session.save()
 
         return SessionService(session)
@@ -276,118 +272,6 @@ class SessionService:
                 setattr(self.model, key, value)
 
     async def save(self):
-        await self.model.save()
-
-
-class SessionStoreService:
-    @classmethod
-    async def load(cls, app_id, session_token):
-        model = await SessionStore.load(app_id=app_id, session_token=session_token)
-        if model:
-            return cls(model)
-        return None
-
-    @classmethod
-    async def load_or_create(cls, app_id, session_token):
-        model = await SessionStore.load(app_id=app_id, session_token=session_token)
-        if model:
-            return cls(model)
-        else:
-            session_model = await Session.load(app_id=app_id, session_token=session_token)
-            expire_time = session_model.expire_time if session_model else None
-            model = await SessionStore.create(
-                app_id = app_id,
-                session_token = session_token,
-                expire_time = expire_time,
-                store = {}
-            )
-            return cls(model)
-        return None
-
-    def __init__(self, model, **kwargs):
-        self.model =  model
-
-    @property
-    def app_id(self):
-        return self.model.app_id
-
-    @property
-    def session_token(self):
-        return self.model.session_token
-
-    @property
-    def store(self):
-        return self.model.store
-
-    @property
-    def expire_time(self):
-        return self.model.expire_time
-
-    async def save(self, store):
-        self.model.store = store
-        await self.model.save()
-
-
-class UserProfileService:
-    @classmethod
-    async def load(cls, app_id, user_id):
-        model = await UserProfile.load(app_id=app_id, user_id=user_id)
-        if model:
-            return cls(model)
-        return None
-
-    @classmethod
-    async def create_or_update(cls, app_id, user_id, data):
-        model = await UserProfile.load(app_id=app_id, user_id=user_id)
-        if not model:
-            model = await UserProfile.create(
-                app_id = app_id,
-                user_id = user_id,
-                nick_name = data['nick_name'],
-                avatar_url = data['avatar_url'],
-                extra = data.get('extra', {})
-            )
-            inst = cls(model)
-        else:
-            inst = cls(model)
-            await inst.update(data)
-        return inst
-
-    @classmethod
-    async def load_or_create(cls, app_id, user_id):
-        profile = await cls.load(app_id, user_id)
-        if not profile:
-            data = {
-                'nick_name': f'无名-{user_id[-8:]}',
-                'avatar_url': ''
-            }
-            await cls.create_or_update(app_id, user_id, data)
-            return data
-        else:
-            return {
-                'nick_name': profile.nick_name,
-                'avatar_url': profile.avatar_url
-            }
-
-
-    def __init__(self, model, **kwargs):
-        self.model =  model
-
-    @property
-    def nick_name(self):
-        return self.model.nick_name
-
-    @property
-    def avatar_url(self):
-        return self.model.avatar_url
-
-    async def update(self, data):
-        if 'nick_name' in data:
-            self.model.nick_name = data['nick_name']
-        if 'avatar_url' in data:
-            self.model.avatar_url = data['avatar_url']
-        if 'extra' in data:
-            self.model.extra = data['extra']
         await self.model.save()
 
 
@@ -522,11 +406,13 @@ class SocialAccountService:
         # udpate profile
         info = await WeiXinService.userinfo(access_token=access_token, open_id=open_id)
         if info['ok']:
-            await UserProfileService.create_or_update(app_id=app_id, user_id=user_id, data={
-                'nick_name': info['data']['nickname'],
-                'avatar_url': info['data']['headimgurl'],
-                'extra': info['data']
-            })
+            # TODO update profile
+            pass
+            # await UserProfileService.create_or_update(app_id=app_id, user_id=user_id, data={
+            #     'nick_name': info['data']['nickname'],
+            #     'avatar_url': info['data']['headimgurl'],
+            #     'extra': info['data']
+            # })
         return {'ok':True, 'data': {"session": session.get_data_dict(), "user": new_user.get_data_dict()}}
 
     def __init__(self, model, **kwargs):
@@ -556,7 +442,7 @@ class AccountServiceExtension:
                 sessions.append(session_token)
                 session = await SessionService.load(app_id = app_id, session_token=session_token)
                 session.update(user_id = user_id)
-                async with in_transaction():
+                async with in_transaction(DB_NAME):
                     await user.save()
                     await session.save()
 

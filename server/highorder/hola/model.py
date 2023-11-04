@@ -12,6 +12,7 @@ class User(MetaverModel):
         table = 'user'
         primary_key = ('app_id', 'user_id')
         unique_together = (('app_id', 'user_name'),)
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.USER, 10))
@@ -21,22 +22,12 @@ class User(MetaverModel):
     sessions = models.JSONField()
 
 
-class UserProfile(MetaverModel):
-    class Meta:
-        table = 'profile'
-        primary_key = ('app_id', 'user_id')
-
-    app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.PROFILE, 10))
-    nick_name = models.CharField(max_length=256)
-    avatar_url = models.CharField(max_length=2048)
-    extra = models.JSONField()
-
 class UserAuth(MetaverModel):
     class Meta:
         table = 'user_auth'
         primary_key = ('app_id', 'email')
         indexes = (("app_id", "user_id"), )
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
@@ -50,6 +41,7 @@ class SocialAccount(MetaverModel):
         table = 'social_account'
         primary_key = ('app_id', 'social_id')
         indexes = (('app_id', 'user_id'),)
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     social_id = models.CharField(max_length=512)
@@ -66,6 +58,7 @@ class Session(MetaverModel):
     class Meta:
         table = 'session'
         primary_key = ('app_id', 'session_token')
+        db_name = 'highorder'
 
     session_token = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.SESSION, 20))
     app_id = models.CharField(max_length=128)
@@ -79,22 +72,12 @@ class Session(MetaverModel):
     is_valid = models.BooleanField(null=True, default=True)
 
 
-class SessionStore(MetaverModel):
-    class Meta:
-        table = 'session_store'
-        primary_key = ('app_id', 'session_token')
-
-    session_token = models.CharField(max_length=256)
-    app_id = models.CharField(max_length=128)
-    expire_time = models.DatetimeField(null=True)
-    store = models.JSONField()
-
-
 class HolaObject(MetaverModel):
     class Meta:
         table = 'hola_object'
         primary_key = ('app_id', 'object_id')
         indexes = (("app_id", "object_name"), )
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     object_name = models.CharField(max_length=512)
@@ -106,9 +89,20 @@ class HolaVariable(MetaverModel):
     class Meta:
         table = 'hola_variable'
         primary_key = ('app_id', 'user_id')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
+    variable = models.JSONField()
+
+class HolaSessionVariable(MetaverModel):
+    class Meta:
+        table = 'hola_session_variable'
+        primary_key = ('app_id', 'session_token')
+        db_name = 'highorder'
+
+    app_id = models.CharField(max_length=128)
+    session_token = models.CharField(max_length=256)
     variable = models.JSONField()
 
 
@@ -116,34 +110,77 @@ class HolaPageState(MetaverModel):
     class Meta:
         table = 'hola_page_state'
         primary_key = ('app_id', 'user_id')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
     page_state = models.JSONField()
 
+class HolaSessionPageState(MetaverModel):
+    class Meta:
+        table = 'hola_session_page_state'
+        primary_key = ('app_id', 'session_token')
+        db_name = 'highorder'
+
+    app_id = models.CharField(max_length=128)
+    session_token = models.CharField(max_length=256)
+    page_state = models.JSONField()
+
+
 class HolaPlayableState(MetaverModel):
     class Meta:
         table = 'hola_playable_state'
         primary_key = ('app_id', 'user_id')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
+    playable_state = models.JSONField()
+
+class HolaSessionPlayableState(MetaverModel):
+    class Meta:
+        table = 'hola_session_playable_state'
+        primary_key = ('app_id', 'session_token')
+        db_name = 'highorder'
+
+    app_id = models.CharField(max_length=128)
+    session_token = models.CharField(max_length=256)
     playable_state = models.JSONField()
 
 class HolaPlayer(MetaverModel):
     class Meta:
         table = 'hola_player'
         primary_key = ('app_id', 'user_id')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
+    name = models.CharField(max_length=256)
+    state = models.JSONField()
+    profile = models.JSONField()
     attribute = models.JSONField()
     currency = models.JSONField()
+
+class HolaSessionPlayer(MetaverModel):
+    class Meta:
+        table = 'hola_session_player'
+        primary_key = ('app_id', 'session_token')
+        db_name = 'highorder'
+
+    app_id = models.CharField(max_length=128)
+    session_token = models.CharField(max_length=256)
+    name = models.CharField(max_length=256)
+    state = models.JSONField()
+    profile = models.JSONField()
+    attribute = models.JSONField()
+    currency = models.JSONField()
+
 
 class HolaPlayerItembox(MetaverModel):
     class Meta:
         table = 'hola_player_itembox'
         primary_key = ('app_id', 'user_id', 'name')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
     user_id = models.CharField(max_length=256)
@@ -152,11 +189,15 @@ class HolaPlayerItembox(MetaverModel):
     detail = models.JSONField()
 
 
-class HolaPlayerTask(MetaverModel):
+class HolaSessionPlayerItembox(MetaverModel):
     class Meta:
-        table = 'hola_player_task'
-        primary_key = ('app_id', 'user_id')
+        table = 'hola_session_player_itembox'
+        primary_key = ('app_id', 'session_token', 'name')
+        db_name = 'highorder'
 
     app_id = models.CharField(max_length=128)
-    user_id = models.CharField(max_length=256)
-    task = models.JSONField()
+    session_token = models.CharField(max_length=256)
+    name = models.CharField(max_length=256)
+    attrs = models.JSONField()
+    detail = models.JSONField()
+

@@ -1,6 +1,8 @@
 
 import ast
+import pprint
 
+pp = pprint.PrettyPrinter(indent=4)
 
 def camel_to_snake(s):
     return ''.join(['_'+c.lower() if c.isupper() else c for c in s]).lstrip('_')
@@ -109,6 +111,7 @@ class FilterExprTransformer:
         if key in self.name_replace:
             parts[0] = self.name_replace[key]
 
+        parts = list(filter(lambda x: x, parts))
         transformed = '.'.join(parts)
         return f'{prefix}{transformed}'
 
@@ -149,6 +152,8 @@ class FilterExprTransformer:
             suffix = f'__{node.attr}'
         else:
             keys.append(node.attr)
+
+        keys = list(filter(lambda x: x, keys))
         return '.'.join(keys) + suffix
 
     def transform_name(self, node):
@@ -166,3 +171,22 @@ class FilterExprTransformer:
         expr_values = [self.transform_node(n) for n in node.values]
         expr_values = list(filter(lambda x: x != None, expr_values))
         return self.expr_cls(*expr_values, join_type=op)
+
+
+def expr_to_dict(expr):
+    transformed = {
+        "type": "expression",
+        "operator": expr.join_type,
+        "negate": expr._is_negated
+    }
+    if expr.filters:
+        transformed.update(expr.filters)
+    elif expr.children:
+        transformed['elements'] = []
+        for child in expr.children:
+            transformed['elements'].append(expr_to_dict(child))
+    return transformed
+
+def expr_dump(expr, **kwargs):
+    d = expr_to_dict(expr)
+    pp.pprint(d)
