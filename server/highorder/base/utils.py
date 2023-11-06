@@ -66,7 +66,7 @@ class StampToken:
     DEFAULT_STAMP = {
         "stamp_id": "stamp_id",
         "stamp_secret": "stamp_secret",
-        "hash_method": "sha256"
+        "hash_method": "sha1"
     }
     def __init__(self, stamps = None):
         self.version = 'v1'
@@ -80,11 +80,16 @@ class StampToken:
         secret = stamp['stamp_secret']
         hash_method = stamp['hash_method']
         if hash_method == 'sha256':
-            sign = hmac.new(
-                bytes(secret, 'latin-1'),
-                msg=body,
-                digestmod=hashlib.sha256
-            ).hexdigest().lower()
+            digestmod = hashlib.sha256
+        elif hash_method == 'sha1':
+            digestmod = hashlib.sha1
+        else:
+            raise Exception(f'stamp token hashmethod {hash_method} not supported')
+        sign = hmac.new(
+            bytes(secret, 'latin-1'),
+            msg=body,
+            digestmod=hashlib.sha256
+        ).hexdigest().lower()
         return sign
 
 

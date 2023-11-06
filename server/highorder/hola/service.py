@@ -808,6 +808,7 @@ class HolaService:
         self.widgets = []
         self.components = []
         self.interfaces = []
+        self.modals = []
         all_interfaces = hola_def.interfaces
         page_width = request_context.page_size.get('width', 0)
         psize_name = get_page_size_name(page_width)
@@ -832,6 +833,8 @@ class HolaService:
                     self.interfaces.append(page_def)
             elif interface_type == 'component':
                 self.components.append(interface_def)
+            elif interface_type == 'modal':
+                self.modals.append(interface_def)
 
 
         self.variables_def = []
@@ -1022,6 +1025,11 @@ class HolaService:
         if page_def == None:
             raise Exception(f'no page routed to  "{route}" found.')
         return page_def
+
+    def get_modal_def(self, name):
+        modals = filter(lambda x: x['name'] == name, self.modals)
+        modal = next(modals)
+        return modal
 
     def expand_link(self, raw_link):
         if not raw_link:
@@ -1464,6 +1472,15 @@ class HolaService:
 
         return transformed
 
+    async def transform_events(self, events, context):
+        handlers = {}
+        st = StampToken()
+        for key, value in events.items():
+            v = self.eval_list_or_object(value, context)
+            token = st.make('stamp_id', v)
+            handlers[key] = token
+        return handlers
+
     async def transform_modal(self, obj, context):
         ret = {
             "type": "modal",
@@ -1486,11 +1503,13 @@ class HolaService:
         if 'confirm' in obj:
             cond = obj['confirm'].get('condition')
             if not cond or (cond and self.eval_condition(cond, context)):
-                ret['confirm'] = self.eval_object(obj['confirm'], context, ignore_keys=["args"])
+                ret['confirm'] = self.eval_object(obj['confirm'], context, ignore_keys=["args", "click"])
+                ret['confirm'].pop('click', None)
         if 'cancel' in obj:
             cond = obj['cancel'].get('condition')
             if not cond or (cond and self.eval_condition(cond, context)):
-                ret['cancel'] = self.eval_object(obj['cancel'], context, ignore_keys=["args"])
+                ret['cancel'] = self.eval_object(obj['cancel'], context, ignore_keys=["args", "click"])
+                ret['cancel'].pop('click', None)
         if 'handlers' in obj:
             ret['handlers'] = [await self.transform_element(action, context) for action in obj['handlers']]
         return ret
@@ -1555,6 +1574,41 @@ class HolaService:
             "type": "table-column",
             "field": self.eval_value(element.get('field', ''), context),
             "label": self.eval_value(element.get('label', ''), context)
+        }
+        return transformed
+
+    async def transform_toolbar(self, element, context):
+        transformed = {
+            "type": "toolbar",
+            "start_elements": AutoList(),
+            "elements": AutoList(),
+            "end_elements": AutoList()
+        }
+
+        for name in ['start_elements', 'elements', 'end_elements']:
+            for el in element.get(name, []):
+                el_transformed = await self.transform_element(el, context)
+                transformed[name].append(el_transformed)
+        return transformed
+
+    async def transform_dropdown(self, element, context):
+        transformed = {
+            "type": "dropdown",
+            "name": self.eval_value(element.get('name', ''), context),
+            "label": self.eval_value(element.get('label', ''), context),
+            "value": self.eval_value(element.get('value', ''), context),
+            "options": []
+        }
+
+        for option in element.get('options', []):
+            transformed['options'].append(await self.transform_element(option, context))
+
+        return transformed
+
+    async def transform_text_option(self, element, context):
+        transformed = {
+            "label": self.eval_value(element.get('label', ''), context),
+            "name": self.eval_value(element.get('name', ''), context)
         }
         return transformed
 
@@ -1723,6 +1777,10 @@ class HolaService:
             if 'action_props' in element:
                 transformed['action_props'] = self.eval_object(element["action_props"], context)
             transformed['args'] = self.eval_object(element.get('args', {}), context)
+
+        if 'events' in element:
+            transformed['handlers'] = await self.transform_events(element['events'], context)
+
         return transformed
 
     async def transform_menu(self, element, context):
@@ -2272,12 +2330,12 @@ class HolaService:
                 return element
         raise Exception(f'no playable found in interface {page_def.name}')
 
-    async def get_show_modal_command(self, open_modal, context):
-        component = await self.transform_element(open_modal, context)
+    async def get_show_modal_command(self, modal, context):
+        component = await self.transform_element(modal, context)
         if component and component["type"] == 'modal':
             return ShowModalCommand(args = ShowModalCommandArg(**component))
         else:
-            raise Exception(f'show modal command not accept valid modal define. but {open_modal["type"]} got.')
+            raise Exception(f'show modal command not accept valid modal define. but {modal["type"]} got.')
 
 
     async def process_page_first_pass(self, page_def, context):
@@ -3204,6 +3262,8 @@ class HolaService:
             return await self.handle_route_to(handler, context)
         elif handler_type == 'refresh':
             return await self.handle_refresh(handler, context)
+        elif handler_type == 'show-modal':
+            return await self.handle_show_modal(handler, context)
         else:
             await logger.warning(f'no handler for handler {handler_type}')
 
@@ -3239,6 +3299,19 @@ class HolaService:
     async def handle_refresh(self, handler, context):
         context.locals.update(handler.get('locals', {}))
         return await self.get_page(context.client.route, context)
+
+    async def handle_show_modal(self, handler, context):
+        if 'name' in handler:
+            name = handler['name']
+            _modal = self.get_modal_def(name)
+            if not _modal:
+                await logger.error(f'modal with name {name} not defined.')
+        elif 'elements' in handler and handler['elements']:
+            _modal = handler['elements'][0]
+        else:
+            raise Exception(f'unknown to handle show modal handler.')
+
+        return await self.get_show_modal_command(_modal, context)
 
     async def handle_service_command(self, name, args, context):
         if name == 'call_succeed':

@@ -1,5 +1,5 @@
 
-import { defineComponent, h, VNode, PropType, isVNode } from 'vue';
+import { defineComponent, h, VNode, PropType, isVNode, Prop } from 'vue';
 import gsap from 'gsap'
 import styles from './components.module.css'
 import 'animate.css';
@@ -18,6 +18,9 @@ import PrimeMenu from 'primevue/menu';
 import PrimeDivider from 'primevue/divider';
 import PrimeDataTable from 'primevue/datatable';
 import PrimeColumn from 'primevue/column';
+import PrimeToolbar from 'primevue/toolbar';
+import PrimeDropdown from 'primevue/dropdown';
+import PrimeDialog from 'primevue/dialog';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -784,7 +787,111 @@ export const Modal = defineComponent({
 
 });
 
-export type ModalType = InstanceType<typeof Modal>
+
+export const Dialog = defineComponent({
+    name: 'Dialog',
+    props: {
+        closeIcon: { type: Boolean, default: false },
+        showNow: { type: Boolean, default: false, required: false },
+        modal_id: { type: String, default: ""},
+        title: { type: String, default: "" },
+        title_action: { type: Object, default: undefined},
+        text: { type: String, default: "" },
+        text_size: { type: Number, default: 3 },
+        animate: { type: Boolean, default: false },
+        content_html: { type: String, default: "" },
+        element_align: { type: String, default: "center"},
+        element_justify: { type: String, default: "center"},
+        actions: { type: Array as PropType<Array<ActionDefinition>>, default: () => ([]) },
+        actionsVertical: { type: Boolean, default: false },
+        actionsPosition: { type: String, default: "center" },
+        actionConfirmText: { type: String, default: "" },
+        actionCancelLink: { type: Boolean, default: false },
+        actionCancelText: { type: String, default: "" },
+        style: { type: Object, default: {} }
+    },
+    computed: {
+        actionConfirm(): boolean {
+            return this.$props.actionConfirmText !== undefined && this.$props.actionConfirmText.length > 0
+        },
+
+        actionCancel(): boolean {
+            return this.$props.actionCancelText !== undefined && this.$props.actionCancelText.length > 0
+        }
+    },
+    data() {
+        return {
+            showModal: this.$props.showNow
+        }
+    },
+    beforeMount() {
+        this.showModal = this.$props.showNow;
+    },
+    watch: {
+        modal_id(oldValue, newValue){
+            this.showModal = this.$props.showNow
+        }
+    },
+    emits: {
+        modalClosed: null,
+        modalConfirmed: null,
+        modalCancelled: null,
+        modalClicked: null,
+    },
+    methods: {
+        show() {
+            this.$data.showModal = true
+        },
+
+        hide() {
+            this.$data.showModal = false
+            this.$emit("modalClosed")
+        },
+
+        updateVisible(value: boolean){
+            this.$data.showModal = value
+            if(value === false){
+                this.$emit("modalClosed")
+            }
+        }
+    },
+    render() {
+        const modalClasses = [styles["h-dialog"]]
+        return h(PrimeDialog, {
+            visible: this.showModal,
+            header: this.title,
+            class: modalClasses,
+            "onUpdate:visible": (value:boolean) => { this.updateVisible(value) },
+            modal: true
+        }, {
+            "header": () => {
+                return this.$slots.header && this.$slots.header()
+            },
+
+            "default": () => {
+                const elements: any[]  = []
+
+                if (this.text) {
+                    elements.push(h('div', { "class": styles["custom_text"]}, this.text))
+                }
+
+                if (this.$props.content_html.length > 0) {
+                    elements.push(h('div', { "class": [styles["text"], styles["left"]], innerHTML: this.content_html }))
+                }
+                if(this.$slots.default) {
+                    const slot_default = this.$slots.default()
+                    elements.push(slot_default)
+                }
+                return elements
+            },
+            "footer": () => {
+                return this.$slots.footer && this.$slots.footer()
+            }
+
+        })
+    }
+
+});
 
 export const NavBar = defineComponent({
     name: 'NavBar',
@@ -1600,7 +1707,7 @@ export const DataTable = defineComponent({
     name: 'DataTable',
     props: {
         data: { type: Array, default: [] },
-        columns: { type: Array, default: [] },
+        columns: { type: Array as PropType<Array<any>>, default: [] },
         paginator: { type: Object, default: {}},
         style: { type: Object, default: {}},
     },
@@ -1631,6 +1738,96 @@ export const DataTable = defineComponent({
                     return nodes
                 }
             })
+    }
+});
+
+export const Toolbar = defineComponent({
+    name: 'Toolbar',
+    props: {
+        style: { type: Object, default: {}},
+    },
+    render() {
+        const content_tags = this.style.content_tags ?? []
+        return h(PrimeToolbar, { class: [styles["h-toolbar"]] }, {
+            "start": () => {
+                return this.$slots.start && this.$slots.start();
+            },
+            "center": () => {
+                return this.$slots.center && this.$slots.center();
+            },
+            "end": () => {
+                return this.$slots.end && this.$slots.end();
+            }
+        })
+    }
+});
+
+
+export const Dropdown = defineComponent({
+    name: 'Dropdown',
+    props: {
+        label: { type: String, default: ""},
+        name: { type: String, default: ""},
+        value: { type: String, default: ""},
+        style: { type: Object, default: {}},
+        options: { type: Array as PropType<Array<any>>, default: []}
+    },
+    data() {
+        const options = []
+        for(const opt of this.options){
+            options.push({
+                name: opt['label'],
+                code: opt['name']
+            })
+        }
+
+        const selected_options = options.filter((item: any) => (item.code === this.value))
+        const init_value = selected_options ? selected_options[0] : undefined
+
+        return {
+            "select": init_value ? init_value.code : '',
+            "_value": init_value,
+            "_options": options
+        }
+    },
+
+    emits: {
+        selectChanged: (select: string) => {return true;}
+    },
+
+    onMounted() {
+        this.$emit("selectChanged", this.select)
+    },
+
+    methods: {
+        valueChanged(value: any) {
+            this._value = value
+            this.select = value.code
+            this.$emit("selectChanged", value.code)
+        }
+    },
+    render() {
+        const children = []
+        let name = this.name
+        if(name.length == 0){
+            name = randomString(12)
+        }
+        if(this.label){
+            children.push(h('label', {
+                for: name,
+                class:[styles["h-form-label"]]
+            }, this.label))
+        }
+        children.push(h(PrimeDropdown, {
+            class: [styles["h-dropdown"]],
+            modelValue: this._value,
+            "onUpdate:modelValue": this.valueChanged,
+            optionLabel: 'name',
+            options: this._options
+        }, {
+
+        }))
+        return h('div', { class: [styles["h-form-line"]]}, children)
     }
 });
 

@@ -547,7 +547,7 @@ class Parser:
         elif token.kind == TokenKind.Identifier or token.kind == TokenKind.LBrace:
             return self.parse_object(tokens)
         else:
-            raise HolaSyntaxError(message=f'Unknown To Handle Token Kind {token.kind} and {token.value}')
+            raise HolaSyntaxError(message=f'Unknown To Handle Token Kind {token.kind} and {token.value}', pos=token.start_pos)
 
     def parse_list(self, tokens):
         token = tokens.peek()

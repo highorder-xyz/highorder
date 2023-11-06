@@ -383,11 +383,27 @@ export interface DataTableElement {
     paginator?: Record<string, any>
 }
 
+export interface ToolbarElement {
+    type: string
+    start_elements: HolaElement[]
+    elements: HolaElement[]
+    end_elements: HolaElement[]
+    style?: Record<string, any>
+}
+
 export interface InputElement{
     type: string
     label?: string
     name?: string
     password?: boolean
+}
+
+export interface DropdownElement {
+    type: string
+    value: string
+    label?: string
+    name?: string
+    options: Record<string, any>[]
 }
 
 export interface CardSwiperElement {

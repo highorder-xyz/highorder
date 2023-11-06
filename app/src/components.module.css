@@ -1633,3 +1633,8 @@
 .h-sidebar.hs-xxsmall {
     width: 6rem;
 }
+
+.h-toolbar {
+    width: 100%;
+    margin-bottom: 8px;
+}

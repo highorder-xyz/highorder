@@ -41,7 +41,9 @@ import {
     SideBarElement,
     MenuElement,
     MenuItemObject,
-    DataTableElement
+    DataTableElement,
+    ToolbarElement,
+    DropdownElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -60,7 +62,10 @@ import { NavBar, Footer, Button, ActionDefinition,
     InputText,
     SideBar,
     Menu,
-    DataTable
+    DataTable,
+    Toolbar,
+    Dropdown,
+    Dialog
 } from './components'
 
 import { app_platform } from './platform';
@@ -336,13 +341,13 @@ export class ModalHelper {
             const current = this.current
             if(current.slot_render !== undefined){
                 const slot_render = current.slot_render
-                return h(Modal, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
+                return h(Dialog, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
                     default: () => {
                         return slot_render()
                     }
                 })
             } else if( current.option ) {
-                return h(Modal, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
+                return h(Dialog, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
                     default: () => {
                         return []
                     }
@@ -1426,6 +1431,10 @@ export const App = defineComponent({
                 return this.renderNavMenu(element as NavMenuElement, context)
             } else if (element.type == 'data-table') {
                 return this.renderDataTable(element as DataTableElement, context)
+            } else if (element.type === "input") {
+                return this.renderInput(element as InputElement, context)
+            } else if (element.type === "dropdown") {
+                return this.renderDropdown(element as DropdownElement, context)
             } else if (element.type == 'motion') {
                 return this.renderMotion(element as MotionElement, context)
             } else {
@@ -1458,7 +1467,7 @@ export const App = defineComponent({
             const modal_options:Record<string, any> = {
                 title: open_modal.title,
                 title_action: open_modal.title_action ?? undefined,
-                ...(open_modal.style ?? {}),
+                style: open_modal.style ?? {},
                 actionConfirmText: open_modal.confirm?.text,
                 actionCancelText: open_modal.cancel?.text,
                 onModalConfirmed: () => {
@@ -1615,6 +1624,20 @@ export const App = defineComponent({
             return input
         },
 
+        renderDropdown(element: DropdownElement, context: RenderContext): VNode {
+            const name = element.name ?? ""
+            const input = h(Dropdown, {
+                label: element.label ?? "",
+                value: element.value ?? "",
+                options: element.options ?? [],
+                name: name,
+                onSelectChanged: (value: string) => {
+                    console.log('onSelectChanged', value)
+                }
+            })
+            return input
+        },
+
         renderCardSwiper(element: CardSwiperElement, context: RenderContext): VNode {
             return h(CardSwiper, {
                 title: element.title ?? "",
@@ -1689,6 +1712,21 @@ export const App = defineComponent({
                 columns: element.columns ?? [],
                 style: style,
                 paginator: element.paginator
+            })
+        },
+
+        renderToolbar(element: ToolbarElement, context: RenderContext): VNode {
+            const style = element.style ?? {}
+            return h(Toolbar, {style: style}, {
+                "start": () => {
+                    return this.renderElementOrList(element.start_elements ?? [], context)
+                },
+                "center": () => {
+                    return this.renderElementOrList(element.elements ?? [], context)
+                },
+                "end": () => {
+                    return this.renderElementOrList(element.end_elements ?? [], context)
+                }
             })
         },
 
@@ -1785,8 +1823,8 @@ export const App = defineComponent({
                 return this.renderSideBar(element as SideBarElement, context)
             } else if (element.type === "card") {
                 return this.renderCard(element as CardElement, context)
-            } else if (element.type === "input") {
-                return this.renderInput(element as CardElement, context)
+            } else if (element.type === "toolbar") {
+                return this.renderToolbar(element as ToolbarElement, context)
             } else if (element.type === "card-swiper") {
                 return this.renderCardSwiper(element as CardSwiperElement, context)
             } else {
