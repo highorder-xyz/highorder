@@ -256,15 +256,7 @@ export interface PlayableApplyCommand {
     args: PlayableApplyCommandArg
 }
 
-export interface ShowNarrationCommand{
-    type: string,
-    name: string,
-    args: {
-        narration: object
-    }
-}
-
-export type HolaCommand = ShowPageCommand | ShowNarrationCommand
+export type HolaCommand = ShowPageCommand
     | ShowAlertCommand | ShowMotionCommand | StartNewSessionCommand
     | HolaCommonCommand;
 
@@ -524,13 +516,6 @@ export class ServiceOperation {
         return await this.holaRequest(reqArg)
     }
 
-
-    async holaNarrationShowed(name: string, context: PageContext): Promise<HolaCommand[]> {
-        let reqArg: RequestArgs = {
-            "data": {"command":"narration_showed", "args":{"name": name}, "context":context}
-        }
-        return await this.holaRequest(reqArg)
-    }
 
     async holaPlayableCompleted(played: PlayableResult, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {

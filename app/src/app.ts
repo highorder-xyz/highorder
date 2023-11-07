@@ -4,7 +4,7 @@ import {
     PlainTextObject,
     HeaderElement,
     FooterElement, HeroElement, NavMenuElement, MenuItemElement,
-    DecorationElement, MotionElement, PlayableElement, NarrationParagraph,
+    DecorationElement, MotionElement, PlayableElement,
     ActionBarElement,
     ActionElement,
     ModalWidgetElement,
@@ -404,6 +404,12 @@ export const modal_helper = helpers.modal_helper
 export interface RenderContext {
     route: string;
     modal_id: string | undefined;
+    locals?: Record<string, any>
+}
+
+function with_context(context: RenderContext, args:Record<string, any>){
+    const new_context = Object.assign({}, context);
+    return Object.assign(new_context, args)
 }
 
 export const App = defineComponent({
@@ -573,7 +579,12 @@ export const App = defineComponent({
                 this.loading = true;
             }, 1000)
             const app_core = AppCore.getCore(this.app_id)
-            app_core.pageInteract(name, event, handler, page.locals).then((commands: HolaCommand[]) => {
+            let locals = page.locals
+            if(context.locals){
+                locals = context.locals
+                locals['_more'] = page.locals
+            }
+            app_core.pageInteract(name, event, handler, locals).then((commands: HolaCommand[]) => {
                 clearTimeout(timerId)
                 this.loading = false
                 this.handleImmediateCommands(commands, context)
@@ -1707,9 +1718,23 @@ export const App = defineComponent({
 
         renderDataTable(element: DataTableElement, context: RenderContext): VNode {
             const style = element.style ?? {}
+            const columns: any[] = []
+            for(const col of (element.columns ?? [])){
+                if(col['field']){
+                    columns.push(col)
+                } else if(col['elements']) {
+                    col['slot'] = ({locals}: any) => {
+                        const new_context = with_context(context, {locals: locals})
+                        return this.renderElementOrList(col['elements'], new_context)
+                    }
+                    columns.push(col)
+                } else {
+                    columns.push(col)
+                }
+            }
             return h(DataTable, {
                 data: element.data ?? [],
-                columns: element.columns ?? [],
+                columns: columns,
                 style: style,
                 paginator: element.paginator
             })
@@ -1742,35 +1767,6 @@ export const App = defineComponent({
                 onMenuItemClicked: (handler: string) => {
                     console.log('menu item clicked', name)
                     this.pageInteract("", 'click', handler ?? '', this.page, context)
-                }
-            })
-        },
-
-        renderNarration(context: RenderContext): VNode {
-            const app_core = AppCore.getCore(this.app_id)
-            const paragraph = this.page.narration.paragraphs[this.page.narration_idx]
-            const style = this.page.narration.style ?? {}
-            let text:string = ""
-            if (Array.isArray(paragraph.text)) {
-                text = paragraph.text.join('\n')
-            } else {
-                text = paragraph.text
-            }
-
-            return h(Modal, {
-                modal_id: this.modal_helper.new_modal_id(),
-                showNow: true,
-                animate: true,
-                text: text,
-                ...style,
-                onModalClicked: async () => {
-                    if (this.page.narration_idx < this.page.narration.paragraphs.length - 1) {
-                        this.page.narration_idx += 1
-                    } else {
-                        console.log('narration end.')
-                        const commands = await app_core.narrationShowed(this.page.narration.name)
-                        this.handleImmediateCommands(commands, context)
-                    }
                 }
             })
         },
@@ -1848,9 +1844,6 @@ export const App = defineComponent({
                     }
 
                 }
-            }
-            if (this.page.narration.paragraphs.length > 0) {
-                children.push(this.renderNarration({route: this.page.route, modal_id: undefined}))
             }
             return h('div', { class: ["page"] }, [...children])
         },

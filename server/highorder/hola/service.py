@@ -19,9 +19,8 @@ from typing import List, Any, Mapping, Sequence
 from .data import (
     ClientRequestContext, InitAdCommand, LimitObject, PageDefine, PlayableApplyCommand, PlayableApplyCommandArg, PlayableCompletedArg, PlayableConfig,
     HolaInterfaceDefine, PageInterface,
-    SetPlayer, SetPlayerArg, SetSessionCommand, SetSessionCommandArg, ShowAdCommand, ShowAdCommandArg, ShowAlertCommand, ShowAlertCommandArg, ShowModalCommand,
+    SetSessionCommand, SetSessionCommandArg, ShowAdCommand, ShowAdCommandArg, ShowAlertCommand, ShowAlertCommandArg, ShowModalCommand,
     ShowModalCommandArg, ShowMotionCommand, ShowMotionCommandArg,
-    ShowNarrationCommand, ShowNarrationCommandArg,
     ShowPageCommand, ShowPageCommandArg,
     UpdatePageCommand, UpdatePageCommandArg, UpdatePageInterface,
 )
@@ -1000,16 +999,6 @@ class HolaService:
         else:
             raise Exception('no item<{item_name}> info found.')
 
-    async def get_player_all(self, context):
-        player = await self.storage_svc.load_player()
-        itembox = await self.storage_svc.load_itembox()
-        return SetPlayer(args=
-                    SetPlayerArg(
-                        attributes=player.attribute,
-                        currencies=player.currency,
-                        items=itembox.detail.get('items', [])
-                    )
-                )
 
     def get_page_def(self, route):
         page_route, route_args = self.router.match(route)
@@ -1573,8 +1562,12 @@ class HolaService:
         transformed = {
             "type": "table-column",
             "field": self.eval_value(element.get('field', ''), context),
-            "label": self.eval_value(element.get('label', ''), context)
+            "label": self.eval_value(element.get('label', ''), context),
+            'elements': AutoList()
         }
+        for el in element.get('elements', []):
+            el_transformed = await self.transform_element(el, context)
+            transformed['elements'].add(el_transformed)
         return transformed
 
     async def transform_toolbar(self, element, context):
@@ -1667,24 +1660,6 @@ class HolaService:
         ret = {"text": []}
         for text in obj["text"]:
             ret["text"].append(self.eval_value(text, context))
-        return ret
-
-    async def transform_narration(self, obj, context):
-        ret = {
-            "type": "narration",
-            "name": obj["name"]
-        }
-
-        style = None
-        if 'style' in obj:
-            style = self.eval_object(obj['style'], context)
-            ret['style'] = style
-
-        paragraphs = []
-        for p in obj['paragraphs']:
-            paragraphs.append(self.transform_text(p, context))
-
-        ret['paragraphs'] = paragraphs
         return ret
 
     async def transform_row(self, obj, context):
@@ -2406,13 +2381,6 @@ class HolaService:
         return commands
 
 
-    async def narration_showed(self, name, context):
-        page_def, route_args = self.get_page_def(context.session.route)
-        command = await self.get_show_page_command(page_def, context)
-        return command
-
-
-
     async def get_playable_level(self, collection):
         state = await self.storage_svc.load_playable_state()
         content = state.playable_state.get(collection, {})
@@ -2623,14 +2591,13 @@ class HolaService:
 
     def eval_object(self, obj, context, ignore_keys=None):
         ignored = ignore_keys or []
-        if 'type' in obj:
-            if obj['type'] == 'ref-object':
-                return self.eval_ref_object(obj, context)
-            else:
-                raise Exception(f'unsupported object {obj["type"]} to eval.')
+        if 'type' in obj and obj['type'] == 'ref-object':
+            return self.eval_ref_object(obj, context)
         else:
             ret = {}
             for k, v in obj.items():
+                if k == 'type':
+                    continue
                 if ignored and k in ignored:
                     ret[k] = v
                 else:
@@ -2850,7 +2817,7 @@ class HolaService:
                     attr_def = self.get_attribute_define(ex.name)
                     display_name = attr_def.get('display_name') or attr_def['name']
                     commands.add(ShowAlertCommand(
-                        ShowAlertCommandArg(text=f'{display_name}不够了', title="")
+                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
                     ))
                 return commands
 
@@ -2864,13 +2831,13 @@ class HolaService:
                     currency_def = self.get_currency_define(ex.name)
                     display_name = currency_def.get('display_name') or currency_def['name']
                     commands.add(ShowAlertCommand(
-                        ShowAlertCommandArg(text=f'{display_name}不够了', title="")
+                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
                     ))
                 return commands
             except Exception as ex:
                 await logger.exception("run change exception")
                 commands.add(ShowAlertCommand(
-                    ShowAlertCommandArg(text="服务异常，请稍后尝试", title='')
+                    ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='')
                 ))
                 return commands
 
@@ -2883,18 +2850,18 @@ class HolaService:
             attr_def = self.get_attribute_define(ex.name)
             display_name = attr_def.get('display_name') or attr_def['name']
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text=f'{display_name}不够了', title="")
+                ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
             ))
         except CurrencyValueNotEnoughError as ex:
             currency_def = self.get_currency_define(ex.name)
             display_name = currency_def.get('display_name') or currency_def['name']
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text=f'{display_name}不够了', title="")
+                ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
             ))
         except Exception as ex:
             await logger.exception("apply change exception")
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text="服务异常，请稍后尝试", title='')
+                ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='')
             ))
         else:
             if 'changes' in context:
@@ -3264,6 +3231,10 @@ class HolaService:
             return await self.handle_refresh(handler, context)
         elif handler_type == 'show-modal':
             return await self.handle_show_modal(handler, context)
+        elif handler_type == 'invalidate-locals':
+            await logger.warning(f'TODO: handle invalidate-locals')
+        elif handler_type == 'create-object':
+            return await self.handle_create_object(handler, context)
         else:
             await logger.warning(f'no handler for handler {handler_type}')
 
@@ -3312,6 +3283,10 @@ class HolaService:
             raise Exception(f'unknown to handle show modal handler.')
 
         return await self.get_show_modal_command(_modal, context)
+
+    async def handle_create_object(self, handler, context):
+        pass
+
 
     async def handle_service_command(self, name, args, context):
         if name == 'call_succeed':
@@ -3511,6 +3486,8 @@ class HolaService:
                 ret_commands.add(await self.handle_page_interact(args, context=context))
             elif request_cmd.command == 'page_refresh':
                 ret_commands.add(await self.handle_page_refresh(args, context=context))
+            elif request_cmd.command == 'dialog_interact':
+                ret_commands.add(await self.handle_dialog_interact(args, context=context))
             elif request_cmd.command == 'call_action':
                 ret_commands.add(await self.handle_call_action(args, context=context))
             elif request_cmd.command == 'route_to':
@@ -3523,9 +3500,6 @@ class HolaService:
             elif request_cmd.command == 'auth_weixin':
                 code = args.get('code')
                 ret_commands.add(await self.auth_weixin(code, context=context))
-            elif request_cmd.command == 'narration_showed':
-                ret_commands.add(await self.narration_showed(args['name'],
-                    context=context))
             elif request_cmd.command == 'playable_completed':
                 args = factory.load(args, PlayableCompletedArg)
                 ret_commands.add(await self.playable_completed(args,
@@ -3563,7 +3537,6 @@ class HolaService:
     async def handle_session_start(self, args, context):
         commands = AutoList()
         commands.add(await self.get_init_ad(context=context))
-        # commands.add(await self.get_player_all(context=context))
         commands.add(await self.get_page('/', context=context))
         return commands
 
@@ -3615,6 +3588,45 @@ class HolaService:
         route = context.client.route
         commands.add(await self.get_page(route, context=context))
         return commands
+
+    async def handle_dialog_interact(self, args, context):
+        commands = AutoList()
+        name = args.get('name')
+        _event = args.get('event')
+        _handler = args.get('handler')
+        _locals = args.get('locals', {})
+        origin_context = context
+        context = copy.deepcopy(origin_context)
+        context.locals = munchify(_locals)
+
+        if name and _event:
+            handlers = await self.get_dialog_interact_handlers(name, _event, context)
+            if not handlers:
+                raise Exception(f'no handler for {name}:{_event}')
+            commands.add(await self.handle_page_interact_handlers(handlers, context))
+        elif _handler:
+            st = StampToken()
+            handlers = st.load(_handler)
+            if not isinstance(handlers, (list, tuple)):
+                handlers = [handlers]
+            commands.add(await self.handle_page_interact_handlers(handlers, context))
+        else:
+            commands.add(ShowAlertCommand(
+                        ShowAlertCommandArg(text=f'No name or handler set to confirm button.', title="")
+                    ))
+        return commands
+
+    async def get_dialog_interact_handlers(self, name, event, context):
+        modal = self.get_modal_def(name)
+        if name not in modal:
+            return None
+        click_handler = modal.get(name, {}).get('click', None)
+        if not click_handler:
+            return None
+        if not isinstance(click_handler, (list, tuple)):
+            click_handler = [click_handler]
+        handlers = [await self.transform_element(el, context) for el in click_handler]
+        return handlers
 
     async def handle_client_event(self, args, context):
         commands = AutoList()

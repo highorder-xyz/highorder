@@ -127,6 +127,9 @@ class HolaInterfaceDefine:
     advertisement: Optional[HolaAdvertisementDefine] = field(default_factory=HolaAdvertisementDefine)
 
 
+
+# Commands sends to app(webapp, desktop, lite etc...)
+
 @dataclass
 class ShowPageCommandArg:
     page: Any
@@ -172,16 +175,6 @@ class UpdatePageCommand:
     type: str = 'command'
     name: str = 'update_page'
 
-@dataclass
-class ModalConfirm:
-    text: str = ''
-    action: str = ''
-
-@dataclass
-class ModalCancel:
-    text: str = ''
-    action: str = ''
-
 
 @dataclass
 class PageInterface:
@@ -190,17 +183,6 @@ class PageInterface:
     locals: Optional[dict] = field(default_factory=dict)
     elements: Optional[List[dict]] = field(default_factory=list)
     type: str = 'page'
-
-@dataclass
-class ShowNarrationCommandArg:
-    narration: dict = field(default_factory=dict)
-
-
-@dataclass
-class ShowNarrationCommand:
-    args: ShowNarrationCommandArg
-    type: str = 'command'
-    name: str = 'show_narration'
 
 
 @dataclass
@@ -290,35 +272,24 @@ class InitAdCommand:
     type: str = 'command'
     name: str = 'init_ad'
 
+@dataclass
+class PlayableArchievement:
+    rating: int
+    features: dict = field(default_factory=dict)
 
 @dataclass
-class SetPlayerArg(dict):
-    attributes: dict = field(default_factory= dict)
-    currencies: dict = field(default_factory= dict)
+class PlayableLevel:
+    level_id: str
+
+@dataclass
+class PlayableCompletedArg:
+    succeed: bool
+    level: PlayableLevel
+    archievement: PlayableArchievement = field(default_factory=dict)
     items: List[dict] = field(default_factory=list)
 
 
-@dataclass
-class SetPlayer:
-    args: SetPlayerArg
-    type: str = 'command'
-    name: str = 'set_player'
-
-
-@dataclass
-class UpdatePlayer:
-    args: dict = field(default_factory=dict)
-    type: str = 'command'
-    name: str = 'update_player'
-
-
-# Client Request Command
-class ClientCommandName:
-    navigate_to = 'navigate_to'
-    narration_showed = 'narration_showed'
-    playable_completed = 'playable_completed'
-    ad_showed = 'ad_showed'
-
+# Request from App(webapp, mobile, desktop, lite etc...)
 
 @dataclass
 class ClientRequestContext:
@@ -340,23 +311,9 @@ class ClientRequestCommand:
     context: ClientRequestContext = field(default_factory=dict)
 
 
+# Request from console or editor.
+
 @dataclass
 class SetupRequestCommand:
     command: str
     args: dict = field(default_factory=dict)
-
-@dataclass
-class PlayableArchievement:
-    rating: int
-    features: dict = field(default_factory=dict)
-
-@dataclass
-class PlayableLevel:
-    level_id: str
-
-@dataclass
-class PlayableCompletedArg:
-    succeed: bool
-    level: PlayableLevel
-    archievement: PlayableArchievement = field(default_factory=dict)
-    items: List[dict] = field(default_factory=list)

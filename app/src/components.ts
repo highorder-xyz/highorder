@@ -39,10 +39,10 @@ function randomString(n: number, charset?: string): string {
     return res;
 }
 
-function array_push(arr: Array<any>, element: any){
-    if(Array.isArray(element)){
+function array_push(arr: Array<any>, element: any) {
+    if (Array.isArray(element)) {
         arr.push(...element)
-    } else if(isVNode(element)) {
+    } else if (isVNode(element)) {
         arr.push(element)
     }
 }
@@ -120,14 +120,14 @@ export const Button = defineComponent({
     props: {
         icon: { type: String },
         text: { type: String, default: "" },
-        href: { type: String, default: ""},
-        open_new: { type: Boolean, default: false},
+        href: { type: String, default: "" },
+        open_new: { type: Boolean, default: false },
         sub_text: { type: String, default: "" },
-        style: { type: Object, default: {}},
-        disable: { type: Boolean, default: false},
-        disable_text: { type:String, default: ""},
+        style: { type: Object, default: {} },
+        disable: { type: Boolean, default: false },
+        disable_text: { type: String, default: "" },
         height: { type: Number },
-        size_hint: {type: Boolean, default: true},
+        size_hint: { type: Boolean, default: true },
         h_size: { type: Number, default: 3 },
         v_size: { type: Number, default: 3 },
         text_size: { type: Number, default: 3 },
@@ -159,7 +159,7 @@ export const Button = defineComponent({
         }
     },
     emits: {
-        clicked: (evt:any) => {return true}
+        clicked: (evt: any) => { return true }
     },
     methods: {
         renderIcon(): VNode | undefined {
@@ -180,8 +180,8 @@ export const Button = defineComponent({
             const sizeName = get_size_name(this.$props.text_size)
             textClasses.push(styles[sizeName])
             if (this.$props.text) {
-                return h('div', { "class": textClasses }, h(RichText, { text: this.$props.text}))
-            } else if(this.$slots.default !== undefined) {
+                return h('div', { "class": textClasses }, h(RichText, { text: this.$props.text }))
+            } else if (this.$slots.default !== undefined) {
                 return this.$slots.default && this.$slots.default()
             }
         },
@@ -207,7 +207,7 @@ export const Button = defineComponent({
             const children: (VNode | undefined)[] = []
             let row_children: (VNode | undefined)[] = []
             if (this.$props.icon) {
-                if (!(this.$props.icon in icon_components) && (this.icon_pos === 'left' || this.icon_pos === 'top')){
+                if (!(this.$props.icon in icon_components) && (this.icon_pos === 'left' || this.icon_pos === 'top')) {
                     row_children.push(this.renderIcon())
                 }
             }
@@ -239,14 +239,16 @@ export const Button = defineComponent({
             btnClasses.push(styles["content_column"])
         }
 
-        const styleTags:Record<string, any> = {}
+        const styleTags: Record<string, any> = {}
         const tags = this.style.tags ?? []
 
-        for(const tag of tags){
-            if(tag === 'text'){
+        for (const tag of tags) {
+            if (tag === 'text') {
                 styleTags['text'] = true
-            } else if(["primary", "secondary"].includes(tag)){
+            } else if (["primary", "secondary", "success", "info", "warning", "help", "danger"].includes(tag)) {
                 styleTags['severity'] = tag
+            } else if (["rounded", "text", "outlined", "raised"].includes(tag)) {
+                styleTags[tag] = true
             }
         }
         const btnStyle: Record<string, any> = {}
@@ -254,7 +256,7 @@ export const Button = defineComponent({
             btnClasses.push(styles['primary'])
         }
 
-        if(this.size_hint){
+        if (this.size_hint) {
             const vSizeName = get_size_name(this.$props.v_size)
             btnClasses.push(styles[`v_${vSizeName}`])
             const hSizeName = get_size_name(this.$props.h_size)
@@ -264,26 +266,26 @@ export const Button = defineComponent({
         if (this.$props.icon && this.$props.icon in icon_components) {
             icon = icon_components[this.$props.icon]
         } else {
-            icon = this.$props.icon ? `pi pi-${this.$props.icon}`: "pi"
+            icon = this.$props.icon ? `pi pi-${this.$props.icon}` : "pi"
         }
 
         const btn = h(PrimeButton, {
-                label: this.text,
-                icon: icon,
-                "class": btnClasses,
-                style: btnStyle,
-                disabled: this.disable,
-                ...styleTags,
-                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked", evt) }
-            },
+            label: this.text,
+            icon: icon,
+            "class": btnClasses,
+            style: btnStyle,
+            disabled: this.disable,
+            ...styleTags,
+            onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked", evt) }
+        },
             {
                 // "default": () => {
                 //     return this.renderChildren()
                 // }
             }
         )
-        if(this.href.length > 0){
-            return h('a', {href: this.href, "target": this.open_new === true ? '_blank' : '_self'}, btn)
+        if (this.href.length > 0) {
+            return h('a', { href: this.href, "target": this.open_new === true ? '_blank' : '_self' }, btn)
         } else {
             return btn;
         }
@@ -295,7 +297,7 @@ export const Link = defineComponent({
     props: {
         text: { type: String, default: "" },
         open_mode: { type: String, default: "new" },
-        target_url: { type: String, default: ""}
+        target_url: { type: String, default: "" }
     },
     emits: {
         clicked: null
@@ -327,18 +329,18 @@ export const IconButton = defineComponent({
     render() {
         let icon = ''
         const sub_nodes = []
-        if (this.$props.icon in icon_components){
+        if (this.$props.icon in icon_components) {
             icon = icon_components[this.$props.icon]
         } else {
             sub_nodes.push(this.renderIcon())
         }
         return h(PrimeButton, {
-                icon: icon, "class": styles["icon-button"],
-                onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
-            },
+            icon: icon, "class": styles["icon-button"],
+            onClick: (evt: any) => { evt.stopPropagation(); this.$emit("clicked") }
+        },
             {
                 "default": () => {
-                    if(!(this.$props.icon in icon_components)){
+                    if (!(this.$props.icon in icon_components)) {
                         return this.renderIcon()
                     }
                 }
@@ -388,7 +390,7 @@ export const IconNumberButton = defineComponent({
         renderIcon(): VNode {
             const icon = this.$props.icon
             if (icon in icon_components) {
-                return h('div', { width: this.size, height: this.size, class:icon_components[icon]})
+                return h('div', { width: this.size, height: this.size, class: icon_components[icon] })
             } else {
                 return h('img', { width: this.size, height: this.size, src: icon })
             }
@@ -489,14 +491,14 @@ export const Title = defineComponent({
     props: {
         title: { type: String, required: true },
         level: { type: Number, default: 1 },
-        sub_title: { type: String, default: ""}
+        sub_title: { type: String, default: "" }
     },
     methods: {
     },
     render() {
         const nodes: VNode[] = []
         nodes.push(h('span', { "class": styles[`title-${this.level}`] }, this.title))
-        if(this.sub_title.length > 0){
+        if (this.sub_title.length > 0) {
             nodes.push(h('span', { "class": styles[`title-sub-${this.level}`] }, this.sub_title))
         }
         return h('div', { "class": styles['title'] }, nodes)
@@ -514,7 +516,7 @@ export const Paragraph = defineComponent({
     render() {
         const style: any = {}
         let align = this.align
-        if(align === 'start'){
+        if (align === 'start') {
             align = 'left'
         } else if (align === 'end') {
             align = 'right'
@@ -565,15 +567,15 @@ export const Modal = defineComponent({
     props: {
         closeIcon: { type: Boolean, default: false },
         showNow: { type: Boolean, default: false, required: false },
-        modal_id: { type: String, default: ""},
+        modal_id: { type: String, default: "" },
         title: { type: String, default: "" },
-        title_action: { type: Object, default: undefined},
+        title_action: { type: Object, default: undefined },
         text: { type: String, default: "" },
         text_size: { type: Number, default: 3 },
         animate: { type: Boolean, default: false },
         content_html: { type: String, default: "" },
-        element_align: { type: String, default: "center"},
-        element_justify: { type: String, default: "center"},
+        element_align: { type: String, default: "center" },
+        element_justify: { type: String, default: "center" },
         actions: { type: Array as PropType<Array<ActionDefinition>>, default: () => ([]) },
         actionsVertical: { type: Boolean, default: false },
         actionsPosition: { type: String, default: "center" },
@@ -628,7 +630,7 @@ export const Modal = defineComponent({
                 this.textShowed = textLength
             }
         },
-        modal_id(oldValue, newValue){
+        modal_id(oldValue, newValue) {
             this.showModal = this.$props.showNow
         }
 
@@ -683,7 +685,7 @@ export const Modal = defineComponent({
                 }))
             }
 
-            if (!this.actionConfirm && !this.actionCancel){
+            if (!this.actionConfirm && !this.actionCancel) {
                 buttons.push(h('div', {
                     class: styles["close-bar"],
                     onClick: () => {
@@ -697,25 +699,26 @@ export const Modal = defineComponent({
         },
         renderElements() {
             const elements: VNode[] = []
-            let title_action  = this.title_action
-            if(this.title_action !== undefined && Object.keys(this.title_action).length == 0){
+            let title_action = this.title_action
+            if (this.title_action !== undefined && Object.keys(this.title_action).length == 0) {
                 title_action = undefined
             }
-            if (this.title.length > 0 || title_action ) {
+            if (this.title.length > 0 || title_action) {
                 const title_nodes: VNode[] = []
 
-                if(title_action !== undefined){
+                if (title_action !== undefined) {
                     title_nodes.push(
-                        h('div', {"class": styles["title-action"]}, h(Button, {
+                        h('div', { "class": styles["title-action"] }, h(Button, {
                             text: title_action.text ?? "", icon: title_action.icon ?? "", "size_hint": false, onClicked: () => {
                                 if (title_action && title_action.clicked) {
                                     title_action.clicked()
                                 }
-                            }})
+                            }
+                        })
                         )
                     )
                 }
-                title_nodes.push(h('div', {"class": styles["title"]}, h('b', this.title)))
+                title_nodes.push(h('div', { "class": styles["title"] }, h('b', this.title)))
 
                 elements.push(h('div', { "class": styles["title-bar"] }, title_nodes))
             } else {
@@ -793,15 +796,15 @@ export const Dialog = defineComponent({
     props: {
         closeIcon: { type: Boolean, default: false },
         showNow: { type: Boolean, default: false, required: false },
-        modal_id: { type: String, default: ""},
+        modal_id: { type: String, default: "" },
         title: { type: String, default: "" },
-        title_action: { type: Object, default: undefined},
+        title_action: { type: Object, default: undefined },
         text: { type: String, default: "" },
         text_size: { type: Number, default: 3 },
         animate: { type: Boolean, default: false },
         content_html: { type: String, default: "" },
-        element_align: { type: String, default: "center"},
-        element_justify: { type: String, default: "center"},
+        element_align: { type: String, default: "center" },
+        element_justify: { type: String, default: "center" },
         actions: { type: Array as PropType<Array<ActionDefinition>>, default: () => ([]) },
         actionsVertical: { type: Boolean, default: false },
         actionsPosition: { type: String, default: "center" },
@@ -828,7 +831,7 @@ export const Dialog = defineComponent({
         this.showModal = this.$props.showNow;
     },
     watch: {
-        modal_id(oldValue, newValue){
+        modal_id(oldValue, newValue) {
             this.showModal = this.$props.showNow
         }
     },
@@ -848,9 +851,9 @@ export const Dialog = defineComponent({
             this.$emit("modalClosed")
         },
 
-        updateVisible(value: boolean){
+        updateVisible(value: boolean) {
             this.$data.showModal = value
-            if(value === false){
+            if (value === false) {
                 this.$emit("modalClosed")
             }
         }
@@ -861,7 +864,7 @@ export const Dialog = defineComponent({
             visible: this.showModal,
             header: this.title,
             class: modalClasses,
-            "onUpdate:visible": (value:boolean) => { this.updateVisible(value) },
+            "onUpdate:visible": (value: boolean) => { this.updateVisible(value) },
             modal: true
         }, {
             "header": () => {
@@ -869,23 +872,52 @@ export const Dialog = defineComponent({
             },
 
             "default": () => {
-                const elements: any[]  = []
+                const elements: any[] = []
 
                 if (this.text) {
-                    elements.push(h('div', { "class": styles["custom_text"]}, this.text))
+                    elements.push(h('div', { "class": styles["custom_text"] }, this.text))
                 }
 
                 if (this.$props.content_html.length > 0) {
                     elements.push(h('div', { "class": [styles["text"], styles["left"]], innerHTML: this.content_html }))
                 }
-                if(this.$slots.default) {
+                if (this.$slots.default) {
                     const slot_default = this.$slots.default()
                     elements.push(slot_default)
                 }
                 return elements
             },
             "footer": () => {
-                return this.$slots.footer && this.$slots.footer()
+                const elements: any[] = []
+                if (this.$slots.footer) {
+                    elements.push(this.$slots.footer())
+                }
+
+                if (this.actionConfirmText) {
+                    elements.push(
+                        h(Button, {
+                            text: this.actionConfirmText,
+                            onClicked: () => { this.$emit("modalConfirmed")}
+                        }, {
+
+                        })
+                    )
+                }
+                if (this.actionCancelText) {
+                    elements.push(
+                        h(Button, {
+                            text: this.actionCancelText,
+                            style: {
+                                tags: ["outlined", "secondary"]
+                            },
+                            onClicked: () => {
+                                this.$emit("modalCancelled")
+                                this.updateVisible(false)
+                            }
+                        }, {})
+                    )
+                }
+                return elements
             }
 
         })
@@ -923,7 +955,7 @@ export const NavBar = defineComponent({
         },
         renderRight(): VNode[] {
             const items: VNode[] = []
-            if(this.$slots.default){
+            if (this.$slots.default) {
                 array_push(items, this.$slots.default())
             }
 
@@ -944,7 +976,7 @@ export const NavBar = defineComponent({
                 h('div', { "class": styles["nav-area-center"] }, this.renderCenter()),
                 h('div', { "class": styles["nav-area-right"] }, this.renderRight()),
             ]),
-            h('div', {"class": styles["nav-bar-placeholder"]})
+            h('div', { "class": styles["nav-bar-placeholder"] })
         ]
     }
 })
@@ -973,7 +1005,7 @@ export const Header = defineComponent({
                 h('div', { "class": styles["header-center"] }, this.$slots.center && this.$slots.center()),
                 h('div', { "class": styles["header-end"] }, this.$slots.end && this.$slots.end()),
             ]),
-            h('div', {class: styles["h-header-holder"]})
+            h('div', { class: styles["h-header-holder"] })
         ]
     }
 })
@@ -1004,7 +1036,7 @@ export const Footer = defineComponent({
         },
         renderRight(): VNode[] {
             const items: VNode[] = []
-            if(this.$slots.default){
+            if (this.$slots.default) {
                 array_push(items, this.$slots.default())
             }
 
@@ -1015,7 +1047,7 @@ export const Footer = defineComponent({
         }
     },
     render() {
-        return h('div', { "class": [styles["footer"], styles["h-footer"]]}, [
+        return h('div', { "class": [styles["footer"], styles["h-footer"]] }, [
             h('div', { "class": styles["footer-area-left"] }, this.renderLeft()),
             h('div', { "class": styles["footer-area-center"] }, this.renderCenter()),
             h('div', { "class": styles["footer-area-right"] }, this.renderRight()),
@@ -1250,13 +1282,13 @@ export const Hero = defineComponent({
             return h('div', { class: styles["hero-line"] }, textNodes)
         } else {
             const children = []
-            if(this.iamge_src){
-                children.push(h('img', {src: this.iamge_src}))
+            if (this.iamge_src) {
+                children.push(h('img', { src: this.iamge_src }))
             }
-            if(this.title){
-                children.push(h('div', {class: styles["title"]}, this.title))
+            if (this.title) {
+                children.push(h('div', { class: styles["title"] }, this.title))
             }
-            if(this.text){
+            if (this.text) {
                 children.push(h('div', {}, this.text))
             }
             return h('div', { class: styles["h-hero"] }, children)
@@ -1302,22 +1334,23 @@ export const Row = defineComponent({
     props: {
         justify: { type: String, default: "start" },
         align: { type: String, default: "center" },
-        width_size: { type: Number, default: -1},
-        tags: { type:Array, default: []}
+        width_size: { type: Number, default: -1 },
+        tags: { type: Array, default: [] }
     },
     render() {
-        const style = { "justify-content": this.justify, "align-items": this.align}
+        const style = { "justify-content": this.justify, "align-items": this.align }
         const viewClasses = [styles["h-row"]]
         const slots = this.$slots
 
-        if (this.width_size >= 0){
+        if (this.width_size >= 0) {
             const sizeName = get_size_name(this.$props.width_size)
             viewClasses.push(styles[`w_${sizeName}`])
         }
-        for(const t of this.tags){
+        for (const t of this.tags) {
             viewClasses.push(styles[t as string])
         }
-        return h('div', { class: viewClasses,
+        return h('div', {
+            class: viewClasses,
             style: style
         }, slots.default && slots.default())
     }
@@ -1328,24 +1361,25 @@ export const Column = defineComponent({
     props: {
         justify: { type: String, default: "start" },
         align: { type: String, default: "center" },
-        height_size: { type: Number, default: -1},
-        width_size: { type: Number, default: -1}
+        height_size: { type: Number, default: -1 },
+        width_size: { type: Number, default: -1 }
     },
     render() {
-        const style = { "justify-content": this.justify, "align-items": this.align}
+        const style = { "justify-content": this.justify, "align-items": this.align }
         const viewClasses = [styles["column"]]
 
-        if (this.height_size >= 0){
+        if (this.height_size >= 0) {
             const sizeName = get_size_name(this.$props.height_size)
             viewClasses.push(styles[`h_${sizeName}`])
         }
 
-        if (this.width_size >= 0){
+        if (this.width_size >= 0) {
             const sizeName = get_size_name(this.$props.width_size)
             viewClasses.push(styles[`w_${sizeName}`])
         }
 
-        return h('div', { class: viewClasses,
+        return h('div', {
+            class: viewClasses,
             style: style
         }, this.$slots.default && this.$slots.default())
     }
@@ -1451,42 +1485,42 @@ export const IconCountText = defineComponent({
 export const ProgressBar = defineComponent({
     name: 'ProgressBar',
     props: {
-        percent: {type: Number, default: -1},
-        value: { type: Number, default: -1},
-        total: { type: Number, default: -1},
-        width_size: { type: Number, default: -1}
+        percent: { type: Number, default: -1 },
+        value: { type: Number, default: -1 },
+        total: { type: Number, default: -1 },
+        width_size: { type: Number, default: -1 }
     },
     render() {
         const viewClasses = [styles["progress-bar"]]
         const sizeName = get_size_name(this.$props.width_size)
-        if(this.width_size >= 0){
+        if (this.width_size >= 0) {
             viewClasses.push(styles[`w_${sizeName}`])
         }
         let progress_text = ""
         let progress_percent = "0%"
-        if(this.value >= 0 && this.total > 0){
-            let percent_value = Math.floor((this.value*100)/this.total)
-            if(percent_value > 100){
+        if (this.value >= 0 && this.total > 0) {
+            let percent_value = Math.floor((this.value * 100) / this.total)
+            if (percent_value > 100) {
                 percent_value = 100
             }
             progress_text = `${this.value}/${this.total}`
             progress_percent = `${percent_value}%`
 
-        } else if(this.percent >= 0){
+        } else if (this.percent >= 0) {
             let percent_value = Math.floor(this.percent)
             progress_text = `${percent_value}%`
-            if(percent_value > 100){
+            if (percent_value > 100) {
                 progress_percent = "100%"
             } else {
                 progress_percent = progress_text
             }
 
         }
-        return  h('div', { class: viewClasses },
-                    h('div', { class: styles["progress"], style: {"width": progress_percent}},
-                        h('div', { class: styles["progress-text"]}, progress_text)
-                    )
-                )
+        return h('div', { class: viewClasses },
+            h('div', { class: styles["progress"], style: { "width": progress_percent } },
+                h('div', { class: styles["progress-text"] }, progress_text)
+            )
+        )
     }
 });
 
@@ -1538,7 +1572,7 @@ export const Icon = defineComponent({
     name: 'Icon',
     props: {
         icon: { type: String, default: "" },
-        size: { type: Number, default: 3}
+        size: { type: Number, default: 3 }
     },
 
     render() {
@@ -1629,17 +1663,17 @@ export const TableView = defineComponent({
 export const Logo = defineComponent({
     name: 'Logo',
     props: {
-        text: { type: String, default: ""},
-        image_src: { type: String, default: ""}
+        text: { type: String, default: "" },
+        image_src: { type: String, default: "" }
     },
 
     render() {
         const children = []
-        children.push(h('img', {class: styles['h-logo'], src: this.image_src}))
-        if(this.text){
-            children.push(h('div', {class: styles['h-logo-text']}, this.text))
+        children.push(h('img', { class: styles['h-logo'], src: this.image_src }))
+        if (this.text) {
+            children.push(h('div', { class: styles['h-logo-text'] }, this.text))
         }
-        return h('a', { class: [styles["h-row"]]}, children)
+        return h('a', { class: [styles["h-row"]] }, children)
     }
 });
 
@@ -1647,10 +1681,10 @@ export const Logo = defineComponent({
 export const InputText = defineComponent({
     name: 'InputText',
     props: {
-        label: { type: String, default: ""},
-        name: { type: String, default: ""},
-        value: { type: String, default: ""},
-        password: { type: Boolean, Default: false}
+        label: { type: String, default: "" },
+        name: { type: String, default: "" },
+        value: { type: String, default: "" },
+        password: { type: Boolean, Default: false }
     },
 
     data() {
@@ -1660,7 +1694,7 @@ export const InputText = defineComponent({
     },
 
     emits: {
-        textChanged: (text: string) => {return true;}
+        textChanged: (text: string) => { return true; }
     },
 
     methods: {
@@ -1672,34 +1706,35 @@ export const InputText = defineComponent({
     render() {
         const children = []
         let name = this.name
-        if(name.length == 0){
+        if (name.length == 0) {
             name = randomString(12)
         }
-        if(this.label){
+        if (this.label) {
             children.push(h('label', {
                 for: name,
-                class:[styles["h-form-label"]]
+                class: [styles["h-form-label"]]
             }, this.label))
         }
-        if(this.password){
+        if (this.password) {
             children.push(h(PrimePassword, {
                 id: name,
-                class:[styles["h-form-element"]],
+                class: [styles["h-form-element"]],
                 toggleMask: true,
                 ref: 'input',
                 modelValue: this.value,
                 "onUpdate:modelValue": this.valueChanged
             }))
         } else {
-            children.push(h(PrimeInputText, {id: name,
-                class:[styles["h-form-element"]],
+            children.push(h(PrimeInputText, {
+                id: name,
+                class: [styles["h-form-element"]],
                 modelValue: this.value,
                 ref: 'input',
                 "onUpdate:modelValue": this.valueChanged
             }))
         }
 
-        return h('div', { class: [styles["h-form-line"]]}, children)
+        return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
 
@@ -1708,14 +1743,14 @@ export const DataTable = defineComponent({
     props: {
         data: { type: Array, default: [] },
         columns: { type: Array as PropType<Array<any>>, default: [] },
-        paginator: { type: Object, default: {}},
-        style: { type: Object, default: {}},
+        paginator: { type: Object, default: {} },
+        style: { type: Object, default: {} },
     },
 
     render() {
         const rows = this.paginator.rows
         const props: any = {}
-        if(rows){
+        if (rows) {
             props['rows'] = rows
             props['paginator'] = true
         }
@@ -1728,12 +1763,19 @@ export const DataTable = defineComponent({
             {
                 "default": () => {
                     const nodes: VNode[] = []
-                    for(const col of this.columns){
-                        const col_value = {
-                            'field': col['field'],
-                            'header': col['label']
+                    for (const col of this.columns) {
+                        if (col['field']){
+                            const col_value = {
+                                'field': col['field'],
+                                'header': col['label']
+                            }
+                            nodes.push(h(PrimeColumn, { ...col_value }, {}))
+                        } else if( col['slot']) {
+                            nodes.push(h(PrimeColumn, { header: col['label'], exportable: false }, {
+                                'body': (slotProps:any) => {return col['slot']({locals: slotProps.data}) }
+                            }))
                         }
-                        nodes.push(h(PrimeColumn, {...col_value}, {}))
+
                     }
                     return nodes
                 }
@@ -1744,7 +1786,7 @@ export const DataTable = defineComponent({
 export const Toolbar = defineComponent({
     name: 'Toolbar',
     props: {
-        style: { type: Object, default: {}},
+        style: { type: Object, default: {} },
     },
     render() {
         const content_tags = this.style.content_tags ?? []
@@ -1766,15 +1808,15 @@ export const Toolbar = defineComponent({
 export const Dropdown = defineComponent({
     name: 'Dropdown',
     props: {
-        label: { type: String, default: ""},
-        name: { type: String, default: ""},
-        value: { type: String, default: ""},
-        style: { type: Object, default: {}},
-        options: { type: Array as PropType<Array<any>>, default: []}
+        label: { type: String, default: "" },
+        name: { type: String, default: "" },
+        value: { type: String, default: "" },
+        style: { type: Object, default: {} },
+        options: { type: Array as PropType<Array<any>>, default: [] }
     },
     data() {
         const options = []
-        for(const opt of this.options){
+        for (const opt of this.options) {
             options.push({
                 name: opt['label'],
                 code: opt['name']
@@ -1792,7 +1834,7 @@ export const Dropdown = defineComponent({
     },
 
     emits: {
-        selectChanged: (select: string) => {return true;}
+        selectChanged: (select: string) => { return true; }
     },
 
     onMounted() {
@@ -1809,13 +1851,13 @@ export const Dropdown = defineComponent({
     render() {
         const children = []
         let name = this.name
-        if(name.length == 0){
+        if (name.length == 0) {
             name = randomString(12)
         }
-        if(this.label){
+        if (this.label) {
             children.push(h('label', {
                 for: name,
-                class:[styles["h-form-label"]]
+                class: [styles["h-form-label"]]
             }, this.label))
         }
         children.push(h(PrimeDropdown, {
@@ -1827,7 +1869,7 @@ export const Dropdown = defineComponent({
         }, {
 
         }))
-        return h('div', { class: [styles["h-form-line"]]}, children)
+        return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
 
@@ -1836,17 +1878,17 @@ export const Card = defineComponent({
     props: {
         title: { type: String, default: "" },
         sub_title: { type: String, default: "" },
-        text: { type: String, default: ""},
-        image_src: { type: String, default: ""},
+        text: { type: String, default: "" },
+        image_src: { type: String, default: "" },
         showBorder: { type: Boolean, default: true },
-        style: { type: Object, default: {}},
+        style: { type: Object, default: {} },
     },
 
     render() {
         const content_tags = this.style.content_tags ?? []
         return h(PrimeCard, { class: [styles["card"], styles["h-card"]] }, {
             "header": () => {
-                return h('img', {src: this.image_src})
+                return h('img', { src: this.image_src })
             },
             "title": () => {
                 return this.title
@@ -1855,7 +1897,7 @@ export const Card = defineComponent({
                 return this.sub_title
             },
             "content": () => {
-                return h('div', { class: [styles['h-content'], ...content_tags]}, [
+                return h('div', { class: [styles['h-content'], ...content_tags] }, [
                     h('p', this.text),
                     this.$slots.default && this.$slots.default()
                 ])
@@ -1899,7 +1941,7 @@ export const SideBar = defineComponent({
     name: 'SideBar',
     props: {
         style: { type: Object, default: {} },
-        elements: { type: Array, default: []}
+        elements: { type: Array, default: [] }
     },
     render() {
         const style = {
@@ -1911,7 +1953,8 @@ export const SideBar = defineComponent({
         const sizeName = get_size_name(this.$props.style.size_hint ?? 3)
         viewClasses.push(styles[`hs-${sizeName}`])
 
-        return h('div', { class: viewClasses,
+        return h('div', {
+            class: viewClasses,
             style: style
         }, this.$slots.default && this.$slots.default())
     }
@@ -1923,26 +1966,26 @@ export const Menu = defineComponent({
     props: {
         label: { type: String, default: "" },
         icon: { type: String, default: "" },
-        popup: { type: Boolean, default: false},
+        popup: { type: Boolean, default: false },
         items: { type: Array as PropType<Array<any>>, default: [] },
         style: { type: Object, default: {} }
     },
     emits: {
-        menuItemClicked: (name: string) => {return true;}
+        menuItemClicked: (name: string) => { return true; }
     },
     computed: {
         menu_model() {
-            const model:Record<string, any> = {
+            const model: Record<string, any> = {
                 'items': []
             }
-            if(this.label){
+            if (this.label) {
                 model['label'] = this.label
             }
-            if(this.icon) {
+            if (this.icon) {
                 model['icon'] = `pi pi-${this.icon}`
             }
-            if(this.items.length > 0){
-                for(const it of this.items){
+            if (this.items.length > 0) {
+                for (const it of this.items) {
                     model['items'].push({
                         label: it.label ?? "",
                         icon: it.icon ? `pi pi-${it.icon}` : "",
@@ -1963,7 +2006,7 @@ export const Menu = defineComponent({
     },
     render() {
         console.log('render Menu', this.menu_model, this.items.values())
-        return h(PrimeMenu, { model: this.menu_model, popup: this.popup, ref:'_prime_menu'})
+        return h(PrimeMenu, { model: this.menu_model, popup: this.popup, ref: '_prime_menu' })
     }
 });
 
@@ -2093,7 +2136,7 @@ export const RichText = defineComponent({
 
                     } else if (tag.name === 'icon') {
                         return h('span', {}, h('img', {
-                            style: { height: "1.1em", "vertical-align": "middle"},
+                            style: { height: "1.1em", "vertical-align": "middle" },
                             src: tag.attributes['src']
                         }))
                     } else if (tag.name === 'image') {
