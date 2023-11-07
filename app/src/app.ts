@@ -65,7 +65,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     DataTable,
     Toolbar,
     Dropdown,
-    Dialog
+    Dialog,
+    Toast
 } from './components'
 
 import { app_platform } from './platform';
@@ -608,6 +609,41 @@ export const App = defineComponent({
             })
         },
 
+        dialogInteract(name:string, event:string, handler:string, page:Page, context: RenderContext){
+            const timerId = setTimeout(()=> {
+                this.loading = true;
+            }, 1000)
+            const app_core = AppCore.getCore(this.app_id)
+            let locals = page.locals
+            if(context.locals){
+                locals = context.locals
+                locals['_more'] = page.locals
+            }
+            console.log('dialog interact', context)
+            app_core.dialogInteract(context.modal_id ?? "", name, event, handler, locals).then((commands: HolaCommand[]) => {
+                clearTimeout(timerId)
+                this.loading = false
+                this.handleImmediateCommands(commands, context)
+            }).catch((err: Error) => {
+                clearTimeout(timerId)
+                this.loading = false
+                const modal_id = this.modal_helper.new_modal_id()
+                this.modal_helper.open(modal_id, {
+                    text: i18next.t('makesure_network_and_latest_version'),
+                    actionsVertical: true,
+                    actionConfirmText: i18next.t('retry_text'),
+                    onModalConfirmed: () => {
+                        this.alert_helper.show(i18next.t('retring_and_waiting'))
+                        app_platform.logEvent(AnalyticsEventKind.button_event, {
+                            route: this.page.route,
+                            text: "errdlg_confirm"
+                        })
+                        this.dialogInteract(name, event, handler, page, context)
+                    }
+                })
+            })
+        },
+
         navigateTo(route:string, context: RenderContext){
             const timerId = setTimeout(()=> {
                 this.loading = true;
@@ -716,20 +752,35 @@ export const App = defineComponent({
                     const args = command.args as ShowAlertCommandArg
                     const msg = args.text
                     const title = args.title
+                    const duration = args.duration ?? 3000
+                    const extra: Record<string, any> = {}
+                    let severity:any = "info"
                     console.log('show_alert', args)
-                    this.alert_helper.show(msg, title)
+                    // this.alert_helper.show(msg, title)
+                    for(const tag of args.tags ?? []){
+                        if (["info", "success", "warn", "error"].includes(tag)){
+                            severity = tag
+                        }
+
+                        if (["top-right", "top-left", "bottom-left", "bottom-right"].includes(tag)){
+                            extra['group'] = {
+                                "top-right": "tr", "top-left": "tl",
+                                "bottom-left": "bl", "bottom-right": "br"}[tag]
+                        }
+                    }
+                    this.$toast.add({ severity: severity, ...extra, summary: title, detail: msg, life: duration })
                 } else if (command.name === 'show_modal'){
                     const open_modal = command.args as ModalElement
                     const modal_id = this.modal_helper.new_modal_id()
+                    let dlg_context = { ...context }
+                    dlg_context.modal_id = modal_id
+                    dlg_context.locals = {}
                     await this.modal_helper.open_wait(modal_id,
-                        this.getModalOption(open_modal, context),
+                        this.getModalOption(open_modal, dlg_context),
                         context,
                         () => {
                             if(open_modal.elements){
-                                return this.renderModalElements(open_modal.elements, {
-                                    route: this.page.route,
-                                    modal_id: modal_id
-                                })
+                                return this.renderModalElements(open_modal.elements, dlg_context)
                             }
                         }
                     )
@@ -1484,6 +1535,8 @@ export const App = defineComponent({
                 onModalConfirmed: () => {
                     if(open_modal.confirm?.action){
                         this.executeAction(open_modal.confirm.action, open_modal.confirm.args, context)
+                    } else {
+                        this.dialogInteract(open_modal.name ?? "", "confirm", open_modal.confirm?.click ?? "", this.page, context)
                     }
                     app_platform.logEvent(AnalyticsEventKind.button_event, {
                         route: this.page.route,
@@ -1508,8 +1561,9 @@ export const App = defineComponent({
 
         openModal(open_modal: ModalElement, args: Record<string, any>, context: RenderContext){
             const modal_id = this.modal_helper.new_modal_id()
-            let sub_context = { ...context }
-            sub_context.modal_id = modal_id
+            let dlg_context = { ...context }
+            dlg_context.modal_id = modal_id
+            dlg_context.locals = {}
 
             let inplace = false
             if ('inplace' in args){
@@ -1520,11 +1574,11 @@ export const App = defineComponent({
                 this.modal_helper.open_sub(
                     {
                         modal_id: modal_id,
-                        option: this.getModalOption(open_modal, context),
+                        option: this.getModalOption(open_modal, dlg_context),
                         close_listeners: [],
                         slot_render: () => {
                             if(open_modal.elements){
-                                return this.renderModalElements(open_modal.elements, sub_context)
+                                return this.renderModalElements(open_modal.elements, dlg_context)
                             }
                         }
                     },
@@ -1534,10 +1588,10 @@ export const App = defineComponent({
             } else {
                 this.modal_helper.open(
                     modal_id,
-                    this.getModalOption(open_modal, context),
+                    this.getModalOption(open_modal, dlg_context),
                     () => {
                         if(open_modal.elements){
-                            return this.renderModalElements(open_modal.elements, sub_context)
+                            return this.renderModalElements(open_modal.elements, dlg_context)
                         }
                     }
                 )
@@ -1621,14 +1675,15 @@ export const App = defineComponent({
 
         renderInput(element: InputElement, context: RenderContext): VNode {
             const name = element.name ?? ""
+            let locals: Record<string, any> =  context.locals ?? this.page.locals
             const input = h(InputText, {
                 label: element.label ?? "",
                 password: element.password ?? false,
-                value: this.page.locals[name],
+                value: element.value ?? "",
                 name: name,
                 onTextChanged: (text: string) => {
                     if(name.length > 0){
-                        this.page.locals[name] = text
+                        locals[name] = text
                     }
                 }
             })
@@ -1637,13 +1692,16 @@ export const App = defineComponent({
 
         renderDropdown(element: DropdownElement, context: RenderContext): VNode {
             const name = element.name ?? ""
+            let locals: Record<string, any> =  context.locals ?? this.page.locals
             const input = h(Dropdown, {
                 label: element.label ?? "",
                 value: element.value ?? "",
                 options: element.options ?? [],
                 name: name,
                 onSelectChanged: (value: string) => {
-                    console.log('onSelectChanged', value)
+                    if(name.length > 0){
+                        locals[name] = value
+                    }
                 }
             })
             return input
@@ -1765,7 +1823,6 @@ export const App = defineComponent({
                 label: element.label ?? "",
                 icon: element.icon ?? "",
                 onMenuItemClicked: (handler: string) => {
-                    console.log('menu item clicked', name)
                     this.pageInteract("", 'click', handler ?? '', this.page, context)
                 }
             })
@@ -1856,6 +1913,7 @@ export const App = defineComponent({
             }
 
             children.push(this.alert_helper.render())
+            children.push(h(Toast, {}, {}))
             children.push(h('canvas', {id:"motion_canvas", class:"motion_canvas"}))
             const app_core = AppCore.getCore(this.app_id)
             if(this.loading){

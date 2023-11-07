@@ -188,6 +188,7 @@ class PageInterface:
 @dataclass
 class ShowModalCommandArg:
     type: str = 'modal'
+    name: str = ''
     title: str = ''
     content: str = ''
     content_html: str = ''
@@ -235,6 +236,8 @@ class ExcuteActionCommand:
 class ShowAlertCommandArg:
     text: str
     title: str = None
+    tags: list = field(default_factory=list)
+    duration: int = field(default=3000)
 
 
 @dataclass

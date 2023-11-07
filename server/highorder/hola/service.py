@@ -6,7 +6,7 @@ from .account import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService
 )
 from highorder.base.compiler import Compiler
-from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken
+from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken, deep_get
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from highorder.base.model import DB_NAME
@@ -1473,6 +1473,7 @@ class HolaService:
     async def transform_modal(self, obj, context):
         ret = {
             "type": "modal",
+            "name": self.eval_value(obj.get("name", ""), context),
             "title": self.eval_value(obj.get("title", ""), context)
         }
         if "title_action" in obj:
@@ -1585,11 +1586,18 @@ class HolaService:
         return transformed
 
     async def transform_dropdown(self, element, context):
+        name = self.eval_value(element.get('name', ''), context)
+        if name:
+            value = deep_get(context.locals, name, None)
+
+        if not value:
+            value = self.eval_value(element.get('value', ''), context)
+
         transformed = {
             "type": "dropdown",
-            "name": self.eval_value(element.get('name', ''), context),
+            "name": name,
             "label": self.eval_value(element.get('label', ''), context),
-            "value": self.eval_value(element.get('value', ''), context),
+            "value": value,
             "options": []
         }
 
@@ -1791,10 +1799,18 @@ class HolaService:
         return ret
 
     async def transform_input(self, element, context):
+        name = self.eval_value(element.get('name', ''), context)
+        if name:
+            value = deep_get(context.locals, name, None)
+
+        if not value:
+            value = self.eval_value(element.get('value', ''), context)
+
         transformed = {
             "type": "input",
             "label": self.eval_value(element.get('label', ''), context),
-            "name": self.eval_value(element.get('name', ''), context),
+            "name": name,
+            "value": value,
             "password": True if element.get('password') == True else False
         }
         return transformed
@@ -1807,6 +1823,20 @@ class HolaService:
             if name in obj:
                 ret[name] = self.eval_value(obj[name], context=context)
         return ret
+
+    async def transform_validate_locals(self, element, context):
+        transformed = {
+            "type": "validate-locals"
+        }
+        transformed.update(self.eval_object(element, context))
+        return transformed
+
+    async def transform_create_object(self, element, context):
+        transformed = {
+            "type": "create-object"
+        }
+        transformed.update(self.eval_object(element, context))
+        return transformed
 
     def wrap_menu_with_button(self, menu_element):
         btn_element = {
@@ -2817,7 +2847,7 @@ class HolaService:
                     attr_def = self.get_attribute_define(ex.name)
                     display_name = attr_def.get('display_name') or attr_def['name']
                     commands.add(ShowAlertCommand(
-                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
+                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="", tags=["error"])
                     ))
                 return commands
 
@@ -2831,13 +2861,13 @@ class HolaService:
                     currency_def = self.get_currency_define(ex.name)
                     display_name = currency_def.get('display_name') or currency_def['name']
                     commands.add(ShowAlertCommand(
-                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
+                        ShowAlertCommandArg(text=f'{display_name} not enough.', title="", tags=["error"])
                     ))
                 return commands
             except Exception as ex:
                 await logger.exception("run change exception")
                 commands.add(ShowAlertCommand(
-                    ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='')
+                    ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='', tags=["error"])
                 ))
                 return commands
 
@@ -2850,18 +2880,18 @@ class HolaService:
             attr_def = self.get_attribute_define(ex.name)
             display_name = attr_def.get('display_name') or attr_def['name']
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
+                ShowAlertCommandArg(text=f'{display_name} not enough.', title="", tags=["error"])
             ))
         except CurrencyValueNotEnoughError as ex:
             currency_def = self.get_currency_define(ex.name)
             display_name = currency_def.get('display_name') or currency_def['name']
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text=f'{display_name} not enough.', title="")
+                ShowAlertCommandArg(text=f'{display_name} not enough.', title="", tags=["error"])
             ))
         except Exception as ex:
             await logger.exception("apply change exception")
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='')
+                ShowAlertCommandArg(text="Sever Error, Please Try Later.", title='', tags=["error"])
             ))
         else:
             if 'changes' in context:
@@ -2929,8 +2959,9 @@ class HolaService:
         elif name == 'show_alert':
             text = self.eval_value(args['text'], context)
             title = self.eval_value(args.get('title', ''), context)
+            tags = self.eval_value(args.get('tags', []), context)
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text=text, title=title)
+                ShowAlertCommandArg(text=text, title=title, tags=tags)
             ))
         elif name == 'open_modal':
             open_modal = args['modal']
@@ -3055,7 +3086,7 @@ class HolaService:
         filtered = list(filter(lambda x: x["name"] == item_name, items))
         if len(filtered) <=0 or filtered[0]['count'] < 1:
             return ShowAlertCommand(args=
-                    ShowAlertCommandArg(text=f"物品 {item_def['display_name']} 已经用完了！"))
+                    ShowAlertCommandArg(text=f"物品 {item_def['display_name']} 已经用完了！", tags=["error"]))
         filtered[0]['count'] -= 1
         await self.storage_svc.save_itembox(itembox)
         command = AutoList()
@@ -3079,7 +3110,7 @@ class HolaService:
 
         if currency.get(currency_name, 0) < price:
             return ShowAlertCommand(args=
-                    ShowAlertCommandArg(text=f"{currency_def['display_name']}不够了！"))
+                    ShowAlertCommandArg(text=f"{currency_def['display_name']}不够了！", tags=["error"]))
 
 
         command = AutoList()
@@ -3103,7 +3134,7 @@ class HolaService:
         await self.storage_svc.save_player(player)
 
         command.add(ShowAlertCommand(args=
-                    ShowAlertCommandArg(text=f"{item_def['display_name']} 购买成功！")))
+                    ShowAlertCommandArg(text=f"{item_def['display_name']} 购买成功！", tags=["success"])))
         command.add(await self.get_page_update(page_route, context))
         return command
 
@@ -3284,7 +3315,7 @@ class HolaService:
 
         return await self.get_show_modal_command(_modal, context)
 
-    async def handle_create_object(self, handler, context):
+    async def handle_create_object(self, handler, context)
         pass
 
 
@@ -3438,7 +3469,7 @@ class HolaService:
         commands = AutoList()
         if 'anonymous' not in args:
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='only anonymous login supported.', title='')
+                ShowAlertCommandArg(text='only anonymous login supported.', title='', tags=["warn"])
             ))
             return commands
         # user, session = await AccountService.create(self.app_id)
@@ -3467,7 +3498,7 @@ class HolaService:
                 commands.add(self.create_set_session_command(ret['data']['user'], ret['data']['session']))
         else:
             commands.add(ShowAlertCommand(
-                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='微信登录')
+                ShowAlertCommandArg(text='登录过程不成功，请稍后尝试~~', title='微信登录', tags=["error"])
             ))
         return commands
 
@@ -3591,6 +3622,7 @@ class HolaService:
 
     async def handle_dialog_interact(self, args, context):
         commands = AutoList()
+        dialog_id = args.get('dialog_id')
         name = args.get('name')
         _event = args.get('event')
         _handler = args.get('handler')
@@ -3612,15 +3644,15 @@ class HolaService:
             commands.add(await self.handle_page_interact_handlers(handlers, context))
         else:
             commands.add(ShowAlertCommand(
-                        ShowAlertCommandArg(text=f'No name or handler set to confirm button.', title="")
+                        ShowAlertCommandArg(text=f'No name or handler set to confirm button.', title="", tags=["error"])
                     ))
         return commands
 
     async def get_dialog_interact_handlers(self, name, event, context):
         modal = self.get_modal_def(name)
-        if name not in modal:
+        if event not in modal:
             return None
-        click_handler = modal.get(name, {}).get('click', None)
+        click_handler = modal.get(event, {}).get('click', None)
         if not click_handler:
             return None
         if not isinstance(click_handler, (list, tuple)):

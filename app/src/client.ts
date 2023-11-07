@@ -213,7 +213,9 @@ export interface ShowMotionCommand{
 
 export interface ShowAlertCommandArg {
     text: string,
-    title: string
+    title: string,
+    tags?: Array<string>
+    duration?: number
 }
 
 export interface ShowAlertCommand{
@@ -508,6 +510,22 @@ export class ServiceOperation {
         }
         return await this.holaRequest(reqArg)
     }
+
+    async holaDialogInteract(dialog_id:string, name: string, event:string, handler:string, locals:Record<string, any>, context: PageContext): Promise<HolaCommand[]> {
+        let reqArg: RequestArgs = {
+            "data": {
+                "command":"dialog_interact",
+                "args":{
+                    "dialog_id": dialog_id,
+                    "name": name, 'event':event,
+                    'handler': handler, locals: locals
+                },
+                "context":context
+            }
+        }
+        return await this.holaRequest(reqArg)
+    }
+
 
     async holaNavigateTo(route: string, context: PageContext): Promise<HolaCommand[]> {
         let reqArg: RequestArgs = {

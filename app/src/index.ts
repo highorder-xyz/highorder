@@ -3,6 +3,7 @@ import { RouterLink } from 'vue-router';
 import i18next from 'i18next';
 import resources from './common/locales.json'
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import {App} from './app'
 import 'primeicons/primeicons.css';
 import './index.css';
@@ -42,6 +43,7 @@ export async function bootup(app_configs: AppConfig[], init_options:Record<strin
 export async function createHighOrderApp(app_configs: AppConfig[], init_options:Record<string, any> = {}) {
     const app = createApp(App)
     app.use(PrimeVue, { ripple: true })
+    app.use(ToastService)
     init_components()
 
     app.component('router-link', RouterLink);

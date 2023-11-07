@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import hmac
+from functools import reduce
 
 class IDPrefix:
     USER = 'UU'
@@ -137,3 +138,6 @@ class StampToken:
         obj = json.loads(base64.b64decode(body).decode('utf-8'))
         return obj['c']
 
+
+def deep_get(dictionary, keys, default=None):
+    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)

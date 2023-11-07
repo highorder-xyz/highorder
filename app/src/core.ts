@@ -219,6 +219,7 @@ export type ModalWidgetElement = ItemWidgetElement | TitleElement
 
 export interface ModalElement {
     type: string;
+    name?: string;
     title?: string;
     title_action?: Record<string, any>;
     content?: string;
@@ -229,11 +230,14 @@ export interface ModalElement {
         text: string;
         action: string
         args: Record<string, any>
+        click?: string
     };
     cancel?: {
         text: string;
         action: string
         args: Record<string, any>
+        trigger?: boolean
+        click?: string
     }
 }
 
@@ -394,6 +398,7 @@ export interface InputElement{
     type: string
     label?: string
     name?: string
+    value?: string
     password?: boolean
 }
 
@@ -667,6 +672,16 @@ export class AppCore {
 
     }
 
+    async dialogInteract(dialog_id: string, name: string, event:string, handler:string, locals:object): Promise<HolaCommand[]> {
+        try {
+            const commands = await this.svc.holaDialogInteract(dialog_id, name, event, handler, locals, this.getPageContext())
+            return await this.handleCommandList(commands)
+        } catch(err: any) {
+            return await this.handleError(err)
+        }
+
+    }
+
     async navigateTo(route: string): Promise<HolaCommand[]> {
         try {
             const commands = await this.svc.holaNavigateTo(route, this.getPageContext())
@@ -765,6 +780,7 @@ export class AppCore {
         } else if(error_type === 'ServerNoResponse') {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
+                title: 'SERVER NO RESPONSE',
                 content: i18next.t('check_network'),
                 confirm:{
                     text: i18next.t('network_ok'),
@@ -783,6 +799,7 @@ export class AppCore {
         } else if(error_type === 'InternalServerError' || code_category === 5) {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
+                title: 'SERVER ERROR',
                 content: i18next.t('server_upgrading'),
                 confirm:{
                     text: i18next.t('retry_text'),
@@ -801,6 +818,7 @@ export class AppCore {
         } else if(error_type === 'RequestInvalidError' || code_category === 4){
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
+                title: 'REQUEST INVALID',
                 content: i18next.t('check_client_version'),
                 confirm:{
                     text: i18next.t('client_version_ok'),
@@ -819,6 +837,7 @@ export class AppCore {
         } else {
             const command: HolaCommonCommand = this.buildShowModalCommand({
                 "type":"modal",
+                title: 'RECOVERING',
                 content: i18next.t('problem_recovering'),
                 confirm:{
                     text: i18next.t('fine_ok'),

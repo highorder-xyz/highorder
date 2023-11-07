@@ -21,6 +21,7 @@ import PrimeColumn from 'primevue/column';
 import PrimeToolbar from 'primevue/toolbar';
 import PrimeDropdown from 'primevue/dropdown';
 import PrimeDialog from 'primevue/dialog';
+import PrimeToast from 'primevue/toast';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -797,7 +798,7 @@ export const Dialog = defineComponent({
         closeIcon: { type: Boolean, default: false },
         showNow: { type: Boolean, default: false, required: false },
         modal_id: { type: String, default: "" },
-        title: { type: String, default: "" },
+        title: { type: String, default: "_" },
         title_action: { type: Object, default: undefined },
         text: { type: String, default: "" },
         text_size: { type: Number, default: 3 },
@@ -859,10 +860,14 @@ export const Dialog = defineComponent({
         }
     },
     render() {
+        let title = this.title ?? ""
+        if( title.length <= 0){
+            title = '\t'
+        }
         const modalClasses = [styles["h-dialog"]]
         return h(PrimeDialog, {
             visible: this.showModal,
-            header: this.title,
+            header: title,
             class: modalClasses,
             "onUpdate:visible": (value: boolean) => { this.updateVisible(value) },
             modal: true
@@ -1236,6 +1241,14 @@ export const Alert = defineComponent({
             children.push(this.renderAlert(alert))
         }
         return h('div', { "id": "alert-root" }, children)
+    },
+});
+
+
+export const Toast = defineComponent({
+    name: "Toast",
+    render() {
+        return h(PrimeToast, {}, {})
     },
 });
 
@@ -1693,6 +1706,10 @@ export const InputText = defineComponent({
         }
     },
 
+    beforeMount() {
+        this.valueChanged(this.value)
+    },
+
     emits: {
         textChanged: (text: string) => { return true; }
     },
@@ -1721,14 +1738,14 @@ export const InputText = defineComponent({
                 class: [styles["h-form-element"]],
                 toggleMask: true,
                 ref: 'input',
-                modelValue: this.value,
+                modelValue: this.text,
                 "onUpdate:modelValue": this.valueChanged
             }))
         } else {
             children.push(h(PrimeInputText, {
                 id: name,
                 class: [styles["h-form-element"]],
-                modelValue: this.value,
+                modelValue: this.text,
                 ref: 'input',
                 "onUpdate:modelValue": this.valueChanged
             }))
