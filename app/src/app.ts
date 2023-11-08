@@ -1,4 +1,4 @@
-import { defineComponent, h, reactive, VNode, resolveComponent} from 'vue'
+import { defineComponent, h, reactive, VNode, resolveComponent, DefineComponent} from 'vue'
 import i18next from 'i18next';
 import {
     PlainTextObject,
@@ -76,6 +76,7 @@ import { AdHelper, AdShowOptions } from './ad';
 import { randomString } from './db';
 import { ApplyableInstance, ConditionResponse } from './playable/defines'
 import { showConfetti } from './motion/confetti';
+import { ComponentInterface } from 'ionicons/dist/types/stencil-public-runtime';
 
 type PlayableComponent = ApplyableInstance;
 
@@ -236,21 +237,25 @@ export class ModalUpdater {
 export interface ModalParameter {
     modal_id: string;
     option: ModalOption;
-    slot_render?: Function;
     close_listeners: Array<(param:ModalParameter) => void>;
+    slot_render?: Function;
 }
 
 export class ModalHelper {
     root_modal: ModalParameter | undefined
     current: ModalParameter | undefined
     modal_stack: Array<ModalParameter>
-    // close_listeners: Array<(param:ModalParameter) => void>
+    app?: ComponentInterface
 
     constructor() {
         this.root_modal = undefined
         this.modal_stack = []
         this.current = undefined
-        // this.close_listeners = []
+        this.app = undefined
+    }
+
+    setApp(app:ComponentInterface){
+        this.app = app
     }
 
     new_modal_id(){
@@ -315,6 +320,7 @@ export class ModalHelper {
         }
         if(!inplace){
             this.modal_stack.push(this.current)
+            this.hide(this.current.modal_id)
         } else {
             param.close_listeners = param.close_listeners.concat(this.current.close_listeners)
         }
@@ -338,32 +344,57 @@ export class ModalHelper {
     }
 
     render(){
+        const nodes: VNode[] = []
+        for(const modal_param of this.modal_stack){
+            const modal_id = modal_param.modal_id
+            const slot_render = modal_param.slot_render ?? (() => ([]))
+            const option = modal_param.option
+            nodes.push(h(Dialog, {ref: `modal_${modal_id}`, showNow:true, modal_id:modal_id, ...option}, {
+                default: () => {
+                    return slot_render()
+                }
+            }))
+        }
         if(this.current){
             const current = this.current
-            if(current.slot_render !== undefined){
-                const slot_render = current.slot_render
-                return h(Dialog, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
-                    default: () => {
-                        return slot_render()
-                    }
-                })
-            } else if( current.option ) {
-                return h(Dialog, {id: `modal_${current.modal_id}`, showNow:true, modal_id:current.modal_id, ...current.option}, {
-                    default: () => {
-                        return []
-                    }
-                })
-            }
+            const modal_id = current.modal_id
+            const slot_render = current.slot_render ?? (() => ([]))
+            const option = current.option
+            nodes.push(h(Dialog, {ref: `modal_${modal_id}`, showNow:true, modal_id:modal_id, ...option}, {
+                default: () => {
+                    return slot_render()
+                }
+            }))
         }
-
+        return nodes;
     }
 
-    popup(modal_id:string){
+    show(modal_id?:string){
+        if(!modal_id || modal_id.length == 0){
+            return
+        }
+        const ref = `modal_${modal_id}`
+        this.app && this.app.$refs[ref].show()
+    }
+
+    hide(modal_id?:string){
+        if(!modal_id || modal_id.length == 0){
+            return
+        }
+        const ref = `modal_${modal_id}`
+        this.app && this.app.$refs[ref].hide()
+    }
+
+    popup(modal_id?:string){
+        if(!modal_id || modal_id.length == 0){
+            return
+        }
         if(this.current && this.current?.modal_id === modal_id){
             if(this.modal_stack.length > 0){
                 const current = this.current
                 const param = this.modal_stack.pop()
                 this.current = param
+                this.show(param?.modal_id)
                 for(const listener of current.close_listeners){
                     listener(current)
                 }
@@ -417,6 +448,7 @@ export const App = defineComponent({
     name: "App",
     data() {
         const app_id = appGlobal.app_id
+        modal_helper.setApp(this)
         return {
             app_id: app_id,
             loading: false,
@@ -1533,10 +1565,14 @@ export const App = defineComponent({
                 actionConfirmText: open_modal.confirm?.text,
                 actionCancelText: open_modal.cancel?.text,
                 onModalConfirmed: () => {
+                    const name = open_modal.name ?? ""
+                    const handler = open_modal.confirm?.click ?? ""
                     if(open_modal.confirm?.action){
                         this.executeAction(open_modal.confirm.action, open_modal.confirm.args, context)
+                    } else if( name.length > 0 || handler.length > 0 ) {
+                        this.dialogInteract(name, "confirm", handler, this.page, context)
                     } else {
-                        this.dialogInteract(open_modal.name ?? "", "confirm", open_modal.confirm?.click ?? "", this.page, context)
+                        this.modal_helper.popup(context.modal_id ?? "")
                     }
                     app_platform.logEvent(AnalyticsEventKind.button_event, {
                         route: this.page.route,
@@ -1816,7 +1852,7 @@ export const App = defineComponent({
         renderMenu(element: MenuElement, context: RenderContext): VNode {
             const style = element.style ?? {}
             const items: MenuItemObject[] = element.items ?? []
-            console.log('renderMenu', 'items=', items)
+
             return h(Menu, {
                 style:style,
                 items: items,
@@ -1909,7 +1945,7 @@ export const App = defineComponent({
             const children: VNode[] = []
             const modelNode2 = this.modal_helper.render()
             if (modelNode2) {
-                children.push(modelNode2)
+                children.push(...modelNode2)
             }
 
             children.push(this.alert_helper.render())

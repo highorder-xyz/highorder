@@ -1,5 +1,5 @@
 
-import { defineComponent, h, VNode, PropType, isVNode, Prop } from 'vue';
+import { defineComponent, h, VNode, PropType, isVNode, Prop, vShow } from 'vue';
 import gsap from 'gsap'
 import styles from './components.module.css'
 import 'animate.css';
@@ -825,7 +825,8 @@ export const Dialog = defineComponent({
     },
     data() {
         return {
-            showModal: this.$props.showNow
+            showModal: this.$props.showNow,
+            vShow: true
         }
     },
     beforeMount() {
@@ -845,11 +846,11 @@ export const Dialog = defineComponent({
     methods: {
         show() {
             this.$data.showModal = true
+            this.$data.vShow = true
         },
 
         hide() {
-            this.$data.showModal = false
-            this.$emit("modalClosed")
+            this.$data.vShow = false
         },
 
         updateVisible(value: boolean) {
@@ -864,10 +865,17 @@ export const Dialog = defineComponent({
         if( title.length <= 0){
             title = '\t'
         }
+        const pt:Record<string, any> = {}
+        if (!this.vShow){
+            pt['root'] = {
+                style: {'display': 'none'}
+            }
+        }
         const modalClasses = [styles["h-dialog"]]
-        return h(PrimeDialog, {
+        const dlg = h(PrimeDialog, {
             visible: this.showModal,
             header: title,
+            pt: pt,
             class: modalClasses,
             "onUpdate:visible": (value: boolean) => { this.updateVisible(value) },
             modal: true
@@ -926,6 +934,8 @@ export const Dialog = defineComponent({
             }
 
         })
+
+        return dlg
     }
 
 });
@@ -1854,7 +1864,7 @@ export const Dropdown = defineComponent({
         selectChanged: (select: string) => { return true; }
     },
 
-    onMounted() {
+    beforeMount() {
         this.$emit("selectChanged", this.select)
     },
 
@@ -2022,7 +2032,6 @@ export const Menu = defineComponent({
         }
     },
     render() {
-        console.log('render Menu', this.menu_model, this.items.values())
         return h(PrimeMenu, { model: this.menu_model, popup: this.popup, ref: '_prime_menu' })
     }
 });

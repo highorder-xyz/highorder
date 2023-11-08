@@ -1824,17 +1824,29 @@ class HolaService:
                 ret[name] = self.eval_value(obj[name], context=context)
         return ret
 
-    async def transform_validate_locals(self, element, context):
-        transformed = {
-            "type": "validate-locals"
-        }
-        transformed.update(self.eval_object(element, context))
-        return transformed
-
     async def transform_create_object(self, element, context):
         transformed = {
             "type": "create-object"
         }
+        transformed.update(self.eval_object(element, context))
+        return transformed
+
+    async def transform_any_element(self, element, context):
+        transformed = {}
+        if 'type' in element:
+            transformed['type'] = element['type']
+        for k, v in element.items():
+            if k == 'type':
+                continue
+            if isinstance(v, (dict, Mapping)):
+                if 'type' in v:
+                    transformed[k] = await self.transform_element(v, context)
+                else:
+                    transformed[k] = await self.transform_any_element(v, context)
+            elif isinstance(v, (list, tuple)):
+                transformed[k] = [ await self.transform_element(el, context) for el in v]
+            else:
+                transformed[k] = self.eval_value(v, context)
         transformed.update(self.eval_object(element, context))
         return transformed
 
@@ -1949,7 +1961,8 @@ class HolaService:
         transform_func = getattr(self, transform_func_name, None)
         transformed = None
         if not transform_func:
-            raise Exception(f"no transform for element {element_type}")
+            await logger.warning(f"no transform for element {element_type}, use transform_any instead.")
+            transformed = await self.transform_any_element(element, context)
         elif inspect.iscoroutinefunction(transform_func):
             transformed = await transform_func(element, context)
         elif callable(transform_func):
@@ -3315,7 +3328,8 @@ class HolaService:
 
         return await self.get_show_modal_command(_modal, context)
 
-    async def handle_create_object(self, handler, context)
+    async def handle_create_object(self, handler, context):
+        _locals = context.locals
         pass
 
 
