@@ -150,6 +150,15 @@ class UserAuthService:
 
             return user_id
 
+    @classmethod
+    async def delete_user(cls, app_id, user_id):
+        user = await User.load(app_id=app_id, user_id=user_id)
+        exist_user_auth = await UserAuth.load(app_id=app_id, email=user.user_name)
+        async with in_transaction(DB_NAME):
+            await user.delete()
+            if exist_user_auth:
+                await exist_user_auth.delete()
+
 
     @classmethod
     async def check(cls, app_id, name, password):

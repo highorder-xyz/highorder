@@ -8,6 +8,7 @@ import hashlib
 import json
 import hmac
 from functools import reduce
+from typing import List, Any, Mapping, Sequence
 
 class IDPrefix:
     USER = 'UU'
@@ -141,3 +142,20 @@ class StampToken:
 
 def deep_get(dictionary, keys, default=None):
     return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
+
+def restruct_dict(dictionary):
+    restructed = {}
+    for k, v in dictionary.items():
+        if isinstance(v, (dict, Mapping)):
+            restruct_v = restruct_dict(v)
+        else:
+            restruct_v = v
+        if '.' in k:
+            parts = k.split('.')
+            d = restructed
+            for p in parts[:-1]:
+                d = d.setdefault(p, {})
+            d[parts[-1]] = restruct_v
+        else:
+            restructed[k] = restruct_v
+    return restructed

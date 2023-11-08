@@ -6,7 +6,7 @@ from .account import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService
 )
 from highorder.base.compiler import Compiler
-from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken, deep_get
+from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken, deep_get, restruct_dict
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from highorder.base.model import DB_NAME
@@ -603,9 +603,10 @@ class HolaDataObject:
         return self.__dict__[KV_NAME][k]
 
 class HolaDataObjectService:
-    def __init__(self, app_id, name):
+    def __init__(self, app_id, name, hola_svc):
         self.app_id = app_id
         self.name = name
+        self.hola_svc = hola_svc
 
     def new(self, *args, **kwargs):
         value = dict(*args, **kwargs)
@@ -614,14 +615,43 @@ class HolaDataObjectService:
 
     async def create(self, *args, **kwargs):
         value = dict(*args, **kwargs)
-        _id = time_random_id(IDPrefix.OBJECT, 30)
-        m = await HolaObject.create(
-            app_id = self.app_id,
-            object_name = self.name,
-            object_id = _id,
-            value = value
-        )
-        return HolaDataObject(self.app_id, self.name, _id, value)
+        if self.name == 'player':
+            return await self.create_player(**value)
+        else:
+            _id = time_random_id(IDPrefix.OBJECT, 30)
+            m = await HolaObject.create(
+                app_id = self.app_id,
+                object_name = self.name,
+                object_id = _id,
+                value = value
+            )
+            return HolaDataObject(self.app_id, self.name, _id, value)
+
+    async def create_player(self, **kwargs):
+        hola_init = HolaInitService(self.hola_svc)
+        attribute_init = hola_init.get_attribute_initial()
+        currency_init = hola_init.get_currency_initial()
+        state_init = {}
+        profile_init = {}
+        r_args = restruct_dict(kwargs)
+        state_init.update(r_args.get('state', {}))
+        profile_init.update(r_args.get('profile', {}))
+        attribute_init.update(r_args.get('attribute', {}))
+        currency_init.update(r_args.get('currency', {}))
+
+        if 'name' in kwargs and 'password' in kwargs:
+            name, password = kwargs['name'], kwargs['password']
+            user_id  = await UserAuthService.add_user(self.app_id, name, password)
+            player = await HolaPlayer.create(app_id=self.app_id, user_id=user_id,
+                name = name,
+                state = state_init,
+                profile = profile_init,
+                attribute = attribute_init,
+                currency = currency_init)
+
+            return HolaDataObject(self.app_id, self.name, user_id, player.to_dict())
+        else:
+            raise Exception(f"can't create player withiout name and password.")
 
     def build_query_expr(self, filter_expr, **kwargs):
         order_by = kwargs.get('order_by')
@@ -667,14 +697,18 @@ class HolaDataObjectService:
             hobjects = list(await query_expr.all())
             return [HolaDataObject(self.app_id, self.name, m.object_id, copy.deepcopy(m.value)) for m in hobjects]
 
-    async def save(self, *args, **kwargs):
-        async with in_transaction(DB_NAME):
-            for m in args:
-                await m.save(**kwargs)
 
     async def delete(self, *args, **kwargs):
-        async with in_transaction(DB_NAME):
-            for m in args:
+        dargs = dict(*args, **kwargs)
+        if self.name == 'player':
+            user_id = kwargs['user_id']
+
+            await HolaPlayer.filter(app_id=self.app_id, user_id=user_id).delete()
+            await UserAuthService.delete_user(self.app_id, user_id)
+        else:
+            _id = kwargs['_id']
+            m = HolaObject.load(app_id=self.app_id, object_name=self.name, object_id=_id)
+            if m:
                 await m.delete()
 
     async def delete_from(self, filter_expr, **kwargs):
@@ -777,6 +811,25 @@ class HolaSetupService:
     def get_currency_initial(self):
         currency_initial = {}
         for currency in self.currency_def:
+            initial = currency.get('initial', 0)
+            currency_initial[currency["name"]] = initial
+        return currency_initial
+
+class HolaInitService:
+    def __init__(self, hola_svc):
+        self.hola_svc = hola_svc
+
+    def get_attribute_initial(self):
+        attribute_initial = {}
+        for attribute in self.hola_svc.attribute_def:
+            initial = attribute.get('initial')
+            if initial != None:
+                attribute_initial[attribute["name"]] = initial
+        return attribute_initial
+
+    def get_currency_initial(self):
+        currency_initial = {}
+        for currency in self.hola_svc.currency_def:
             initial = currency.get('initial', 0)
             currency_initial[currency["name"]] = initial
         return currency_initial
@@ -2016,7 +2069,7 @@ class HolaService:
             kwargs['order_by'] = order_by
         if limit:
             kwargs['limit'] = limit
-        dataobj_svc = HolaDataObjectService(self.app_id, name)
+        dataobj_svc = HolaDataObjectService(self.app_id, name, self)
         objects = await dataobj_svc.query(filter_expr, **kwargs)
         return objects
 
@@ -3279,6 +3332,8 @@ class HolaService:
             await logger.warning(f'TODO: handle invalidate-locals')
         elif handler_type == 'create-object':
             return await self.handle_create_object(handler, context)
+        elif handler_type == 'delete-object':
+            return await self.handle_delete_object(handler, context)
         else:
             await logger.warning(f'no handler for handler {handler_type}')
 
@@ -3330,7 +3385,15 @@ class HolaService:
 
     async def handle_create_object(self, handler, context):
         _locals = context.locals
-        pass
+        obj_name = handler.get('name')
+        svc = HolaDataObjectService(self.app_id, obj_name, self)
+        await svc.create(**_locals)
+
+    async def handle_delete_object(self, handler, context):
+        _locals = context.locals
+        obj_name = handler.get('name')
+        svc = HolaDataObjectService(self.app_id, obj_name, self)
+        await svc.delete(**_locals)
 
 
     async def handle_service_command(self, name, args, context):
