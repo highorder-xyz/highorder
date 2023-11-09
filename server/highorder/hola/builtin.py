@@ -32,7 +32,35 @@ THEME_COLORS = [
     "#8a6f30",
 ]
 
-def random_color():
-    index = random.randint(0, len(THEME_COLORS) - 1)
-    return THEME_COLORS[index]
 
+class HolaBulitin:
+    @staticmethod
+    def random(start, end):
+        if isinstance(start, int):
+            return random.randint(start, end)
+        else:
+            return random.randint(int(start), int(end))
+
+    @staticmethod
+    def lastdays(count=1):
+        days = []
+        today = date.today()
+        for i in range(0, count):
+            day = today - timedelta(days=i)
+            days.append(day.isoformat())
+        return days
+
+    @staticmethod
+    def join(arr, separator='\n'):
+        return separator.join(arr)
+
+    @staticmethod
+    def version_greater_than(version1, version2):
+        v1 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version1.split('.')))))
+        v2 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version2.split('.')))))
+        return v1 > v2
+
+    @staticmethod
+    def random_color():
+        index = random.randint(0, len(THEME_COLORS) - 1)
+        return THEME_COLORS[index]

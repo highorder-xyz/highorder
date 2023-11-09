@@ -241,6 +241,10 @@ export interface ModalElement {
     }
 }
 
+export interface CloseModalArgs {
+    modal_id: string;
+}
+
 export interface MenuItemElement {
     type: string;
     text: string;
@@ -400,6 +404,7 @@ export interface InputElement{
     name?: string
     value?: string
     password?: boolean
+    validate?: Record<string, any>
 }
 
 export interface DropdownElement {
@@ -407,6 +412,7 @@ export interface DropdownElement {
     value: string
     label?: string
     name?: string
+    validate?: Record<string, any>
     options: Record<string, any>[]
 }
 
@@ -922,8 +928,6 @@ export class AppCore {
             } else {
                 console.log(`update page with wrong route ${changed_page.route}, app_page route is ${this.app_page.route}`)
             }
-        } else if (command.name === 'set_player') {
-        } else if (command.name === 'update_player') {
         } else if (command.name === 'set_session') {
             let _cmd = command as SetSessionCommand
             await this.svc.setSession(_cmd.args.user, _cmd.args.session)

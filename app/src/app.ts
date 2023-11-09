@@ -43,7 +43,8 @@ import {
     MenuItemObject,
     DataTableElement,
     ToolbarElement,
-    DropdownElement
+    DropdownElement,
+    CloseModalArgs
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import { NavBar, Footer, Button, ActionDefinition,
@@ -816,6 +817,10 @@ export const App = defineComponent({
                             }
                         }
                     )
+                } else if (command.name === 'close_modal'){
+                    const args = command.args as CloseModalArgs
+                    const modal_id = args.modal_id
+                    await this.modal_helper.popup(modal_id)
                 } else if (command.name === 'init_ad') {
                     const args = (command as InitAdCommand).args as InitAdCommandArg
                     for(const config of args.configs) {

@@ -207,6 +207,18 @@ class ShowModalCommand:
 
 
 @dataclass
+class CloseModalCommandArg:
+    modal_id: str = ''
+
+
+@dataclass
+class CloseModalCommand:
+    args: Optional[CloseModalCommandArg] = field(default_factory=dict)
+    type: str = 'command'
+    name: str = 'close_modal'
+
+
+@dataclass
 class ShowMotionCommandArg:
     name: str
     args: dict = field(default_factory=dict)

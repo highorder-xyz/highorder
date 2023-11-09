@@ -23,6 +23,7 @@ from .data import (
     ShowModalCommandArg, ShowMotionCommand, ShowMotionCommandArg,
     ShowPageCommand, ShowPageCommandArg,
     UpdatePageCommand, UpdatePageCommandArg, UpdatePageInterface,
+    CloseModalCommand, CloseModalCommandArg
 )
 from .model import (
     HolaPageState,
@@ -37,6 +38,7 @@ from .model import (
     HolaSessionVariable,
     HolaObject
 )
+from .builtin import HolaBulitin
 from postmodel.models import QueryExpression
 from postmodel.transaction import in_transaction
 from .transformer import FilterExprTransformer, expr_dump
@@ -78,33 +80,6 @@ class CurrencyValueNotEnoughError(ValueNotEnoughError):
     def __init__(self, name):
         self.name = name
 
-class HolaBulitin:
-    @staticmethod
-    def random(start, end):
-        if isinstance(start, int):
-            return random.randint(start, end)
-        else:
-            return random.randint(int(start), int(end))
-
-    @staticmethod
-    def lastdays(count=1):
-        days = []
-        today = date.today()
-        for i in range(0, count):
-            day = today - timedelta(days=i)
-            days.append(day.isoformat())
-        return days
-
-    @staticmethod
-    def join(arr, separator='\n'):
-        return separator.join(arr)
-
-    @staticmethod
-    def version_greater_than(version1, version2):
-        v1 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version1.split('.')))))
-        v2 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version2.split('.')))))
-        return v1 > v2
-
 
 builtin = HolaBulitin()
 
@@ -126,6 +101,25 @@ class ShowMessageService:
             }],
             confirm=confirm
         ))
+
+
+class HolaDialogService:
+    @classmethod
+    def build_confirm_dialog(cls, message: str, handler: dict, confirm = None, cancel = None):
+        st = StampToken()
+        args = ShowModalCommandArg(
+            title = "CONFIRM DIALOG",
+            content = message,
+            confirm = {
+                "text": confirm or 'Confirm',
+                "click": st.make('stamp_id', handler)
+            },
+            cancel = {
+                "text": cancel or 'Cancel'
+            }
+        )
+        return ShowModalCommand(args=args)
+
 
 class HolaPageStateService:
     def __init__(self, unique_id, page_state, storage_svc):
@@ -907,6 +901,8 @@ class HolaService:
                 self.attribute_def.append(obj)
             elif obj_type == 'variable':
                 self.variables_def.append(obj)
+            elif obj_type == 'object-meta':
+                self.objects_def.append(obj)
 
         self.action_def = {}
         for action in hola_def.actions:
@@ -936,6 +932,7 @@ class HolaService:
         if len(filtered) > 0:
             return filtered[0]
         return None
+
 
     def get_ad_object_by_name(self, name):
         filtered = list(filter(lambda x: x['name'] == name, self.ad_objects_def))
@@ -1650,6 +1647,7 @@ class HolaService:
             "type": "dropdown",
             "name": name,
             "label": self.eval_value(element.get('label', ''), context),
+            "validate": self.eval_object(element.get('validate', {}), context),
             "value": value,
             "options": []
         }
@@ -1864,6 +1862,7 @@ class HolaService:
             "label": self.eval_value(element.get('label', ''), context),
             "name": name,
             "value": value,
+            "validate": self.eval_object(element.get('validate', {}), context),
             "password": True if element.get('password') == True else False
         }
         return transformed
@@ -2469,9 +2468,15 @@ class HolaService:
                 else:
                     elements.add(await self.transform_element(copy.deepcopy(element), context))
 
+        _locals = page_def.locals
+        _locals.update(context.locals or {})
 
-        page_to = PageInterface(name=page_def.name,
-                    route=page_route, elements=elements)
+        page_to = PageInterface(
+                name=page_def.name,
+                locals = _locals,
+                route = page_route,
+                elements = elements
+            )
         commands.add( ShowPageCommand(args=
                             ShowPageCommandArg(page=page_to)))
         return commands
@@ -3383,17 +3388,46 @@ class HolaService:
 
         return await self.get_show_modal_command(_modal, context)
 
+    async def get_object_updated_value(self, obj_def, value, context):
+        ret = {}
+        for prop in obj_def['elements']:
+            name = prop['name']
+            if name in value:
+                ret[name] = value[name]
+                continue
+            else:
+                if 'default' in prop:
+                    default_value = self.eval_value(prop['default'], context)
+                    ret[name] = default_value
+
+        return ret
+
     async def handle_create_object(self, handler, context):
         _locals = context.locals
         obj_name = handler.get('name')
+        if obj_name.startswith('object.'):
+            obj_name = obj_name[len('object.'):]
+            obj_def = self.get_object_by_name(obj_name)
+            obj_value = await self.get_object_updated_value(obj_def, _locals, context)
+        else:
+            obj_value = _locals
         svc = HolaDataObjectService(self.app_id, obj_name, self)
-        await svc.create(**_locals)
+        await svc.create(**obj_value)
 
     async def handle_delete_object(self, handler, context):
         _locals = context.locals
         obj_name = handler.get('name')
-        svc = HolaDataObjectService(self.app_id, obj_name, self)
-        await svc.delete(**_locals)
+        if obj_name.startswith('object.'):
+            obj_name = obj_name[len('object.'):]
+        if 'confirm' in handler:
+            new_handler = copy.copy(handler)
+            new_handler.pop('confirm')
+            new_handler['locals'] = _locals
+            return HolaDialogService.build_confirm_dialog(handler['confirm'], new_handler)
+        else:
+            _locals = handler['locals']
+            svc = HolaDataObjectService(self.app_id, obj_name, self)
+            await svc.delete(**_locals)
 
 
     async def handle_service_command(self, name, args, context):
@@ -3418,6 +3452,9 @@ class HolaService:
     async def handle_service_command_call_failed(self, args, context):
         pass
 
+
+    async def get_close_dialog_command(self, dialog_id, context):
+        return CloseModalCommand(args=CloseModalCommandArg(modal_id=dialog_id))
 
     async def get_page(self, page_route, context):
         origin_context = context
@@ -3687,6 +3724,10 @@ class HolaService:
                 handlers = [handlers]
             commands.add(await self.handle_page_interact_handlers(handlers, context))
         else:
+            commands.add(ShowAlertCommand(
+                        ShowAlertCommandArg(text=f'No handler specified.', title="", tags=["warn"])
+                    ))
+        if not commands:
             commands.add(await self.get_page(context.client.route, context))
 
         return commands
@@ -3723,6 +3764,10 @@ class HolaService:
             commands.add(ShowAlertCommand(
                         ShowAlertCommandArg(text=f'No name or handler set to confirm button.', title="", tags=["error"])
                     ))
+
+        if not commands:
+            commands.add(await self.get_close_dialog_command(dialog_id, context))
+            commands.add(await self.get_page(context.client.route, context))
         return commands
 
     async def get_dialog_interact_handlers(self, name, event, context):
