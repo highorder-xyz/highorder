@@ -22,6 +22,7 @@ import PrimeToolbar from 'primevue/toolbar';
 import PrimeDropdown from 'primevue/dropdown';
 import PrimeDialog from 'primevue/dialog';
 import PrimeToast from 'primevue/toast';
+import PrimeTag from 'primevue/tag';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -1897,6 +1898,28 @@ export const Dropdown = defineComponent({
 
         }))
         return h('div', { class: [styles["h-form-line"]] }, children)
+    }
+});
+
+
+export const Tag = defineComponent({
+    name: 'Tag',
+    props: {
+        text: { type: String, default: "" },
+        color: { type: String, default: "" }
+    },
+    render() {
+        return h(PrimeTag, {
+            value: this.text,
+            rounded:true,
+            pt: {
+                root: {
+                    style: {
+                        'background-color': this.color
+                    }
+                }
+            }
+        }, {})
     }
 });
 

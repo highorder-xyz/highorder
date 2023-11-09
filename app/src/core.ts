@@ -416,6 +416,12 @@ export interface DropdownElement {
     options: Record<string, any>[]
 }
 
+export interface TagElement{
+    type: string
+    text?: string
+    color: string
+}
+
 export interface CardSwiperElement {
     type: string
     title: string

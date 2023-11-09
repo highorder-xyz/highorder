@@ -6,7 +6,7 @@ from .account import (
     AccountService, SessionService, SocialAccountService, UserAuthService, UserService
 )
 from highorder.base.compiler import Compiler
-from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken, deep_get, restruct_dict
+from highorder.base.utils import AutoList, time_random_id, IDPrefix, StampToken, deep_get, restruct_dict, random_str
 from highorder.base.munch import munchify
 from highorder.base.router import Router
 from highorder.base.model import DB_NAME
@@ -52,6 +52,7 @@ from basepy.asynclog import logger
 import zlib
 from .extension import HolaServiceRegister
 
+
 factory = dataclass_factory.Factory()
 
 def get_page_size_name(page_width):
@@ -67,6 +68,13 @@ def get_page_size_name(page_width):
         return 'xlarge'
     elif page_width > 1680:
         return 'xxlarge'
+
+def with_context(context, **kwargs):
+    origin_context = context
+    context = copy.copy(origin_context)
+    for k, v in kwargs.items():
+        context[k] = munchify(v)
+    return context
 
 class ValueNotEnoughError(Exception):
     def __init__(self, name):
@@ -1599,10 +1607,25 @@ class HolaService:
             table_data = await self.transform_element(data, context)
             transformed['data'] = [x.to_dict() for x in table_data]
 
+        transformed_data = transformed['data']
+        for index, v in enumerate(transformed_data):
+            v['_index'] = index
+
         for el in element.get('elements', []):
             if el['type'] == 'table-column':
-                el_transformed = await self.transform_table_column(el, context)
-                transformed['columns'].add(el_transformed)
+                if 'elements' in el and len(el['elements']) > 0:
+                    rand_name = random_str(6)
+                    field_name = f'__col_{rand_name}'
+                    for v in transformed_data:
+                        v[field_name] = [await self.transform_element(x, with_context(context, field = v)) for x in el['elements']]
+                    transformed['columns'].add({
+                        "type": "table-column",
+                        "field": field_name,
+                        "label": self.eval_value(el.get('label', ''), context)
+                    })
+                else:
+                    el_transformed = await self.transform_table_column(el, context)
+                    transformed['columns'].add(el_transformed)
 
         if 'paginator' in element:
             transformed['paginator'] = element.get('paginator')
@@ -1883,6 +1906,12 @@ class HolaService:
         transformed.update(self.eval_object(element, context))
         return transformed
 
+    async def transform_format(self, element, context):
+        return self.eval_value(element, context)
+
+    async def transform_expr(self, element, context):
+        return self.eval_value(element, context)
+
     async def transform_any_element(self, element, context):
         transformed = {}
         if 'type' in element:
@@ -1899,7 +1928,6 @@ class HolaService:
                 transformed[k] = [ await self.transform_element(el, context) for el in v]
             else:
                 transformed[k] = self.eval_value(v, context)
-        transformed.update(self.eval_object(element, context))
         return transformed
 
     def wrap_menu_with_button(self, menu_element):
@@ -2468,12 +2496,9 @@ class HolaService:
                 else:
                     elements.add(await self.transform_element(copy.deepcopy(element), context))
 
-        _locals = page_def.locals
-        _locals.update(context.locals or {})
-
         page_to = PageInterface(
                 name=page_def.name,
-                locals = _locals,
+                locals = context.locals.to_dict(),
                 route = page_route,
                 elements = elements
             )
@@ -3765,6 +3790,7 @@ class HolaService:
                         ShowAlertCommandArg(text=f'No name or handler set to confirm button.', title="", tags=["error"])
                     ))
 
+        context.locals = munchify(_locals.get('_more', {}))
         if not commands:
             commands.add(await self.get_close_dialog_command(dialog_id, context))
             commands.add(await self.get_page(context.client.route, context))

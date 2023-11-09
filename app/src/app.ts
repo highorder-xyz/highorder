@@ -67,7 +67,8 @@ import { NavBar, Footer, Button, ActionDefinition,
     Toolbar,
     Dropdown,
     Dialog,
-    Toast
+    Toast,
+    Tag
 } from './components'
 
 import { app_platform } from './platform';
@@ -652,7 +653,7 @@ export const App = defineComponent({
                 locals = context.locals
                 locals['_more'] = page.locals
             }
-            console.log('dialog interact', context)
+
             app_core.dialogInteract(context.modal_id ?? "", name, event, handler, locals).then((commands: HolaCommand[]) => {
                 clearTimeout(timerId)
                 this.loading = false
@@ -1534,6 +1535,8 @@ export const App = defineComponent({
                 return this.renderInput(element as InputElement, context)
             } else if (element.type === "dropdown") {
                 return this.renderDropdown(element as DropdownElement, context)
+            } else if (element.type === "tag") {
+                return this.renderTag(element as TagElement, context)
             } else if (element.type == 'motion') {
                 return this.renderMotion(element as MotionElement, context)
             } else {
@@ -1748,6 +1751,14 @@ export const App = defineComponent({
             return input
         },
 
+        renderTag(element: TagElement, context: RenderContext): VNode {
+            const tag = h(Tag, {
+                text: element.text ?? "",
+                color: element.color ?? ""
+            })
+            return tag
+        },
+
         renderCardSwiper(element: CardSwiperElement, context: RenderContext): VNode {
             return h(CardSwiper, {
                 title: element.title ?? "",
@@ -1819,14 +1830,15 @@ export const App = defineComponent({
             const style = element.style ?? {}
             const columns: any[] = []
             for(const col of (element.columns ?? [])){
-                if(col['field']){
-                    columns.push(col)
-                } else if(col['elements']) {
-                    col['slot'] = ({locals}: any) => {
+                const field_name = col['field'] ?? ""
+                if(field_name.indexOf('__col_') == 0) {
+                    const new_col = Object.assign({}, col)
+                    delete new_col['field']
+                    new_col['slot'] = ({locals}: any) => {
                         const new_context = with_context(context, {locals: locals})
-                        return this.renderElementOrList(col['elements'], new_context)
+                        return this.renderElementOrList(locals[field_name], new_context)
                     }
-                    columns.push(col)
+                    columns.push(new_col)
                 } else {
                     columns.push(col)
                 }
