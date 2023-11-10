@@ -4,8 +4,10 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 import string
 from copy import deepcopy
+
 # import pprint
 # pp = pprint.PrettyPrinter(indent=4)
+
 
 class TokenKind(Enum):
     Null = 1
@@ -56,6 +58,7 @@ class CharPosition:
         self.line += 1
         self.column = 1
 
+
 @dataclass
 class Token:
     kind: TokenKind
@@ -63,12 +66,14 @@ class Token:
     start_pos: CharPosition
     end_pos: CharPosition
 
+
 @dataclass
 class TokenizeContext:
     start_pos: int
     chars: List[str] = field(default_factory=list)
     in_str_literal: bool = field(default=False)
     is_number: bool = field(default=False)
+
 
 class NodeKind(Enum):
     Root = 1
@@ -91,93 +96,110 @@ class SyntaxNode:
 
 
 ESCAPE_CHAR_MAP = {
-    'n': '\n',
-    'r': '\r',
-    't': '\t',
-    'v': '\v',
-    'b': '\b',
-    'f': '\f',
-    'a': '\a'
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "b": "\b",
+    "f": "\f",
+    "a": "\a",
 }
+
 
 class Tokenizer:
     def __init__(self):
         pass
 
     def tokenize(self, code):
-        pos = CharPosition(index = 0, line = 0, column = 0)
+        pos = CharPosition(index=0, line=0, column=0)
         tokens = []
         while pos.index < len(code):
             ch = code[pos.index]
-            if ch == '{':
-                tokens.append(Token(
-                    kind = TokenKind.LBrace,
-                    value = '{',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            if ch == "{":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.LBrace,
+                        value="{",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
 
                 pos.move(1)
 
-            elif ch == '}':
-                tokens.append(Token(
-                    kind = TokenKind.RBrace,
-                    value = '}',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == "}":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.RBrace,
+                        value="}",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
 
                 pos.move(1)
 
-            elif ch == ':':
-                tokens.append(Token(
-                    kind = TokenKind.Colon,
-                    value = ':',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == ":":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.Colon,
+                        value=":",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == '\n':
-                tokens.append(Token(
-                    kind = TokenKind.LineBreak,
-                    value = '\n',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == "\n":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.LineBreak,
+                        value="\n",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == ',':
-                tokens.append(Token(
-                    kind = TokenKind.Comma,
-                    value = ',',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == ",":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.Comma,
+                        value=",",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == '[':
-                tokens.append(Token(
-                    kind = TokenKind.LBracket,
-                    value = '[',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == "[":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.LBracket,
+                        value="[",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == ']':
-                tokens.append(Token(
-                    kind = TokenKind.RBracket,
-                    value = ']',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == "]":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.RBracket,
+                        value="]",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == ';':
-                tokens.append(Token(
-                    kind = TokenKind.Semicolon,
-                    value = ';',
-                    start_pos = deepcopy(pos),
-                    end_pos = deepcopy(pos)
-                ))
+            elif ch == ";":
+                tokens.append(
+                    Token(
+                        kind=TokenKind.Semicolon,
+                        value=";",
+                        start_pos=deepcopy(pos),
+                        end_pos=deepcopy(pos),
+                    )
+                )
                 pos.move(1)
-            elif ch == '/':
+            elif ch == "/":
                 token = self.tokenize_comment_or_division(pos, code)
                 if token:
                     tokens.append(token)
@@ -185,7 +207,7 @@ class Tokenizer:
                 token = self.tokenize_string(pos, code)
                 if token:
                     tokens.append(token)
-            elif (ch in string.ascii_letters or ch == '_'):
+            elif ch in string.ascii_letters or ch == "_":
                 token = self.tokenize_identifier(pos, code)
                 if token:
                     tokens.append(token)
@@ -204,7 +226,7 @@ class Tokenizer:
         index = pos.index + 1
         while index < len(code):
             ch = code[index]
-            if ch in string.ascii_letters or ch == '_' or ch in string.digits:
+            if ch in string.ascii_letters or ch == "_" or ch in string.digits:
                 chars.append(ch)
                 index += 1
             else:
@@ -215,20 +237,15 @@ class Tokenizer:
         end_pos = deepcopy(pos)
         pos.move(1)
         kind = TokenKind.Identifier
-        value = ''.join(chars)
+        value = "".join(chars)
         if chars[0] in string.ascii_lowercase:
-            if value == 'true' or value == 'false':
+            if value == "true" or value == "false":
                 kind = TokenKind.BoolLiteral
-            elif value == 'null':
+            elif value == "null":
                 kind = TokenKind.Null
             else:
                 kind = TokenKind.PropertyName
-        return Token(
-            kind = kind,
-            value = value,
-            start_pos = start_pos,
-            end_pos = end_pos
-        )
+        return Token(kind=kind, value=value, start_pos=start_pos, end_pos=end_pos)
 
     def tokenize_string(self, pos, code):
         chars = []
@@ -239,12 +256,12 @@ class Tokenizer:
         while tmp_pos.index < len(code):
             index = tmp_pos.index
             ch = code[index]
-            if ch == '\\':
+            if ch == "\\":
                 if index + 1 >= len(code):
                     chars.append(ch)
                     tmp_pos.move(1)
                     break
-                next_char = code[index+1]
+                next_char = code[index + 1]
                 if next_char in ESCAPE_CHAR_MAP:
                     chars.append(ESCAPE_CHAR_MAP[next_char])
                 else:
@@ -253,7 +270,7 @@ class Tokenizer:
             elif ch == quote_char:
                 tmp_pos.move(1)
                 break
-            elif ch == '\n':
+            elif ch == "\n":
                 chars.append(ch)
                 last_line_end_pos = deepcopy(tmp_pos)
                 tmp_pos.newline()
@@ -270,10 +287,10 @@ class Tokenizer:
         pos.moveto(tmp_pos)
 
         return Token(
-            kind = TokenKind.StringLiteral,
-            value = ''.join(chars),
-            start_pos = start_pos,
-            end_pos = end_pos
+            kind=TokenKind.StringLiteral,
+            value="".join(chars),
+            start_pos=start_pos,
+            end_pos=end_pos,
         )
 
     def tokenize_number(self, pos, code):
@@ -286,11 +303,11 @@ class Tokenizer:
             if ch in string.digits:
                 chars.append(ch)
                 index += 1
-            elif ch == '.':
+            elif ch == ".":
                 chars.append(ch)
                 has_dot = True
                 index += 1
-            elif ch == '_':
+            elif ch == "_":
                 index += 1
             else:
                 break
@@ -300,34 +317,34 @@ class Tokenizer:
         end_pos = deepcopy(pos)
         pos.move(1)
 
-        raw_value = ''.join(chars)
+        raw_value = "".join(chars)
         if not has_dot:
             value = int(raw_value)
         else:
             value = float(raw_value)
         return Token(
-            kind = TokenKind.NumberLiteral,
-            value = value,
-            start_pos = start_pos,
-            end_pos = end_pos
+            kind=TokenKind.NumberLiteral,
+            value=value,
+            start_pos=start_pos,
+            end_pos=end_pos,
         )
 
     def tokenize_comment_or_division(self, pos, code):
         chars = []
         index = pos.index + 1
-        if (index < len(code) and code[index] != '/') or (index == len(code)):
+        if (index < len(code) and code[index] != "/") or (index == len(code)):
             pos.move(1)
             return Token(
-                kind = TokenKind.Division ,
-                value = '/',
-                start_pos = deepcopy(pos),
-                end_pos = deepcopy(pos)
+                kind=TokenKind.Division,
+                value="/",
+                start_pos=deepcopy(pos),
+                end_pos=deepcopy(pos),
             )
 
         index += 1
         while index < len(code):
             ch = code[index]
-            if ch == '\n':
+            if ch == "\n":
                 break
             else:
                 chars.append(ch)
@@ -339,10 +356,10 @@ class Tokenizer:
         pos.move(1)
 
         return Token(
-            kind = TokenKind.Comment,
-            value = ''.join(chars),
-            start_pos = start_pos,
-            end_pos = end_pos
+            kind=TokenKind.Comment,
+            value="".join(chars),
+            start_pos=start_pos,
+            end_pos=end_pos,
         )
 
 
@@ -356,9 +373,9 @@ class TokenStream:
             return None
         return self.tokens[self.idx]
 
-    def peek_next(self, num = 0):
+    def peek_next(self, num=0):
         if num < 0:
-            raise Exception(f'TokenStream.peek_next num must >= 0, but {num} given.')
+            raise Exception(f"TokenStream.peek_next num must >= 0, but {num} given.")
         new_idx = self.idx + num
         if new_idx >= len(self.tokens):
             return None
@@ -379,12 +396,15 @@ class TokenStream:
     def expect(self, token_kind):
         token = self.peek()
         if isinstance(token_kind, (list, tuple)):
-            expected_kinds =  token_kind
+            expected_kinds = token_kind
         else:
             expected_kinds = [token_kind]
         expected = token and token.kind in expected_kinds
         if not expected:
-            raise HolaSyntaxError(message = f'Expect Token(token_kind), But {token.kind} Found.', pos=token.start_pos)
+            raise HolaSyntaxError(
+                message=f"Expect Token(token_kind), But {token.kind} Found.",
+                pos=token.start_pos,
+            )
         else:
             self.next()
 
@@ -395,7 +415,7 @@ class TokenStream:
 
     def move(self, steps):
         if steps < 0:
-            raise Exception(f'TokenStream.move steps must >= 0, but {steps} given.')
+            raise Exception(f"TokenStream.move steps must >= 0, but {steps} given.")
         self.idx += steps
         if self.idx > len(self.tokens):
             self.idx = len(self.tokens)
@@ -403,12 +423,14 @@ class TokenStream:
     def eof(self):
         return self.idx >= len(self.tokens)
 
+
 class HolaSyntaxError(Exception):
     def __init__(self, message, pos):
         self.message = message
         self.pos = pos
-        new_message = f'Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}): {self.message}'
+        new_message = f"Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}): {self.message}"
         super().__init__(self, new_message)
+
 
 class HolaSyntaxExpectError(Exception):
     def __init__(self, expect, found):
@@ -418,13 +440,12 @@ class HolaSyntaxExpectError(Exception):
         else:
             self.expect = expect
         self.found = found
-        expect_str = ', '.join(list(map(lambda x: repr(x), self.expect)))
-        message = f'''Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}):
+        expect_str = ", ".join(list(map(lambda x: repr(x), self.expect)))
+        message = f"""Syntax Error (Line = {self.pos.line}, Column: {self.pos.column}):
     Expect token:  {expect_str}
     Found token: k={self.found.kind}, v="{self.found.value}"
-    '''
+    """
         super().__init__(self, message)
-
 
 
 class Parser:
@@ -435,12 +456,12 @@ class Parser:
         tokenizer = Tokenizer()
         tokens = TokenStream(tokenizer.tokenize(code))
         root = SyntaxNode(
-            kind = NodeKind.Root,
-            start_pos = CharPosition(index = 0, line = 0, column = 0),
-            end_pos = CharPosition(index = -1, line = -1, column = -1),
-            value = '',
-            properties = {},
-            children = []
+            kind=NodeKind.Root,
+            start_pos=CharPosition(index=0, line=0, column=0),
+            end_pos=CharPosition(index=-1, line=-1, column=-1),
+            value="",
+            properties={},
+            children=[],
         )
         tokens.consume(TokenKind.LineBreak)
         while not tokens.eof():
@@ -452,7 +473,7 @@ class Parser:
 
     def parse_object(self, tokens):
         token = tokens.peek()
-        name = ''
+        name = ""
         if token.kind == TokenKind.Identifier:
             name = token.value
             tokens.next()
@@ -462,12 +483,12 @@ class Parser:
             raise HolaSyntaxExpectError([TokenKind.Identifier, TokenKind.LBrace], token)
 
         node = SyntaxNode(
-            kind = NodeKind.Object,
-            start_pos = deepcopy(token.start_pos),
-            end_pos = CharPosition(index=-1, line=-1, column=-1),
-            value = name,
-            properties = {},
-            children = []
+            kind=NodeKind.Object,
+            start_pos=deepcopy(token.start_pos),
+            end_pos=CharPosition(index=-1, line=-1, column=-1),
+            value=name,
+            properties={},
+            children=[],
         )
         tokens.expect(TokenKind.LBrace)
         tokens.consume([TokenKind.Comma, TokenKind.LineBreak])
@@ -483,8 +504,12 @@ class Parser:
                 node.children.append(sub_node)
             else:
                 raise HolaSyntaxExpectError(
-                    [TokenKind.StringLiteral, TokenKind.PropertyName, TokenKind.Identifier],
-                    token
+                    [
+                        TokenKind.StringLiteral,
+                        TokenKind.PropertyName,
+                        TokenKind.Identifier,
+                    ],
+                    token,
                 )
             next_token = tokens.peek()
             if next_token.kind in [TokenKind.Comma, TokenKind.LineBreak]:
@@ -510,36 +535,36 @@ class Parser:
         if token.kind == TokenKind.Null:
             tokens.next()
             return SyntaxNode(
-                kind = NodeKind.Null,
-                value = None,
-                start_pos = deepcopy(token.start_pos),
-                end_pos = deepcopy(token.end_pos)
+                kind=NodeKind.Null,
+                value=None,
+                start_pos=deepcopy(token.start_pos),
+                end_pos=deepcopy(token.end_pos),
             )
         elif token.kind == TokenKind.BoolLiteral:
             tokens.next()
             return SyntaxNode(
-                kind = NodeKind.Bool,
-                value = True if token.value == 'true' else False,
-                start_pos = deepcopy(token.start_pos),
-                end_pos = deepcopy(token.end_pos)
+                kind=NodeKind.Bool,
+                value=True if token.value == "true" else False,
+                start_pos=deepcopy(token.start_pos),
+                end_pos=deepcopy(token.end_pos),
             )
 
         elif token.kind == TokenKind.StringLiteral:
             tokens.next()
             return SyntaxNode(
-                kind = NodeKind.String,
-                value = token.value,
-                start_pos = deepcopy(token.start_pos),
-                end_pos = deepcopy(token.end_pos)
+                kind=NodeKind.String,
+                value=token.value,
+                start_pos=deepcopy(token.start_pos),
+                end_pos=deepcopy(token.end_pos),
             )
 
         elif token.kind == TokenKind.NumberLiteral:
             tokens.next()
             return SyntaxNode(
-                kind = NodeKind.Number,
-                value = token.value,
-                start_pos = deepcopy(token.start_pos),
-                end_pos = deepcopy(token.end_pos)
+                kind=NodeKind.Number,
+                value=token.value,
+                start_pos=deepcopy(token.start_pos),
+                end_pos=deepcopy(token.end_pos),
             )
 
         elif token.kind == TokenKind.LBracket:
@@ -547,17 +572,20 @@ class Parser:
         elif token.kind == TokenKind.Identifier or token.kind == TokenKind.LBrace:
             return self.parse_object(tokens)
         else:
-            raise HolaSyntaxError(message=f'Unknown To Handle Token Kind {token.kind} and {token.value}', pos=token.start_pos)
+            raise HolaSyntaxError(
+                message=f"Unknown To Handle Token Kind {token.kind} and {token.value}",
+                pos=token.start_pos,
+            )
 
     def parse_list(self, tokens):
         token = tokens.peek()
         node = SyntaxNode(
-            kind = NodeKind.List,
-            start_pos = deepcopy(token.start_pos),
-            end_pos = CharPosition(index=-1, line=-1, column=-1),
-            value = None,
-            properties = {},
-            children = []
+            kind=NodeKind.List,
+            start_pos=deepcopy(token.start_pos),
+            end_pos=CharPosition(index=-1, line=-1, column=-1),
+            value=None,
+            properties={},
+            children=[],
         )
         tokens.expect(TokenKind.LBracket)
         tokens.consume(TokenKind.LineBreak)
@@ -567,14 +595,16 @@ class Parser:
             if token.kind == TokenKind.RBracket:
                 break
             elif token.kind == TokenKind.Comma:
-                node.children.append(node = SyntaxNode(
-                    kind = NodeKind.Null,
-                    start_pos = deepcopy(token.start_pos),
-                    end_pos = deepcopy(token.start_pos),
-                    value = None,
-                    properties = {},
-                    children = []
-                ))
+                node.children.append(
+                    node=SyntaxNode(
+                        kind=NodeKind.Null,
+                        start_pos=deepcopy(token.start_pos),
+                        end_pos=deepcopy(token.start_pos),
+                        value=None,
+                        properties={},
+                        children=[],
+                    )
+                )
                 tokens.consume(TokenKind.LineBreak)
                 continue
             else:
@@ -592,6 +622,7 @@ class Parser:
         tokens.expect(TokenKind.RBracket)
         return node
 
+
 OBJECT_CATEGORY_MAP = {
     "page": "interfaces",
     "modal": "interfaces",
@@ -602,8 +633,9 @@ OBJECT_CATEGORY_MAP = {
     "variable": "objects",
     "item": "objects",
     "object-meta": "objects",
-    "attribute": "objects"
+    "attribute": "objects",
 }
+
 
 class ObjectTreeCodeGenerator:
     def __init__(self):
@@ -634,11 +666,11 @@ class ObjectTreeCodeGenerator:
         chars.append(name[0].lower())
         for char in name[1:]:
             if char in string.ascii_uppercase:
-                chars.append('-')
+                chars.append("-")
                 chars.append(char.lower())
             else:
                 chars.append(char)
-        return ''.join(chars)
+        return "".join(chars)
 
     def gen_object(self, node):
         obj = {}
@@ -678,7 +710,7 @@ class ObjectTreeCodeGenerator:
         elif node.kind == NodeKind.Object:
             return self.gen_object(node)
         else:
-            raise Exception('no generator function for Node(kind={node.kind})')
+            raise Exception("no generator function for Node(kind={node.kind})")
 
 
 class Compiler:
@@ -688,8 +720,8 @@ class Compiler:
     def compile(self, code, target="object_tree"):
         parser = Parser()
         node = parser.parse(code)
-        if target == 'object_tree':
+        if target == "object_tree":
             generator = ObjectTreeCodeGenerator()
             return generator.gen(node)
         else:
-            raise Exception(f'Only target with object_tree supported.')
+            raise Exception(f"Only target with object_tree supported.")

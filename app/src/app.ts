@@ -44,10 +44,12 @@ import {
     DataTableElement,
     ToolbarElement,
     DropdownElement,
-    CloseModalArgs
+    CloseModalArgs,
+    TagElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
-import { NavBar, Footer, Button, ActionDefinition,
+import {
+    NavBar, Footer, Button, ActionDefinition,
     Modal, ActionBar, IconActionDefinition,
     NavMenu, Hero, MenuItem, Divider, Title, Paragraph, BulletedList, Alert, AlertType,
     IconText, StarRating, AnnotationText, IconTitle, TableView, CardSwiper, Card, Column, Row, IconCountText,
@@ -98,6 +100,10 @@ const themes_all = {
     'lara-light-purple': {},
     'lara-dark-blue': {},
     'lara-light-blue': {}
+}
+
+function replaceAll(string:string, search:string, replace:string) {
+    return string.split(search).join(replace);
 }
 
 function toPascalCase(name:string) {
@@ -808,7 +814,8 @@ export const App = defineComponent({
                     const modal_id = this.modal_helper.new_modal_id()
                     let dlg_context = { ...context }
                     dlg_context.modal_id = modal_id
-                    dlg_context.locals = {}
+                    dlg_context.locals = Object.assign({}, (open_modal.locals ?? {}))
+
                     await this.modal_helper.open_wait(modal_id,
                         this.getModalOption(open_modal, dlg_context),
                         context,
@@ -1829,22 +1836,46 @@ export const App = defineComponent({
         renderDataTable(element: DataTableElement, context: RenderContext): VNode {
             const style = element.style ?? {}
             const columns: any[] = []
+            const data = []
+            for(const obj of element.data ?? []){
+                const new_obj = Object.assign({__col_names: {}}, obj)
+                for(const [k, v] of Object.entries(obj)){
+                    if(k.includes(".")){
+                        const new_k = replaceAll(k, '.', '__');
+                        (new_obj.__col_names as Record<string, any>)[new_k] = v
+                    }
+                }
+                data.push(new_obj)
+            }
             for(const col of (element.columns ?? [])){
                 const field_name = col['field'] ?? ""
                 if(field_name.indexOf('__col_') == 0) {
                     const new_col = Object.assign({}, col)
                     delete new_col['field']
                     new_col['slot'] = ({locals}: any) => {
-                        const new_context = with_context(context, {locals: locals})
+
+                        const new_locals = Object.keys(locals)
+                            .filter(key => key.indexOf('__col_') != 0)
+                            .reduce((obj:any, key:any) => {
+                                obj[key] = locals[key];
+                                return obj;
+                            }, {});
+                        const new_context = with_context(context, {locals: new_locals})
                         return this.renderElementOrList(locals[field_name], new_context)
                     }
+                    columns.push(new_col)
+                } else  if(field_name.includes('.')){
+                    const _name = replaceAll(field_name, '.', '__')
+                    const new_name = `__col_names.${_name}`
+                    const new_col = Object.assign({}, col)
+                    new_col['field'] = new_name
                     columns.push(new_col)
                 } else {
                     columns.push(col)
                 }
             }
             return h(DataTable, {
-                data: element.data ?? [],
+                data: data,
                 columns: columns,
                 style: style,
                 paginator: element.paginator

@@ -140,6 +140,7 @@ class StampToken:
         return obj['c']
 
 
+# deprecated
 def deep_get(dictionary, keys, default=None):
     return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
 
@@ -159,3 +160,15 @@ def restruct_dict(dictionary):
         else:
             restructed[k] = restruct_v
     return restructed
+
+def flatten_dict(dictionary, prefix="", ignore_keys=None):
+    flattened = {}
+    for k, v in dictionary.items():
+        if ignore_keys and k in ignore_keys:
+            flattened[f'{prefix}{k}'] = v
+        elif isinstance(v, (dict, Mapping)):
+            flattened_v = flatten_dict(v, prefix=f'{prefix}{k}.')
+            flattened.update(flattened_v)
+        else:
+            flattened[f'{prefix}{k}'] = v
+    return flattened

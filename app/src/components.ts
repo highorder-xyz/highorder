@@ -1,5 +1,5 @@
 
-import { defineComponent, h, VNode, PropType, isVNode, Prop, vShow } from 'vue';
+import { defineComponent, h, VNode, PropType, isVNode} from 'vue';
 import gsap from 'gsap'
 import styles from './components.module.css'
 import 'animate.css';
@@ -28,6 +28,10 @@ import { PrimeIcons } from 'primevue/api';
 
 gsap.ticker.fps(10);
 
+function replaceAll(string:string, search:string, replace:string) {
+    return string.split(search).join(replace);
+}
+
 function randomString(n: number, charset?: string): string {
     let res = '';
     let chars =
@@ -55,7 +59,7 @@ const icon_components: Record<string, string> = {
 
 export function init_components() {
     for (let [key, value] of Object.entries(PrimeIcons)) {
-        const new_key = key.toLowerCase().replaceAll('_', '-')
+        const new_key = replaceAll(key.toLowerCase(), '_', '-')
         icon_components[new_key] = value
     }
 }
@@ -1769,10 +1773,12 @@ export const InputText = defineComponent({
 export const DataTable = defineComponent({
     name: 'DataTable',
     props: {
-        data: { type: Array, default: [] },
-        columns: { type: Array as PropType<Array<any>>, default: [] },
+        data: { type: Array as PropType<Array<Record<string, any>>>,  default: [] },
+        columns: { type: Array as PropType<Array<Record<string, any>>>, default: [] },
         paginator: { type: Object, default: {} },
         style: { type: Object, default: {} },
+    },
+    methods:{
     },
 
     render() {

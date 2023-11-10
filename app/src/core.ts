@@ -225,6 +225,7 @@ export interface ModalElement {
     content?: string;
     content_link?: string;
     style?: Record<string, any>;
+    locals?: Record<string, any>;
     elements?: ModalWidgetElement[]
     confirm?: {
         text: string;

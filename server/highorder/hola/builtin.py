@@ -1,4 +1,3 @@
-
 import random
 
 THEME_COLORS = [
@@ -51,13 +50,23 @@ class HolaBulitin:
         return days
 
     @staticmethod
-    def join(arr, separator='\n'):
+    def join(arr, separator="\n"):
         return separator.join(arr)
 
     @staticmethod
     def version_greater_than(version1, version2):
-        v1 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version1.split('.')))))
-        v2 = sum(map(lambda x: int(x[1])*(1000**x[0]), enumerate(reversed(version2.split('.')))))
+        v1 = sum(
+            map(
+                lambda x: int(x[1]) * (1000 ** x[0]),
+                enumerate(reversed(version1.split("."))),
+            )
+        )
+        v2 = sum(
+            map(
+                lambda x: int(x[1]) * (1000 ** x[0]),
+                enumerate(reversed(version2.split("."))),
+            )
+        )
         return v1 > v2
 
     @staticmethod

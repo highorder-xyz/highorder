@@ -193,6 +193,7 @@ class ShowModalCommandArg:
     content: str = ''
     content_html: str = ''
     title_action: Optional[dict] = field(default_factory=dict)
+    locals: dict = field(default_factory=dict)
     elements: Optional[List[dict]] = field(default_factory=list)
     handlers: Optional[List[dict]] = field(default_factory=list)
     style: Optional[dict] = field(default_factory=dict)

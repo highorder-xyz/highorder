@@ -1,14 +1,16 @@
-
 import ast
 import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
 
+
 def camel_to_snake(s):
-    return ''.join(['_'+c.lower() if c.isupper() else c for c in s]).lstrip('_')
+    return "".join(["_" + c.lower() if c.isupper() else c for c in s]).lstrip("_")
+
 
 class HolaExprParseError(Exception):
     pass
+
 
 class QueryExpr:
     AND = "AND"
@@ -52,36 +54,39 @@ class QueryExpr:
 
 class FilterExprTransformer:
     op_suffix_map = {
-        'eq': '',
-        'noteq': 'not',
-        'lt': 'lt',
-        'lte': 'lte',
-        'gt': 'gt',
-        'gte': 'gte',
-        'in': 'in',
-        'notin': 'not_in'
+        "eq": "",
+        "noteq": "not",
+        "lt": "lt",
+        "lte": "lte",
+        "gt": "gt",
+        "gte": "gte",
+        "in": "in",
+        "notin": "not_in",
     }
-    def __init__(self, expr_cls = QueryExpr, **kwargs):
+
+    def __init__(self, expr_cls=QueryExpr, **kwargs):
         self.expr_cls = expr_cls
         self.name_replace = kwargs.get("name_replace", {})
 
     def parse(self, expr):
         syntax_error_template = (
-            'Line {lineno}: {type}: {msg} at statement: {statement!r}')
+            "Line {lineno}: {type}: {msg} at statement: {statement!r}"
+        )
         expr_ast = None
         try:
-            expr_ast = ast.parse(expr, '<string>', 'eval')
+            expr_ast = ast.parse(expr, "<string>", "eval")
         except (TypeError, ValueError) as e:
             raise HolaExprParseError(str(e))
         except SyntaxError as v:
-            raise HolaExprParseError(syntax_error_template.format(
-                lineno=v.lineno,
-                type=v.__class__.__name__,
-                msg=v.msg,
-                statement=v.text.strip() if v.text else None
-            ))
+            raise HolaExprParseError(
+                syntax_error_template.format(
+                    lineno=v.lineno,
+                    type=v.__class__.__name__,
+                    msg=v.msg,
+                    statement=v.text.strip() if v.text else None,
+                )
+            )
         return expr_ast
-
 
     def transform(self, expr):
         if not expr:
@@ -100,42 +105,41 @@ class FilterExprTransformer:
         return transformed_order_by
 
     def transform_order_by_each(self, order_by):
-        if order_by[0] == '-':
-            prefix = '-'
-            parts = order_by[1:].split('.')
+        if order_by[0] == "-":
+            prefix = "-"
+            parts = order_by[1:].split(".")
         else:
-            prefix = ''
-            parts = order_by.split('.')
+            prefix = ""
+            parts = order_by.split(".")
 
         key = parts[0]
         if key in self.name_replace:
             parts[0] = self.name_replace[key]
 
         parts = list(filter(lambda x: x, parts))
-        transformed = '.'.join(parts)
-        return f'{prefix}{transformed}'
+        transformed = ".".join(parts)
+        return f"{prefix}{transformed}"
 
     def transform_node(self, node):
         name = camel_to_snake(node.__class__.__name__)
-        method_name = f'transform_{name}'
+        method_name = f"transform_{name}"
         method = getattr(self, method_name, None)
         if callable(method):
             return method(node)
         else:
-            raise Exception(f'no transform for node type: {name}.')
+            raise Exception(f"no transform for node type: {name}.")
 
     def transform_expression(self, node):
         return self.transform_node(node.body)
-
 
     def transform_compare(self, node):
         name = self.transform_node(node.left)
         op = node.ops[0].__class__.__name__.lower()
         suffix = self.op_suffix_map[op]
         if suffix:
-            key_name = f'{name}__{suffix}'
+            key_name = f"{name}__{suffix}"
         else:
-            key_name = f'{name}'
+            key_name = f"{name}"
         target = self.transform_node(node.comparators[0])
         return self.expr_cls(**{key_name: target})
 
@@ -146,15 +150,22 @@ class FilterExprTransformer:
 
     def transform_attribute(self, node):
         keys = []
-        suffix = ''
+        suffix = ""
         keys.append(self.transform_node(node.value))
-        if node.attr in ['contains', 'has_key', 'has_keys', 'has_anykeys', 'startswith', 'endswith']:
-            suffix = f'__{node.attr}'
+        if node.attr in [
+            "contains",
+            "has_key",
+            "has_keys",
+            "has_anykeys",
+            "startswith",
+            "endswith",
+        ]:
+            suffix = f"__{node.attr}"
         else:
             keys.append(node.attr)
 
         keys = list(filter(lambda x: x, keys))
-        return '.'.join(keys) + suffix
+        return ".".join(keys) + suffix
 
     def transform_name(self, node):
         name = node.id
@@ -177,15 +188,16 @@ def expr_to_dict(expr):
     transformed = {
         "type": "expression",
         "operator": expr.join_type,
-        "negate": expr._is_negated
+        "negate": expr._is_negated,
     }
     if expr.filters:
         transformed.update(expr.filters)
     elif expr.children:
-        transformed['elements'] = []
+        transformed["elements"] = []
         for child in expr.children:
-            transformed['elements'].append(expr_to_dict(child))
+            transformed["elements"].append(expr_to_dict(child))
     return transformed
+
 
 def expr_dump(expr, **kwargs):
     d = expr_to_dict(expr)

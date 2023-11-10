@@ -6,16 +6,14 @@ import hmac, hashlib
 from highorder.base.loader import ConfigLoader
 from highorder.base import error
 from highorder.hola.account import SessionService
-from .data import (
-    ClientRequestCommand,
-    SetupRequestCommand
-)
+from .data import ClientRequestCommand, SetupRequestCommand
 import json
 from basepy.config import settings
 
 factory = dataclass_factory.Factory()
 
-bp =  Blueprint('hola', url_prefix="/service/hola")
+bp = Blueprint("hola", url_prefix="/service/hola")
+
 
 class AppConfig:
     @classmethod
@@ -38,7 +36,7 @@ class AppConfig:
 
 
 async def validate_client(app_id, sign, request):
-    hex_sign, timestamp, client_key = sign.split(',', 3)
+    hex_sign, timestamp, client_key = sign.split(",", 3)
     raw_data = await request.body()
 
     app_config = await AppConfig.get(app_id)
@@ -47,16 +45,15 @@ async def validate_client(app_id, sign, request):
     if not client_secret:
         return False
 
-    msg = bytes(f'{app_id}{timestamp}', encoding='utf-8') + raw_data
+    msg = bytes(f"{app_id}{timestamp}", encoding="utf-8") + raw_data
     hex_sign_server = hmac.new(
-            bytes(client_secret, encoding='utf-8'),
-            msg,
-            hashlib.sha256
-        ).hexdigest()
+        bytes(client_secret, encoding="utf-8"), msg, hashlib.sha256
+    ).hexdigest()
 
     if hex_sign_server == hex_sign:
         return True
     return False
+
 
 async def validate_session_token(session_token, app_id):
     assert session_token
@@ -65,15 +62,16 @@ async def validate_session_token(session_token, app_id):
         return (session_svc, await session_svc.get_user_service())
     return (None, None)
 
-async def validate_client_request(request):
-    sign = request.headers.get('X-HighOrder-Sign')
-    app_id = request.headers.get('X-HighOrder-Application-Id')
-    assert app_id != None
-    session_token = request.headers.get('X-HighOrder-Session-Token')
 
-    sign_valid  = await validate_client(app_id, sign, request)
+async def validate_client_request(request):
+    sign = request.headers.get("X-HighOrder-Sign")
+    app_id = request.headers.get("X-HighOrder-Application-Id")
+    assert app_id != None
+    session_token = request.headers.get("X-HighOrder-Session-Token")
+
+    sign_valid = await validate_client(app_id, sign, request)
     if not sign_valid:
-        return False, error.client_invalid('sign not correct.')
+        return False, error.client_invalid("sign not correct.")
     request.app_id = app_id
 
     user = None
@@ -86,89 +84,97 @@ async def validate_client_request(request):
     return True, None
 
 
-@bp.route('/main', methods=["POST", "GET"])
+@bp.route("/main", methods=["POST", "GET"])
 async def hola_main(request):
     valid, err_response = await validate_client_request(request)
     if not valid:
         return err_response
     data = await request.json()
     request_cmd = None
-    if 'command' in data:
+    if "command" in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    hola_svc = await HolaService.create(request.app_id,
-                request.session,
-                request.config_loader,
-                request_cmd.context,
-                host_url = request.host_url
-            )
+    hola_svc = await HolaService.create(
+        request.app_id,
+        request.session,
+        request.config_loader,
+        request_cmd.context,
+        host_url=request.host_url,
+    )
     commands = await hola_svc.handle_request(request_cmd)
 
-    ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},
-                          ensure_ascii=False, indent=None, separators=(',', ':'))
+    ret_data = json.dumps(
+        {"ok": True, "data": factory.dump({"commands": commands})},
+        ensure_ascii=False,
+        indent=None,
+        separators=(",", ":"),
+    )
 
-    return Response(ret_data, content_type='application/json')
+    return Response(ret_data, content_type="application/json")
 
 
 async def validate_console(app_id, sign, request):
-    hex_sign, timestamp, client_key = sign.split(',', 3)
+    hex_sign, timestamp, client_key = sign.split(",", 3)
     raw_data = await request.body()
 
     app_config = await AppConfig.get(app_id)
     client_secret = None
-    for setup_key in settings.server.get('setup_keys', []):
-        if setup_key['client_key'] == client_key:
-            client_secret = setup_key['client_secret']
+    for setup_key in settings.server.get("setup_keys", []):
+        if setup_key["client_key"] == client_key:
+            client_secret = setup_key["client_secret"]
             break
     request.config_loader = app_config.loader
     if not client_secret:
         return False
 
-    msg = bytes(f'{app_id}{timestamp}', encoding='utf-8') + raw_data
+    msg = bytes(f"{app_id}{timestamp}", encoding="utf-8") + raw_data
     hex_sign_server = hmac.new(
-            bytes(client_secret, encoding='utf-8'),
-            msg,
-            hashlib.sha256
-        ).hexdigest()
+        bytes(client_secret, encoding="utf-8"), msg, hashlib.sha256
+    ).hexdigest()
 
     if hex_sign_server == hex_sign:
         return True
     return False
 
+
 async def validate_setup_request(request):
-    sign = request.headers.get('X-HighOrder-Sign')
-    app_id = request.headers.get('X-HighOrder-Application-Id')
+    sign = request.headers.get("X-HighOrder-Sign")
+    app_id = request.headers.get("X-HighOrder-Application-Id")
     assert app_id != None
 
-    sign_valid  = await validate_console(app_id, sign, request)
+    sign_valid = await validate_console(app_id, sign, request)
     if not sign_valid:
-        return False, error.client_invalid('sign not correct.')
+        return False, error.client_invalid("sign not correct.")
     request.app_id = app_id
     return True, None
 
 
-@bp.route('/setup', methods=["POST", "GET"])
+@bp.route("/setup", methods=["POST", "GET"])
 async def hola_setup(request):
     valid, err_response = await validate_setup_request(request)
     if not valid:
         return err_response
     data = await request.json()
     request_cmd = None
-    if 'command' in data:
+    if "command" in data:
         request_cmd = factory.load(data, SetupRequestCommand)
 
     setup_svc = await HolaSetupService.create(request.app_id, request.config_loader)
     info = await setup_svc.handle_request(request_cmd)
 
-    ret_data = json.dumps({"ok":True, "data": factory.dump(info or {})},
-                          ensure_ascii=False, indent=None, separators=(',', ':'))
-    return Response(ret_data, content_type='application/json')
+    ret_data = json.dumps(
+        {"ok": True, "data": factory.dump(info or {})},
+        ensure_ascii=False,
+        indent=None,
+        separators=(",", ":"),
+    )
+    return Response(ret_data, content_type="application/json")
 
 
 async def validate_client_lite_request(request):
-    app_id = request.headers.get('X-HighOrder-Application-Id')
+    app_id = request.headers.get("X-HighOrder-Application-Id")
     assert app_id != None
-    session_token = request.headers.get('X-HighOrder-Session-Token')
+    session_token = request.headers.get("X-HighOrder-Session-Token")
     request.app_id = app_id
     app_config = await AppConfig.get(app_id)
     request.config_loader = app_config.loader
@@ -183,24 +189,29 @@ async def validate_client_lite_request(request):
     return True, None
 
 
-@bp.route('/lite', methods=["POST", "GET"])
+@bp.route("/lite", methods=["POST", "GET"])
 async def hola_lite(request):
     valid, err_response = await validate_client_lite_request(request)
     if not valid:
         return err_response
     data = await request.json()
     request_cmd = None
-    if 'command' in data:
+    if "command" in data:
         request_cmd = factory.load(data, ClientRequestCommand)
 
-    hola_svc = await HolaService.create(request.app_id,
-                    request.session,
-                    request.config_loader,
-                    request_cmd.context,
-                    host_url = request.host_url
-                )
+    hola_svc = await HolaService.create(
+        request.app_id,
+        request.session,
+        request.config_loader,
+        request_cmd.context,
+        host_url=request.host_url,
+    )
     commands = await hola_svc.handle_request(request_cmd)
 
-    ret_data = json.dumps({"ok":True, "data": factory.dump({"commands": commands})},
-                          ensure_ascii=False, indent=None, separators=(',', ':'))
-    return Response(ret_data, content_type='application/json')
+    ret_data = json.dumps(
+        {"ok": True, "data": factory.dump({"commands": commands})},
+        ensure_ascii=False,
+        indent=None,
+        separators=(",", ":"),
+    )
+    return Response(ret_data, content_type="application/json")
