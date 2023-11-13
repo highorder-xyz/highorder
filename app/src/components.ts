@@ -23,6 +23,13 @@ import PrimeDropdown from 'primevue/dropdown';
 import PrimeDialog from 'primevue/dialog';
 import PrimeToast from 'primevue/toast';
 import PrimeTag from 'primevue/tag';
+import PrimeAvatar from 'primevue/avatar';
+import PrimeCheckbox from 'primevue/checkbox';
+import PrimeProgressBar from 'primevue/progressbar';
+import PrimeCalendar from 'primevue/calendar';
+import PrimeInputSwitch from 'primevue/inputswitch';
+import PrimeMultiSelect from 'primevue/multiselect';
+import PrimeTextarea from 'primevue/textarea';
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -1926,6 +1933,297 @@ export const Tag = defineComponent({
                 }
             }
         }, {})
+    }
+});
+
+export const Avatar = defineComponent({
+    name: 'Avatar',
+    props: {
+        icon: { type: String, default: "" },
+        image_src: { type: String, default: ""},
+        style: { type: Object, default: {}}
+    },
+    render() {
+        const props: Record<string, any> = {}
+        if(this.icon){
+            props['icon'] = this.icon
+        }
+        if(this.image_src){
+            props.image = this.image_src
+        }
+        props.shape = 'circle'
+        return h(PrimeAvatar, {...props
+        }, {})
+    }
+});
+
+export const Checkbox = defineComponent({
+    name: 'Checkbox',
+    props: {
+        value: { type: Boolean, default: false, required: false },
+        binary: { type: Boolean, default: true, required: false },
+        text: { type: String, default: "", required: false},
+        check_strike: { type: Boolean, default: false, required: false},
+        style: { type: Object, default: {}}
+    },
+    emits: {
+        checkChanged: (check: boolean | undefined) => { return true; }
+    },
+    data() {
+        return {
+            "checkValue": this.$props.value
+        }
+    },
+
+    beforeMount() {
+        this.valueChanged(this.checkValue)
+    },
+
+    methods: {
+        valueChanged(value: boolean | undefined) {
+            (this.checkValue as any) = value
+            this.$emit("checkChanged", value)
+        }
+    },
+    render() {
+        const children: VNode[] = [ h(PrimeCheckbox, {
+            modelValue: this.checkValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {})]
+        if(this.text){
+            const style_class : Array<string> = [styles["h-form-element"]]
+            if(this.value == true && this.check_strike){
+                style_class.push(styles["h-text-strike"])
+            }
+            children.push(h("label", {class: style_class }, this.text))
+        }
+        return h('div', { class: [styles["h-form-line"]] }, children)
+    }
+});
+
+export const Progressbar = defineComponent({
+    name: 'Progressbar',
+    props: {
+        percent: { type: Number, default: -1 },
+        value: { type: Number, default: -1 },
+        total: { type: Number, default: -1 },
+        style: { type: Object, default: {}}
+    },
+    render() {
+        let value: number = 0
+        if (this.value >= 0 && this.total > 0) {
+            let percent_value = Math.floor((this.value * 100) / this.total)
+            if (percent_value > 100) {
+                percent_value = 100
+            }
+            value = percent_value
+
+        } else if (this.percent >= 0) {
+            let percent_value = Math.floor(this.percent)
+            value  = percent_value
+        }
+        const props:Record<string, any> = {
+            value: value
+        }
+        if((this.style.tags ?? []).includes('indeterminate')){
+            props.mode = 'indeterminate'
+        }
+        return h(PrimeProgressBar, {
+            ...props
+        })
+    }
+});
+
+export const Calendar = defineComponent({
+    name: 'Calendar',
+    props: {
+        value: { type: String, default: "" },
+        value_format: { type: String, default: "yy-mm-dd" },
+        min_value: { type: String, default: "" },
+        max_value: { type: String, default: "" },
+        range: { type:Boolean, default:false },
+        locale: { type: String, default: "" },
+        icon: { type: Boolean, default: true },
+        show_date: { type:Boolean, default:true },
+        show_time: { type:Boolean, default:false },
+        style: { type: Object, default: {}}
+    },
+    emits: {
+        calendarChanged: (calendar: string ) => { return true; }
+    },
+    data() {
+        return {
+            "calendarValue": this.$props.value
+        }
+    },
+
+    beforeMount() {
+        this.valueChanged(this.calendarValue)
+    },
+
+    methods: {
+        valueChanged(value: string ) {
+            this.calendarValue = value
+            this.$emit("calendarChanged", value)
+        }
+    },
+    render() {
+        const props: Record<string, any> = {}
+        if(this.range){
+            props.selectionMode = 'range'
+        }
+        if(this.icon){
+            props.showIcon = this.icon
+        }
+        if(this.min_value){
+            props.minDate = this.min_value
+        }
+        if(this.max_value){
+            props.maxDate = this.max_value
+        }
+        return h(PrimeCalendar, {
+            modelValue: this.value,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value) },
+            dateFormat: this.value_format,
+            manualInput: false,
+            ...props
+        }, {})
+    }
+});
+
+export const InputSwitch = defineComponent({
+    name: 'InputSwitch',
+    props: {
+        value: { type: Boolean, default: false },
+        text: { type: String, default: "" },
+        style: { type: Object, default: {}}
+    },
+
+    emits: {
+        checkChanged: (check: boolean ) => { return true; }
+    },
+
+    data() {
+        return {
+            "checkValue": this.$props.value
+        }
+    },
+
+    beforeMount() {
+        this.valueChanged(this.checkValue)
+    },
+
+    methods: {
+        valueChanged(value: boolean) {
+            (this.checkValue as any) = value
+            this.$emit("checkChanged", value)
+        }
+    },
+    render() {
+        const children: VNode[] = [ h(PrimeInputSwitch, {
+            modelValue: this.checkValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {})]
+        if(this.text){
+            const style_class : Array<string> = [styles["h-form-element"]]
+            children.push(h("label", {class: style_class }, this.text))
+        }
+        return h('div', { class: [styles["h-form-line"]] }, children)
+    }
+});
+
+export const MultiSelect = defineComponent({
+    name: 'MultiSelect',
+    props: {
+        label: { type: String, default: "" },
+        values: { type: Array as PropType<Array<string>>, default: []},
+        options: { type: Array as PropType<Array<Record<string, any>>>, default: []},
+        chips: { type: Boolean, default: true},
+        style: { type: Object, default: {}}
+    },
+
+    emits: {
+        selectChanged: (selected: Array<any> ) => { return true; }
+    },
+
+    data() {
+        return {
+            "selectValues": this.$props.values
+        }
+    },
+
+    beforeMount() {
+        this.valueChanged(this.selectValues)
+    },
+
+    methods: {
+        valueChanged(value: Array<any>) {
+            this.selectValues = value
+            this.$emit("selectChanged", value)
+        }
+    },
+
+    render() {
+        const props: Record<string, any> = {}
+        if (this.chips){
+            props.display = 'chip'
+        }
+        const options = this.options;
+        const children: VNode[] = [ h(PrimeMultiSelect, {
+            modelValue: this.selectValues,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); },
+            options: options,
+            ...props
+        }, {})]
+        if(this.label){
+            const style_class : Array<string> = [styles["h-form-element"]]
+            children.push(h("label", {class: style_class }, this.label))
+        }
+        return h('div', { class: [styles["h-form-line"]] }, children)
+    }
+});
+
+export const Textarea = defineComponent({
+    name: 'Textarea',
+    props: {
+        label: { type: String, default: "" },
+        value: { type: String, default: "" },
+        rows: { type: Number, default: 5 },
+        cols: { type: Number, default: 30 },
+        style: { type: Object, default: {}}
+    },
+
+    emits: {
+        textChanged: (text: string ) => { return true; }
+    },
+
+    data() {
+        return {
+            "textValue": this.$props.value
+        }
+    },
+
+    beforeMount() {
+        this.valueChanged(this.textValue)
+    },
+
+    methods: {
+        valueChanged(value: string) {
+            this.textValue = value
+            this.$emit("textChanged", value)
+        }
+    },
+
+    render() {
+        const children: VNode[] = [ h(PrimeTextarea, {
+            modelValue: this.textValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {})]
+        if(this.label){
+            const style_class : Array<string> = [styles["h-form-element"]]
+            children.push(h("label", {class: style_class }, this.label))
+        }
+        return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
 

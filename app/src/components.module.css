@@ -1638,3 +1638,7 @@
     width: 100%;
     margin-bottom: 8px;
 }
+
+.h-text-strike {
+    text-decoration: line-through;
+}

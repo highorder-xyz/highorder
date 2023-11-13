@@ -423,6 +423,73 @@ export interface TagElement{
     color: string
 }
 
+export interface AvatarElement{
+    type: string
+    icon?: string
+    image_src?: string
+    badge?: Record<string, any>
+    style?: Record<string, any>
+}
+
+export interface CheckboxElement{
+    type: string
+    value: boolean | undefined
+    binary?: boolean
+    text?: string
+    check_strike?: boolean;
+    style?: Record<string, any>
+}
+
+export interface ProgressbarElement{
+    type: string
+    percent?: number;
+    value?: number;
+    total?: number;
+    style?: Record<string, any>
+}
+
+export interface CalendarElement{
+    type: string
+    value?: string;
+    value_format?: string;
+    min_value?: string;
+    max_value?: string;
+    range?: boolean
+    locale?: string;
+    icon?: boolean
+    show_date?: boolean
+    show_time?: boolean
+    style?: Record<string, any>
+}
+
+
+export interface InputSwitchElement{
+    type: string
+    value: boolean
+    text?: string
+    style?: Record<string, any>
+}
+
+
+export interface MultiSelectElement{
+    type: string
+    style?: Record<string, any>
+    label?: string
+    values?: Array<string>
+    options?: Array<Record<string, any>>
+    chips?: boolean
+}
+
+
+export interface TextareaElement{
+    type: string
+    style?: Record<string, any>
+    value?: string
+    label?: string
+    rows?: number
+    cols?: number
+}
+
 export interface CardSwiperElement {
     type: string
     title: string

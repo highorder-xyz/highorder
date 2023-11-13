@@ -45,7 +45,14 @@ import {
     ToolbarElement,
     DropdownElement,
     CloseModalArgs,
-    TagElement
+    TagElement,
+    AvatarElement,
+    CheckboxElement,
+    ProgressbarElement,
+    CalendarElement,
+    InputSwitchElement,
+    MultiSelectElement,
+    TextareaElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import {
@@ -70,7 +77,14 @@ import {
     Dropdown,
     Dialog,
     Toast,
-    Tag
+    Tag,
+    Avatar,
+    Checkbox,
+    Progressbar,
+    Calendar,
+    InputSwitch,
+    MultiSelect,
+    Textarea
 } from './components'
 
 import { app_platform } from './platform';
@@ -1189,6 +1203,34 @@ export const App = defineComponent({
             })
         },
 
+        renderAvatar(element: AvatarElement, context: RenderContext){
+            return h(Avatar, {...element})
+        },
+
+        renderCheckbox(element: CheckboxElement, context: RenderContext){
+            return h(Checkbox, {...element})
+        },
+
+        renderProgressbar(element: ProgressbarElement, context: RenderContext){
+            return h(Progressbar, {...element})
+        },
+
+        renderCalendar(element: CalendarElement, context: RenderContext){
+            return h(Calendar, {...element})
+        },
+
+        renderInputSwitch(element: InputSwitchElement, context: RenderContext){
+            return h(InputSwitch, {...element})
+        },
+
+        renderMultiSelect(element: MultiSelectElement, context: RenderContext){
+            return h(MultiSelect, {...element})
+        },
+
+        renderTextarea(element: TextareaElement, context: RenderContext){
+            return h(Textarea, {...element})
+        },
+
 
         renderParagraph(element: ParagraphElement, context: RenderContext){
             return h(Paragraph, {
@@ -1544,6 +1586,20 @@ export const App = defineComponent({
                 return this.renderDropdown(element as DropdownElement, context)
             } else if (element.type === "tag") {
                 return this.renderTag(element as TagElement, context)
+            } else if (element.type === "avatar") {
+                return this.renderAvatar(element as AvatarElement, context)
+            } else if (element.type === "checkbox") {
+                return this.renderCheckbox(element as CheckboxElement, context)
+            } else if (element.type === "progressbar") {
+                return this.renderProgressbar(element as ProgressbarElement, context)
+            } else if (element.type === "calendar") {
+                return this.renderCalendar(element as CalendarElement, context)
+            } else if (element.type === "input-switch") {
+                return this.renderInputSwitch(element as InputSwitchElement, context)
+            } else if (element.type === "multi-select") {
+                return this.renderMultiSelect(element as MultiSelectElement, context)
+            } else if (element.type === "textarea") {
+                return this.renderTextarea(element as TextareaElement, context)
             } else if (element.type == 'motion') {
                 return this.renderMotion(element as MotionElement, context)
             } else {
