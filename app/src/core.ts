@@ -490,6 +490,14 @@ export interface TextareaElement{
     cols?: number
 }
 
+
+export interface QrcodeElement{
+    type: string
+    code: string
+    text?: string
+    style?: Record<string, any>
+}
+
 export interface CardSwiperElement {
     type: string
     title: string

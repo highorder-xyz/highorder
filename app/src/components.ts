@@ -30,6 +30,7 @@ import PrimeCalendar from 'primevue/calendar';
 import PrimeInputSwitch from 'primevue/inputswitch';
 import PrimeMultiSelect from 'primevue/multiselect';
 import PrimeTextarea from 'primevue/textarea';
+import QrcodeVue from 'qrcode.vue'
 import { PrimeIcons } from 'primevue/api';
 
 
@@ -1986,10 +1987,7 @@ export const Checkbox = defineComponent({
         }
     },
     render() {
-        const children: VNode[] = [ h(PrimeCheckbox, {
-            modelValue: this.checkValue,
-            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
-        }, {})]
+        const children: VNode[] = []
         if(this.text){
             const style_class : Array<string> = [styles["h-form-element"]]
             if(this.value == true && this.check_strike){
@@ -1997,6 +1995,10 @@ export const Checkbox = defineComponent({
             }
             children.push(h("label", {class: style_class }, this.text))
         }
+        children.push(h(PrimeCheckbox, {
+            modelValue: this.checkValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {}))
         return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
@@ -2120,14 +2122,15 @@ export const InputSwitch = defineComponent({
         }
     },
     render() {
-        const children: VNode[] = [ h(PrimeInputSwitch, {
-            modelValue: this.checkValue,
-            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
-        }, {})]
+        const children: VNode[] = []
         if(this.text){
             const style_class : Array<string> = [styles["h-form-element"]]
             children.push(h("label", {class: style_class }, this.text))
         }
+        children.push(h(PrimeInputSwitch, {
+            modelValue: this.checkValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {}))
         return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
@@ -2168,17 +2171,48 @@ export const MultiSelect = defineComponent({
         if (this.chips){
             props.display = 'chip'
         }
-        const options = this.options;
-        const children: VNode[] = [ h(PrimeMultiSelect, {
-            modelValue: this.selectValues,
-            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); },
-            options: options,
-            ...props
-        }, {})]
+        const options = [];
+        for(const opt of this.options){
+            if(opt.slot){
+                options.push({
+                    name: opt.label,
+                    code: opt.name,
+                    slot: opt.slot
+                })
+            } else {
+                options.push({
+                    name: opt.label,
+                    code: opt.name
+                })
+            }
+        }
+        const children: VNode[] = []
         if(this.label){
             const style_class : Array<string> = [styles["h-form-element"]]
             children.push(h("label", {class: style_class }, this.label))
         }
+        children.push(h(PrimeMultiSelect, {
+            modelValue: this.selectValues,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); },
+            options: options,
+            optionLabel: "name",
+            ...props
+        }, {
+            "option": (slotProps: any) => {
+                console.log('option', slotProps)
+                if(slotProps.option.slot){
+                    return slotProps.option.slot()
+                }
+                return h('div', {}, slotProps.option.name)
+            },
+            "chip": (slotProps: any) => {
+                console.log('chip', slotProps.value)
+                if(slotProps.value.slot){
+                    return slotProps.value.slot()
+                }
+                return h('div', {}, slotProps.value.name)
+            }
+        }))
         return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
@@ -2215,14 +2249,17 @@ export const Textarea = defineComponent({
     },
 
     render() {
-        const children: VNode[] = [ h(PrimeTextarea, {
-            modelValue: this.textValue,
-            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
-        }, {})]
+        const children: VNode[] = []
         if(this.label){
             const style_class : Array<string> = [styles["h-form-element"]]
             children.push(h("label", {class: style_class }, this.label))
         }
+        children.push(h(PrimeTextarea, {
+            rows: this.rows,
+            cols: this.cols,
+            modelValue: this.textValue,
+            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
+        }, {}))
         return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
@@ -2363,6 +2400,25 @@ export const Menu = defineComponent({
     }
 });
 
+export const Qrcode = defineComponent({
+    name: 'Qrcode',
+    props: {
+        value: { type: String, default: "" },
+        size: { type: Number, default: 150 },
+        level: { type: String, default: 'H' },
+        render: { type: String, default: "canvas"},
+        style: { type: Object, default: {}}
+    },
+    render() {
+        return h(QrcodeVue, {
+            value: this.value,
+            size: this.size,
+            level: this.level,
+            "render-as": this.render
+        }, {})
+    }
+});
+
 export const Loader = defineComponent({
     name: 'Loader',
     render() {
@@ -2371,6 +2427,7 @@ export const Loader = defineComponent({
         })
     }
 });
+
 
 export const ImageView = defineComponent({
     name: 'ImageView',

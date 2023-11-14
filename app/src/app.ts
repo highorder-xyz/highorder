@@ -52,7 +52,8 @@ import {
     CalendarElement,
     InputSwitchElement,
     MultiSelectElement,
-    TextareaElement
+    TextareaElement,
+    QrcodeElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import {
@@ -84,7 +85,8 @@ import {
     Calendar,
     InputSwitch,
     MultiSelect,
-    Textarea
+    Textarea,
+    Qrcode
 } from './components'
 
 import { app_platform } from './platform';
@@ -1224,13 +1226,40 @@ export const App = defineComponent({
         },
 
         renderMultiSelect(element: MultiSelectElement, context: RenderContext){
-            return h(MultiSelect, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            delete props.options
+            const options: Array<Record<string, any>> = []
+            for(const opt of element.options?? []){
+                if(opt.type && opt.type == 'element-option'){
+                    options.push({
+                        label: opt.label,
+                        name: opt.name,
+                        slot: () => {
+                            return this.renderElementOrList(opt.element, context)
+                        }
+                    })
+                } else {
+                    options.push({
+                        label: opt.label,
+                        name: opt.name
+                    })
+                }
+            }
+            props.options = options
+
+            return h(MultiSelect, {...props})
         },
 
         renderTextarea(element: TextareaElement, context: RenderContext){
             return h(Textarea, {...element})
         },
 
+        renderQrcode(element: QrcodeElement, context: RenderContext){
+            const props: Record<string, any> = {}
+            props.value = element.code
+            return h(Qrcode, {...props})
+        },
 
         renderParagraph(element: ParagraphElement, context: RenderContext){
             return h(Paragraph, {
@@ -1600,6 +1629,8 @@ export const App = defineComponent({
                 return this.renderMultiSelect(element as MultiSelectElement, context)
             } else if (element.type === "textarea") {
                 return this.renderTextarea(element as TextareaElement, context)
+            } else if (element.type === "qrcode") {
+                return this.renderQrcode(element as QrcodeElement, context)
             } else if (element.type == 'motion') {
                 return this.renderMotion(element as MotionElement, context)
             } else {
