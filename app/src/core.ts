@@ -452,6 +452,7 @@ export interface ProgressbarElement{
 export interface CalendarElement{
     type: string
     name?: string
+    label?: string
     value?: string;
     value_format?: string;
     min_value?: string;

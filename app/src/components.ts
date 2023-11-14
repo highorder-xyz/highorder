@@ -2040,10 +2040,11 @@ export const Calendar = defineComponent({
     name: 'Calendar',
     props: {
         value: { type: String, default: "" },
+        label: { type: String, default: ""},
         value_format: { type: String, default: "yy-mm-dd" },
         min_value: { type: String, default: "" },
         max_value: { type: String, default: "" },
-        range: { type:Boolean, default:false },
+        range: { type:Boolean, default: false },
         locale: { type: String, default: "" },
         icon: { type: Boolean, default: true },
         show_date: { type:Boolean, default:true },
@@ -2051,11 +2052,21 @@ export const Calendar = defineComponent({
         style: { type: Object, default: {}}
     },
     emits: {
-        calendarChanged: (calendar: string ) => { return true; }
+        calendarChanged: (calendar: string | Array<string> ) => { return true; }
     },
     data() {
+        var timestamp = Date.parse(this.$props.value);
+        let _value: Date | Date[] | undefined = undefined
+        if (isNaN(timestamp) == false) {
+            _value = new Date(this.$props.value);
+        }
+
+        if(this.range){
+            _value = []
+        }
+
         return {
-            "calendarValue": this.$props.value
+            "calendarValue": _value
         }
     },
 
@@ -2064,9 +2075,22 @@ export const Calendar = defineComponent({
     },
 
     methods: {
-        valueChanged(value: string ) {
+        valueChanged(value: any ) {
             this.calendarValue = value
-            this.$emit("calendarChanged", value)
+            let _calendarValue: string | Array<string> = ""
+            if(value instanceof Array){
+                _calendarValue = []
+                for(const v of value){
+                    if( v instanceof Date && !isNaN(v.valueOf())){
+                        _calendarValue.push(v.toISOString())
+                    } else {
+                        _calendarValue.push("")
+                    }
+                }
+            } else if(value instanceof Date) {
+                _calendarValue = !isNaN(value.valueOf())? value.toISOString() : ""
+            }
+            this.$emit("calendarChanged", _calendarValue)
         }
     },
     render() {
@@ -2083,13 +2107,19 @@ export const Calendar = defineComponent({
         if(this.max_value){
             props.maxDate = this.max_value
         }
-        return h(PrimeCalendar, {
-            modelValue: this.value,
+        const children: VNode[] = []
+        if(this.label){
+            const style_class : Array<string> = [styles["h-form-element"]]
+            children.push(h("label", {class: style_class }, this.label))
+        }
+        children.push(h(PrimeCalendar, {
+            modelValue: this.calendarValue,
             "onUpdate:modelValue": (value: any) => { this.valueChanged(value) },
             dateFormat: this.value_format,
             manualInput: false,
             ...props
-        }, {})
+        }, {}))
+        return h('div', { class: [styles["h-form-line"]] }, children)
     }
 });
 

@@ -1232,7 +1232,7 @@ export const App = defineComponent({
             const props: Record<string, any> = Object.assign({}, element)
             delete props.type
             const locals: Record<string, any> =  context.locals ?? this.page.locals
-            return h(Calendar, {...props, onCalendarChanged: (calendar: string) => {
+            return h(Calendar, {...props, onCalendarChanged: (calendar: string | Array<string>) => {
                 if(element.name){
                     locals[element.name] = calendar
                 }

@@ -3759,6 +3759,8 @@ class HolaService:
         if obj_name.startswith("object."):
             obj_name = obj_name[len("object.") :]
             obj_def = self.get_object_by_name(obj_name)
+            if not obj_def:
+                raise Exception(f'No object definition form name {obj_name}.')
             obj_value = await self.get_object_updated_value(
                 obj_def, flatten_dict(_locals, ignore_keys=["_more"]), context
             )
