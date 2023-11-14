@@ -2162,7 +2162,13 @@ export const MultiSelect = defineComponent({
     methods: {
         valueChanged(value: Array<any>) {
             this.selectValues = value
-            this.$emit("selectChanged", value)
+            const selected: Array<string> = []
+            for(const v of value){
+                if(v.code){
+                    selected.push(v.code)
+                }
+            }
+            this.$emit("selectChanged", selected)
         }
     },
 
@@ -2199,14 +2205,12 @@ export const MultiSelect = defineComponent({
             ...props
         }, {
             "option": (slotProps: any) => {
-                console.log('option', slotProps)
                 if(slotProps.option.slot){
                     return slotProps.option.slot()
                 }
                 return h('div', {}, slotProps.option.name)
             },
             "chip": (slotProps: any) => {
-                console.log('chip', slotProps.value)
                 if(slotProps.value.slot){
                     return slotProps.value.slot()
                 }

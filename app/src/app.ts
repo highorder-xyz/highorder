@@ -1206,23 +1206,48 @@ export const App = defineComponent({
         },
 
         renderAvatar(element: AvatarElement, context: RenderContext){
-            return h(Avatar, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            return h(Avatar, {...props})
         },
 
         renderCheckbox(element: CheckboxElement, context: RenderContext){
-            return h(Checkbox, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            const locals: Record<string, any> =  context.locals ?? this.page.locals
+            return h(Checkbox, {...props, onCheckChanged: (check: boolean | undefined) => {
+                if(element.name){
+                    locals[element.name] = check
+                }
+            }})
         },
 
         renderProgressbar(element: ProgressbarElement, context: RenderContext){
-            return h(Progressbar, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            return h(Progressbar, {...props})
         },
 
         renderCalendar(element: CalendarElement, context: RenderContext){
-            return h(Calendar, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            const locals: Record<string, any> =  context.locals ?? this.page.locals
+            return h(Calendar, {...props, onCalendarChanged: (calendar: string) => {
+                if(element.name){
+                    locals[element.name] = calendar
+                }
+            }})
         },
 
         renderInputSwitch(element: InputSwitchElement, context: RenderContext){
-            return h(InputSwitch, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            const locals: Record<string, any> =  context.locals ?? this.page.locals
+            return h(InputSwitch, {...props, onCheckChanged: (check: boolean) => {
+                if(element.name){
+                    locals[element.name] = check
+                }
+            }})
         },
 
         renderMultiSelect(element: MultiSelectElement, context: RenderContext){
@@ -1230,6 +1255,7 @@ export const App = defineComponent({
             delete props.type
             delete props.options
             const options: Array<Record<string, any>> = []
+            let locals: Record<string, any> =  context.locals ?? this.page.locals
             for(const opt of element.options?? []){
                 if(opt.type && opt.type == 'element-option'){
                     options.push({
@@ -1248,11 +1274,23 @@ export const App = defineComponent({
             }
             props.options = options
 
-            return h(MultiSelect, {...props})
+            return h(MultiSelect, {...props, onSelectChanged: (selected: any) => {
+                if(element.name){
+                    locals[element.name] = selected
+                }
+            }})
         },
 
         renderTextarea(element: TextareaElement, context: RenderContext){
-            return h(Textarea, {...element})
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            let locals: Record<string, any> =  context.locals ?? this.page.locals
+
+            return h(Textarea, {...props, onTextChanged: (text: string) => {
+                if(element.name){
+                    locals[element.name] = text
+                }
+            }})
         },
 
         renderQrcode(element: QrcodeElement, context: RenderContext){

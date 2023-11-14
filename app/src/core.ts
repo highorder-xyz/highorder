@@ -433,6 +433,7 @@ export interface AvatarElement{
 
 export interface CheckboxElement{
     type: string
+    name?: string
     value: boolean | undefined
     binary?: boolean
     text?: string
@@ -450,6 +451,7 @@ export interface ProgressbarElement{
 
 export interface CalendarElement{
     type: string
+    name?: string
     value?: string;
     value_format?: string;
     min_value?: string;
@@ -465,6 +467,7 @@ export interface CalendarElement{
 
 export interface InputSwitchElement{
     type: string
+    name?: string
     value: boolean
     text?: string
     style?: Record<string, any>
@@ -473,6 +476,7 @@ export interface InputSwitchElement{
 
 export interface MultiSelectElement{
     type: string
+    name?: string
     style?: Record<string, any>
     label?: string
     values?: Array<string>
@@ -483,6 +487,7 @@ export interface MultiSelectElement{
 
 export interface TextareaElement{
     type: string
+    name?: string
     style?: Record<string, any>
     value?: string
     label?: string
