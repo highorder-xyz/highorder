@@ -85,9 +85,13 @@ from highorder.base.loader import ApplicationFolder
 from basepy.asynclog import logger
 import zlib
 from .extension import HolaServiceRegister
-
+from functools import reduce
+from string import Formatter
 
 factory = dataclass_factory.Factory()
+
+def deep_get(dictionary, keys, default=None):
+    return reduce(lambda d, key: d.get(key, default) if isinstance(d, (dict, HolaDataObject)) else default, keys.split("."), dictionary)
 
 
 def get_page_size_name(page_width):
@@ -130,6 +134,24 @@ class CurrencyValueNotEnoughError(ValueNotEnoughError):
 
 builtin = HolaBulitin()
 
+
+class DataTypeParser:
+    @classmethod
+    def parse(self, type_obj):
+        if type_obj in ['bool', 'number', 'string', 'object']:
+            return type_obj
+        elif type_obj in ['color', 'datetime']:
+            return 'string'
+        elif isinstance(type_obj, dict):
+            return type_obj.get('type')
+        elif isinstance(type_obj, str):
+            index = type_obj.find('[')
+            if index > 0:
+                return type_obj[:index]
+            else:
+                return type_obj
+        else:
+            return 'unknown'
 
 class ShowMessageService:
     @classmethod
@@ -758,6 +780,7 @@ class HolaDataObjectService:
             )
         else:
             qexpr = QueryExpression(app_id=self.app_id, object_name=self.name)
+
         query_expr = HolaObject.filter(qexpr)
         if order_by:
             query_expr = query_expr.order_by(*ft.transform_order_by(order_by))
@@ -796,15 +819,16 @@ class HolaDataObjectService:
         else:
             query_expr = self.build_query_expr(filter_expr, **kwargs)
             hobjects = list(await query_expr.all())
-            return [
+            objects = [
                 HolaDataObject(
                     self.app_id,
                     self.name,
                     m.object_id,
-                    flatten_dict(copy.deepcopy(m.value)),
+                    flatten_dict(copy.copy(m.value)),
                 )
                 for m in hobjects
             ]
+            return objects
 
     async def delete(self, *args, **kwargs):
         dargs = restruct_dict(dict(*args, **kwargs))
@@ -850,7 +874,7 @@ class HolaDataObjectService:
             new_value = {}
             for el in obj_def.get("elements", []):
                 k = el.get("name")
-                if not name:
+                if not k:
                     continue
                 if k in kwargs and kwargs[k]:
                     new_value[k] = kwargs
@@ -1540,7 +1564,7 @@ class HolaService:
             context.change = change
             if target_type == "player.attribute":
                 context2 = copy.copy(context)
-                obj = copy.deepcopy(self.get_attribute_define(name=name))
+                obj = copy.copy(self.get_attribute_define(name=name))
                 obj.pop("type")
                 context2.attribute = munchify(self.eval_object(obj, context2))
                 elements.add(
@@ -1551,7 +1575,7 @@ class HolaService:
 
             elif target_type == "player.currency":
                 context2 = copy.copy(context)
-                obj = copy.deepcopy(self.get_currency_define(name=name))
+                obj = copy.copy(self.get_currency_define(name=name))
                 obj.pop("type")
                 context2.currency = munchify(self.eval_object(obj, context2))
                 elements.add(
@@ -1965,7 +1989,7 @@ class HolaService:
     async def transform_column(self, obj, context):
         elements = AutoList()
         origin_context = context
-        context = copy.deepcopy(origin_context)
+        context = copy.copy(origin_context)
         if "elements" in obj:
             for el in obj["elements"]:
                 elements.add(await self.transform_element(el, context))
@@ -2275,7 +2299,7 @@ class HolaService:
 
         for el in element.get("elements", []):
             transformed["elements"].add(
-                await self.transform_element(copy.deepcopy(el), context)
+                await self.transform_element(copy.copy(el), context)
             )
 
         return transformed
@@ -2284,9 +2308,12 @@ class HolaService:
         transformed = AutoList()
         origin_context = context
         model = element.get("model")
+        model_data = None
         if model:
             model_data = await self.transform_model(model, context)
-            context = copy.deepcopy(origin_context)
+
+        if model_data:
+            context = copy.copy(origin_context)
             for sub_element in element.get("elements", []):
                 for obj in model_data:
                     context.it = obj
@@ -2298,6 +2325,10 @@ class HolaService:
         el_type = element.get("type")
         if el_type == "query":
             return await self.transform_query(element, context)
+        elif el_type == 'expr':
+            return self.eval_value(element, context)
+        elif el_type == 'local-value':
+            return await self.transform_local_value(element, context)
         else:
             await logger.warning(f"no transform for model {el_type}.")
 
@@ -2312,8 +2343,53 @@ class HolaService:
         if limit:
             kwargs["limit"] = limit
         dataobj_svc = HolaDataObjectService(self.app_id, name, self)
-        objects = await dataobj_svc.query(filter_expr, **kwargs)
+        formated_filter = self.eval_format_value(filter_expr, context)
+        objects = await dataobj_svc.query(formated_filter, **kwargs)
+        obj_meta = self.get_object_by_name(name)
+        lookup_fields = {}
+        for el in obj_meta.get('elements', []):
+            if 'lookup' in el:
+                lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type')))
+        for obj in objects:
+            for field, lookup in lookup_fields.items():
+                related_context = with_context(context, meta=obj)
+                related_objects = await self.transform_lookup(lookup[0], related_context)
+                if lookup[1] == 'list':
+                    obj[field] = related_objects
+                elif related_objects:
+                    obj[field] = related_objects[0]
         return objects
+
+    async def transform_lookup(self, element, context):
+        name = element["from"].split(".")[-1]
+        filter_expr = element.get("filter") or ""
+        order_by = element.get("order_by")
+        kwargs = {}
+        if order_by:
+            kwargs["order_by"] = order_by
+        dataobj_svc = HolaDataObjectService(self.app_id, name, self)
+        formated_filter = self.eval_format_value(filter_expr, context)
+
+        objects = await dataobj_svc.query(formated_filter, **kwargs)
+        obj_meta = self.get_object_by_name(name)
+        lookup_fields = {}
+        for el in obj_meta.get('elements', []):
+            if 'lookup' in el:
+                lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type')))
+        for obj in objects:
+            for field, lookup in lookup_fields.items():
+                related_context = with_context(context, meta=obj)
+                related_objects = await self.transform_lookup(lookup[0], related_context)
+                if lookup[1] == 'list':
+                    obj[field] = related_objects
+                elif related_objects:
+                    obj[field] = related_objects[0]
+        return objects
+
+
+    async def transform_local_value(self, element, context):
+        field = element["field"]
+        return deep_get(context, field, None)
 
     async def transform_component_use(self, element, context):
         component_name = self.eval_value(element["name"], context)
@@ -2321,7 +2397,7 @@ class HolaService:
         transformed = AutoList()
         for element in component.get("elements", []):
             transformed.add(
-                await self.transform_element(copy.deepcopy(element), context)
+                await self.transform_element(copy.copy(element), context)
             )
         return transformed
 
@@ -2543,7 +2619,7 @@ class HolaService:
                     for vv in v:
                         transform_config_object(vv)
 
-        transformed = copy.deepcopy(playable_config)
+        transformed = copy.copy(playable_config)
         transform_config_object(transformed)
         return transformed
 
@@ -2724,7 +2800,7 @@ class HolaService:
                     elements.add(context["playable"].to_dict())
                 else:
                     elements.add(
-                        await self.transform_element(copy.deepcopy(element), context)
+                        await self.transform_element(copy.copy(element), context)
                     )
 
         page_to = PageInterface(
@@ -2927,6 +3003,19 @@ class HolaService:
                 return self.eval_object(value_def, context)
         else:
             return value_def
+
+    def eval_format_value(self, expr, context):
+        f = Formatter()
+        parsed = list(f.parse(expr))
+        if len(parsed) == 1 and parsed[0][1] == None and parsed[0][2] == None:
+            return expr
+        try:
+            return f.vformat(expr, [], context)
+        except Exception as ex:
+            logger.sync().error(
+                "format error.", expr=expr, context=context.to_dict()
+            )
+            raise (ex)
 
     def eval_ref_object(self, obj, context):
         ref = obj["ref"]
@@ -3374,7 +3463,7 @@ class HolaService:
             if action["type"] == "show_modal":
                 modal_def = action["modal"]
                 commands.add(
-                    await self.get_show_modal_command(copy.deepcopy(modal_def), context)
+                    await self.get_show_modal_command(copy.copy(modal_def), context)
                 )
             elif action["type"] == "call_action":
                 commands.add(
@@ -3400,7 +3489,7 @@ class HolaService:
     async def playable_completed(self, args: PlayableCompletedArg, context):
         page_def, route_args = self.get_page_def(context.session.route)
         origin_context = context
-        context = copy.deepcopy(origin_context)
+        context = copy.copy(origin_context)
         await self.process_page_first_pass(page_def, context)
         orig_playable = {}
         if context.playable:
@@ -3621,7 +3710,7 @@ class HolaService:
         filtered = AutoList()
         for element in page_def.elements:
             filtered.add(
-                await self.filter_interact_element(copy.deepcopy(element), context)
+                await self.filter_interact_element(copy.copy(element), context)
             )
 
         return walk_elements(filtered)
@@ -3688,7 +3777,7 @@ class HolaService:
     async def handle_invoke_service(self, handler, context):
         name = handler.get("name")
         handler_locals = handler.get("locals")
-        args = copy.deepcopy(context.locals or {})
+        args = copy.copy(context.locals or {})
         args["__info__"] = {
             "app_id": self.app_id,
             "session": self.session.get_data_dict(),
@@ -4105,7 +4194,7 @@ class HolaService:
         _handler = args.get("handler")
         _locals = args.get("locals", {})
         origin_context = context
-        context = copy.deepcopy(origin_context)
+        context = copy.copy(origin_context)
         context.locals = munchify(_locals)
 
         if name and _event:
@@ -4152,7 +4241,7 @@ class HolaService:
         _handler = args.get("handler")
         _locals = args.get("locals", {})
         origin_context = context
-        context = copy.deepcopy(origin_context)
+        context = copy.copy(origin_context)
         context.locals = munchify(_locals)
 
         if name and _event:

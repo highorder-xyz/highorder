@@ -47,6 +47,26 @@ def test_filter_expr_1_1():
         "name": "aaa"
     })
 
+def test_filter_expr_1_2():
+    expr = 'model_item.name in ["aaa", "bb"]'
+    t = FilterExprTransformer(name_replace = {"model_item": ""})
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "name__in": ["aaa", 'bb']
+    })
+
+def test_filter_expr_1_2():
+    expr = 'model_item.name in ("aaa", "bb")'
+    t = FilterExprTransformer(name_replace = {"model_item": ""})
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "name__in": ["aaa", 'bb']
+    })
+
 def test_filter_expr_2():
     expr = 'model_item.name == "aaa" and model_item.type.name == "bb" '
     t = FilterExprTransformer()

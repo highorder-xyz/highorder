@@ -140,10 +140,6 @@ class StampToken:
         return obj['c']
 
 
-# deprecated
-def deep_get(dictionary, keys, default=None):
-    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."), dictionary)
-
 def restruct_dict(dictionary):
     restructed = {}
     for k, v in dictionary.items():

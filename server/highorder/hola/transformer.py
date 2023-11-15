@@ -174,6 +174,18 @@ class FilterExprTransformer:
         else:
             return name
 
+    def transform_list(self, node):
+        transformed_list = []
+        for n in node.elts:
+            transformed_list.append(self.transform_node(n))
+        return transformed_list
+
+    def transform_tuple(self, node):
+        transformed_list = []
+        for n in node.elts:
+            transformed_list.append(self.transform_node(n))
+        return transformed_list
+
     def transform_constant(self, node):
         return node.value
 
