@@ -1357,7 +1357,8 @@ export const App = defineComponent({
                 close_modal = element.action_props!['close_modal'] ?? false
             }
             let menu: any = undefined
-            const menu_name = 'menu_xxxxxx222'
+            const menu_id = randomString(8)
+            const menu_name = `menu_name_${menu_id}`
             let modal: any = undefined
             let click_handler = element.events?.click ?? null
             if(click_handler){

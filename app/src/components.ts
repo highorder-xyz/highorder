@@ -76,10 +76,10 @@ export function init_components() {
 export function get_size_name(size: number) {
     const names = ['xxlarge', 'xlarge', 'large', 'medium', 'small', 'xsmall', 'xxsmall']
     if (size < 0) {
-        size = 0
+        return ''
     }
     if (size > 6) {
-        size = 6
+        return ''
     }
     return names[size]
 }
@@ -1926,6 +1926,7 @@ export const Tag = defineComponent({
         return h(PrimeTag, {
             value: this.text,
             rounded:true,
+            class: [styles["h-tag"]],
             pt: {
                 root: {
                     style: {
@@ -1953,7 +1954,9 @@ export const Avatar = defineComponent({
             props.image = this.image_src
         }
         props.shape = 'circle'
-        return h(PrimeAvatar, {...props
+        return h(PrimeAvatar, {
+            class: [styles["h-avatart"]],
+            ...props
         }, {})
     }
 });
@@ -2311,7 +2314,9 @@ export const Card = defineComponent({
 
     render() {
         const content_tags = this.style.content_tags ?? []
-        return h(PrimeCard, { class: [styles["card"], styles["h-card"]] }, {
+        const sizeName = get_size_name(this.$props.style.size_hint ?? -1)
+        const sizeClassName = `hs-${sizeName}`
+        return h(PrimeCard, { class: [styles["card"], styles["h-card"], styles[sizeClassName]] }, {
             "header": () => {
                 return h('img', { src: this.image_src })
             },

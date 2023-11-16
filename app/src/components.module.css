@@ -1536,6 +1536,35 @@
     max-width: 60rem;
 }
 
+.h-card.hs-medium {
+    min-width: 30rem;
+}
+
+.h-card.hs-small {
+    min-width: 25rem;
+}
+
+.h-card.hs-xsmall {
+    min-width: 20rem;
+}
+
+.h-card.hs-xxsmall {
+    min-width: 15rem;
+}
+
+.h-card.hs-large {
+    min-width: 40rem;
+}
+
+.h-card.hs-xlarge {
+    min-width: 50rem;
+}
+
+.h-card.hs-xxlarge {
+    min-width: 60rem;
+}
+
+
 .h-footer {
     width: 100%;
     min-height: 80px;
@@ -1641,4 +1670,8 @@
 
 .h-text-strike {
     text-decoration: line-through;
+}
+
+.h-tag {
+    margin: 0.15rem;
 }

@@ -18,7 +18,7 @@ from highorder.base.utils import (
     random_str,
     flatten_dict,
 )
-from highorder.base.munch import munchify
+from highorder.base.munch import munchify, Munch
 from highorder.base.router import Router
 from highorder.base.model import DB_NAME
 from basepy.config import settings
@@ -659,59 +659,16 @@ class HolaStorageService:
         await _model.save()
 
 
-KV_NAME = "__kv"
-
-
-class HolaDataObject:
+class HolaDataObject(Munch):
     def __init__(self, app_id, name, _id, data, **kwargs):
-        self.__dict__[KV_NAME] = data or {}
-        self.__dict__[KV_NAME]["_app_id"] = app_id
-        self.__dict__[KV_NAME]["_name"] = name
-        self.__dict__[KV_NAME]["_id"] = _id
-
-    def __getattr__(self, k):
-        return self.__dict__[KV_NAME].get(k)
-
-    def __getitem__(self, k):
-        return self.__dict__[KV_NAME].get(k)
-
-    def __setattr__(self, k, v):
-        self.__dict__[KV_NAME][k] = v
-
-    def __setitem__(self, k, v):
-        self.__dict__[KV_NAME][k] = v
-
-    def __contains__(self, k):
-        return k in self.__dict__[KV_NAME]
-
-    def __delattr__(self, k):
-        del self.__dict__[KV_NAME][k]
-
-    def __delitem__(self, k):
-        del self.__dict__[KV_NAME][k]
-
-    def __repr__(self):
-        return repr(self.__dict__[KV_NAME])
-
-    def __str__(self):
-        return ", ".join([f"{k}:{repr(v)}" for k, v in self.__dict__[KV_NAME].items()])
-
-    def to_dict(self):
-        return self.__dict__[KV_NAME]
-
-    def update(self, *args, **kwargs):
-        for k, v in dict(*args, **kwargs).items():
-            self.__dict__[KV_NAME][k] = v
-
-    def get(self, k, d=None):
-        if k not in self.__dict__[KV_NAME]:
-            return d
-        return self.__dict__[KV_NAME][k]
-
-    def setdefault(self, k, d=None):
-        if k not in self:
-            self.__dict__[KV_NAME][k] = d
-        return self.__dict__[KV_NAME][k]
+        args = {
+            '_app_id': app_id,
+            '_name': name,
+            '_id': _id
+        }
+        args.update(data or {})
+        args.update(kwargs)
+        super().__init__(args)
 
 
 class HolaDataObjectService:
@@ -1831,7 +1788,7 @@ class HolaService:
     async def transform_data_table(self, element, context):
         transformed = {"type": "data-table", "data": [], "columns": AutoList()}
 
-        data = element.get("locals", {}).get("data")
+        data = element.get("data")
         if data:
             table_data = await self.transform_element(data, context)
             transformed["data"] = [x.to_dict() for x in table_data]
@@ -1979,7 +1936,7 @@ class HolaService:
 
     async def transform_row(self, obj, context):
         elements = AutoList()
-        for el in obj["elements"]:
+        for el in obj.get("elements", []):
             elements.add(await self.transform_element(el, context))
         style = {}
         if "style" in obj:
@@ -2165,6 +2122,13 @@ class HolaService:
                 transformed[k] = self.eval_value(v, context)
         return transformed
 
+    async def transform_popup_menu(self, element, context):
+        menu_element = copy.copy(element)
+        menu_element['type'] = 'menu'
+        transformed = await self.transform_element(menu_element, context)
+        transformed = self.wrap_menu_with_button(transformed)
+        return transformed
+
     def wrap_menu_with_button(self, menu_element):
         btn_element = {
             "type": "button",
@@ -2346,10 +2310,12 @@ class HolaService:
         formated_filter = self.eval_format_value(filter_expr, context)
         objects = await dataobj_svc.query(formated_filter, **kwargs)
         obj_meta = self.get_object_by_name(name)
+        if not obj_meta:
+            return objects
         lookup_fields = {}
         for el in obj_meta.get('elements', []):
-            if 'lookup' in el:
-                lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type')))
+            if 'lookup' in el and 'name' in el:
+                lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type', '')))
         for obj in objects:
             for field, lookup in lookup_fields.items():
                 related_context = with_context(context, meta=obj)
@@ -2374,7 +2340,7 @@ class HolaService:
         obj_meta = self.get_object_by_name(name)
         lookup_fields = {}
         for el in obj_meta.get('elements', []):
-            if 'lookup' in el:
+            if 'lookup' in el and 'name' in el:
                 lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type')))
         for obj in objects:
             for field, lookup in lookup_fields.items():
@@ -2985,14 +2951,7 @@ class HolaService:
                     raise (ex)
             elif "format" in value_def:
                 expr = value_def["format"]
-                # return expr.format(**context)
-                try:
-                    return restrictedpy.eval(f"f'''{expr}'''", context)
-                except Exception as ex:
-                    logger.sync().error(
-                        "eval format error.", expr=expr, context=context.to_dict()
-                    )
-                    raise (ex)
+                return self.eval_format_value(expr, context)
             elif "match" in value_def:
                 return self.eval_match_value(value_def, context)
             elif "choice" in value_def:
@@ -3826,6 +3785,11 @@ class HolaService:
         else:
             raise Exception(f"unknown to handle show modal handler.")
 
+        if 'locals' in handler and handler['locals']:
+            context = with_context(context, locals=handler['locals'])
+
+        print(context.locals)
+
         return await self.get_show_modal_command(_modal, context)
 
     async def get_object_updated_value(self, obj_def, value, context):
@@ -3838,6 +3802,9 @@ class HolaService:
             else:
                 if "default" in prop:
                     default_value = self.eval_value(prop["default"], context)
+                    ret[name] = default_value
+                elif "default" in prop.get('data_type', {}):
+                    default_value = self.eval_value(prop["data_type"]["default"], context)
                     ret[name] = default_value
 
         return ret
@@ -3863,26 +3830,38 @@ class HolaService:
         obj_name = handler.get("name")
         if obj_name.startswith("object."):
             obj_name = obj_name[len("object.") :]
-        obj_value = _locals
+        if 'locals' in handler and handler['locals']:
+            obj_value = handler['locals']
+        else:
+            obj_value = _locals
+        print(obj_value)
         svc = HolaDataObjectService(self.app_id, obj_name, self)
         await svc.update(**obj_value)
 
     async def handle_delete_object(self, handler, context):
         _locals = context.locals
         obj_name = handler.get("name")
+        obj_id = self.eval_value(handler.get('object_id'), context)
+        if not obj_id:
+            obj_id = _locals.get('_id')
+        if not obj_id:
+            raise Exception(f'delete can not get target object_id.')
         if obj_name.startswith("object."):
             obj_name = obj_name[len("object.") :]
         if "confirm" in handler:
             new_handler = copy.copy(handler)
             new_handler.pop("confirm")
-            new_handler["locals"] = _locals
+            new_handler["name"] = obj_name
+            new_handler["object_id"] = obj_id
             return HolaDialogService.build_confirm_dialog(
                 handler["confirm"], new_handler
             )
         else:
-            _locals = handler["locals"]
+            del_args = {
+                "_id": obj_id
+            }
             svc = HolaDataObjectService(self.app_id, obj_name, self)
-            await svc.delete(**_locals)
+            await svc.delete(**del_args)
 
     async def handle_service_command(self, name, args, context):
         if name == "call_succeed":
@@ -4185,7 +4164,8 @@ class HolaService:
         commands = await self.leave_page(context.client.route, context=context)
         if commands:
             return commands
-        return await self.get_page(args.get("route", "/"), context=context)
+        new_context = with_context(context, locals={})
+        return await self.get_page(args.get("route", "/"), context=new_context)
 
     async def handle_page_interact(self, args, context):
         commands = AutoList()
