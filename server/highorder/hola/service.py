@@ -1711,7 +1711,10 @@ class HolaService:
             "name": self.eval_value(obj.get("name", ""), context),
             "title": self.eval_value(obj.get("title", ""), context),
         }
-        ret["locals"] = context.locals.to_dict()
+        if context.locals:
+            ret["locals"] = context.locals.to_dict()
+        else:
+            ret["locals"] = {}
 
         if "title_action" in obj:
             title_action = obj["title_action"]
@@ -1873,7 +1876,7 @@ class HolaService:
 
         return transformed
 
-    async def transform_text_option(self, element, context):
+    async def  option(self, element, context):
         transformed = {
             "label": self.eval_value(element.get("label", ""), context),
             "name": self.eval_value(element.get("name", ""), context),
@@ -2084,6 +2087,22 @@ class HolaService:
         }
         return transformed
 
+    async def transform_textarea(self, element, context):
+        name = self.eval_value(element.get("name", ""), context)
+        if name:
+            value = context.locals.get(name, None)
+
+        if not value:
+            value = self.eval_value(element.get("value", ""), context)
+
+        transformed = {
+            "type": "textarea",
+            "label": self.eval_value(element.get("label", ""), context),
+            "name": name,
+            "value": value,
+        }
+        return transformed
+
     async def transform_logo(self, obj, context):
         ret = {
             "type": "logo",
@@ -2219,6 +2238,71 @@ class HolaService:
                 context.locals = munchify(locals_gen)
         return locals_gen
 
+    async def transform_data_format_operations(self, data, format_ops, context):
+        _data = data
+        if isinstance(format_ops, (list, tuple)):
+            for format_op in format_ops:
+                _data = await self.transform_data_format_one(_data, format_op, context)
+        else:
+            _data = await self.transform_data_format_op(_data, format_ops, context)
+        return _data
+
+
+    async def transform_data_format_op(self, data, format_op, context):
+        _data = data
+        if format_op.get('type') == 'data-format':
+            _data = await self.transform_data_format(_data, format_op, context)
+        else:
+            await logger.warning(f'not valid data format operation')
+        return _data
+
+
+    async def transform_data_format(self, data, format_op, context):
+        _data = data or await self.transform_element(format_op.get('data', {}), context)
+        if not _data:
+            return _data
+        for el in format_op.get('elements', []):
+            el_type = el.get('type', '').replace('-', '_')
+            if not el_type:
+                continue
+            name = f'transform_{el_type}'
+            transform_func = getattr(self, name, None)
+            if not transform_func:
+                await logger.warning(
+                    f"no data transform for element {el_type}."
+                )
+            elif inspect.iscoroutinefunction(transform_func):
+                _data = await transform_func(_data, el, context)
+            elif callable(transform_func):
+                _data = transform_func(_data, el, context)
+        return _data
+
+    async def transform_data_filter(self, data, element, context):
+        _data = {}
+        keys = element.get('keys', [])
+        for k in keys:
+            if k in data:
+                _data[k] = data[k]
+        return _data
+
+    async def transform_data_extract(self, data, element, context):
+        _data = data
+        key = element.get('key', '')
+        if key not in data or 'expr' not in element:
+            return data
+        value = data[key]
+        if isinstance(value, (list, tuple)):
+            new_value =  []
+            for v in value:
+                data_context = with_context(context, it=v)
+                new_value.append(self.eval_expr_value(element['expr'], data_context))
+            _data[key] = new_value
+        else:
+            data_context = with_context(context, it=value)
+            _data[key] = self.eval_expr_value(element['expr'], data_context)
+        return _data
+
+
     async def transform_element(self, element, context):
         if not element:
             return element
@@ -2229,6 +2313,12 @@ class HolaService:
 
         if "locals" in element:
             await self.transform_locals(element["locals"], context)
+
+        if 'locals_format' in element:
+            _locals = await self.transform_data_format_operations(
+                context.locals, element["locals_format"], context
+            )
+            context.locals = munchify(_locals)
 
         if "visible" in element:
             visible = self.eval_value(element["visible"], context)
@@ -2942,13 +3032,7 @@ class HolaService:
         elif isinstance(value_def, (dict, Mapping)):
             if "expr" in value_def:
                 expr = value_def["expr"]
-                try:
-                    return restrictedpy.eval(expr, context)
-                except Exception as ex:
-                    logger.sync().error(
-                        "eval error.", expr=expr, context=context.to_dict()
-                    )
-                    raise (ex)
+                return self.eval_expr_value(expr, context)
             elif "format" in value_def:
                 expr = value_def["format"]
                 return self.eval_format_value(expr, context)
@@ -2975,6 +3059,16 @@ class HolaService:
                 "format error.", expr=expr, context=context.to_dict()
             )
             raise (ex)
+
+    def eval_expr_value(self, expr, context):
+        try:
+            return restrictedpy.eval(expr, context)
+        except Exception as ex:
+            logger.sync().error(
+                "eval error.", expr=expr, context=context.to_dict()
+            )
+            raise (ex)
+
 
     def eval_ref_object(self, obj, context):
         ref = obj["ref"]
