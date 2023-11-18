@@ -2103,6 +2103,59 @@ class HolaService:
         }
         return transformed
 
+    async def transform_calendar(self, element, context):
+        name = self.eval_value(element.get("name", ""), context)
+        if name:
+            value = context.locals.get(name, None)
+
+        if not value:
+            value = self.eval_value(element.get("value", ""), context)
+
+        transformed = {
+            "type": "calendar",
+            "label": self.eval_value(element.get("label", ""), context),
+            "name": name,
+            "value": value,
+            "value_format": self.eval_value(element.get("value_format", "yy-mm-dd"), context),
+            "icon": True,
+            "show_date": True
+        }
+        for k in ['min_value', 'max_value', 'range', 'locale', 'icon', 'show_date', 'show_time']:
+            if k in element:
+                transformed[k] = self.eval_value(element[k], context)
+        return transformed
+
+    async def transform_multi_select(self, element, context):
+        name = self.eval_value(element.get("name", ""), context)
+        values = None
+        if name:
+            values = context.locals.get(name, None)
+
+        if not values:
+            values = self.eval_value(element.get("values", ""), context)
+
+        transformed = {
+            "type": "multi-select",
+            "label": self.eval_value(element.get("label", ""), context),
+            "name": name,
+            "values": values,
+            "options": [],
+            "chips": True
+        }
+        for k in ['options', 'chips']:
+            if k in element:
+                transformed[k] = await self.transform_any(element[k], context)
+        return transformed
+
+    async def transform_tag(self, element, context):
+        name = self.eval_value(element.get("name", ""), context)
+        transformed = {
+            "type": "tag",
+            "text": self.eval_value(element.get("text", ""), context),
+            "color": self.eval_value(element.get("color", ""), context)
+        }
+        return transformed
+
     async def transform_logo(self, obj, context):
         ret = {
             "type": "logo",
@@ -2123,23 +2176,7 @@ class HolaService:
     async def transform_expr(self, element, context):
         return self.eval_value(element, context)
 
-    async def transform_any_element(self, element, context):
-        transformed = {}
-        if "type" in element:
-            transformed["type"] = element["type"]
-        for k, v in element.items():
-            if k == "type":
-                continue
-            if isinstance(v, (dict, Mapping)):
-                if "type" in v:
-                    transformed[k] = await self.transform_element(v, context)
-                else:
-                    transformed[k] = await self.transform_any_element(v, context)
-            elif isinstance(v, (list, tuple)):
-                transformed[k] = [await self.transform_element(el, context) for el in v]
-            else:
-                transformed[k] = self.eval_value(v, context)
-        return transformed
+
 
     async def transform_popup_menu(self, element, context):
         menu_element = copy.copy(element)
@@ -2302,6 +2339,34 @@ class HolaService:
             _data[key] = self.eval_expr_value(element['expr'], data_context)
         return _data
 
+    async def transform_any(self, element, context):
+        if isinstance(element, (list, tuple)):
+            transformed = []
+            for el in element:
+                transformed.append(await self.transform_any(el, context))
+            return transformed
+        elif isinstance(element, (dict, Mapping)):
+            transformed = {}
+            if "type" in element:
+                return await self.transform_element(element, context)
+            else:
+                transformed = await self.transform_unknown_element(element, context)
+            return transformed
+        else:
+            transformed = self.eval_value(element, context)
+            return transformed
+
+    async def transform_unknown_element(self, element, context):
+        transformed = {}
+        for k, v in element.items():
+            transformed[k] = await self.transform_any(v, context)
+        return transformed
+
+    def get_transform_func(self, element_type):
+        element_type = element_type.replace("-", "_").lower()
+        transform_func_name = f"transform_{element_type}"
+        transform_func = getattr(self, transform_func_name, None)
+        return transform_func
 
     async def transform_element(self, element, context):
         if not element:
@@ -2325,15 +2390,13 @@ class HolaService:
             if not visible:
                 return None
 
-        element_type = element["type"].replace("-", "_").lower()
-        transform_func_name = f"transform_{element_type}"
-        transform_func = getattr(self, transform_func_name, None)
+        transform_func = self.get_transform_func(element["type"])
         transformed = None
         if not transform_func:
             await logger.warning(
-                f"no transform for element {element_type}, use transform_any instead."
+                f"no transform for element {element['type']}, use transform_unkown instead."
             )
-            transformed = await self.transform_any_element(element, context)
+            transformed = await self.transform_unknown_element(element, context)
         elif inspect.iscoroutinefunction(transform_func):
             transformed = await transform_func(element, context)
         elif callable(transform_func):
