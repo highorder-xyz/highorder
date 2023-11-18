@@ -1,5 +1,5 @@
 
-import { defineComponent, h, VNode, PropType, isVNode} from 'vue';
+import { defineComponent, h, VNode, PropType, isVNode, toRefs, toRef} from 'vue';
 import gsap from 'gsap'
 import styles from './components.module.css'
 import 'animate.css';
@@ -1965,7 +1965,6 @@ export const Checkbox = defineComponent({
     name: 'Checkbox',
     props: {
         value: { type: Boolean, default: false, required: false },
-        binary: { type: Boolean, default: true, required: false },
         text: { type: String, default: "", required: false},
         check_strike: { type: Boolean, default: false, required: false},
         style: { type: Object, default: {}}
@@ -1991,18 +1990,20 @@ export const Checkbox = defineComponent({
     },
     render() {
         const children: VNode[] = []
+        children.push(h(PrimeCheckbox, {
+            modelValue: this.checkValue,
+            binary: true,
+            // "onUpdate:modelValue": (value: any) => { this.valueChanged(value); },
+            "onInput": (value: any) => { this.valueChanged(value); },
+        }, {}))
         if(this.text){
-            const style_class : Array<string> = [styles["h-form-element"]]
+            const style_class : Array<string> = [styles["h-span-element"]]
             if(this.value == true && this.check_strike){
                 style_class.push(styles["h-text-strike"])
             }
             children.push(h("label", {class: style_class }, this.text))
         }
-        children.push(h(PrimeCheckbox, {
-            modelValue: this.checkValue,
-            "onUpdate:modelValue": (value: any) => { this.valueChanged(value); }
-        }, {}))
-        return h('div', { class: [styles["h-form-line"]] }, children)
+        return h('div', { class: [styles["h-span-line"]] }, children)
     }
 });
 

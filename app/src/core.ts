@@ -437,6 +437,7 @@ export interface CheckboxElement{
     value: boolean | undefined
     binary?: boolean
     text?: string
+    trigger?: boolean
     check_strike?: boolean;
     style?: Record<string, any>
 }

@@ -2275,6 +2275,7 @@ class HolaService:
                 context.locals.update(munchify(locals_gen))
             else:
                 context.locals = munchify(locals_gen)
+            context._locals = munchify(locals_gen)
         return locals_gen
 
     async def transform_data_format_operations(self, data, format_ops, context):
@@ -2378,6 +2379,9 @@ class HolaService:
             if cond_value == False:
                 return None
 
+        if "locals" in element or element['type'] in ['modal']:
+            context = with_context(context, _locals={}, locals=copy.copy(context.locals or {}))
+
         if "locals" in element:
             await self.transform_locals(element["locals"], context)
 
@@ -2411,6 +2415,9 @@ class HolaService:
             and "style" in element
         ):
             transformed["style"] = self.eval_object(element["style"], context)
+
+        if 'locals' in element or element["type"] == 'modal':
+            transformed['locals'] = context._locals.to_dict()
         return transformed
 
     async def transform_side_bar(self, element, context):

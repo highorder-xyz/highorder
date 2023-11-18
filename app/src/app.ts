@@ -1,4 +1,4 @@
-import { defineComponent, h, reactive, VNode, resolveComponent, DefineComponent} from 'vue'
+import { defineComponent, h, reactive, VNode, resolveComponent, DefineComponent, ref} from 'vue'
 import i18next from 'i18next';
 import {
     PlainTextObject,
@@ -1218,6 +1218,9 @@ export const App = defineComponent({
             return h(Checkbox, {...props, onCheckChanged: (check: boolean | undefined) => {
                 if(element.name){
                     locals[element.name] = check
+                }
+                if(element.trigger && element.trigger == true){
+
                 }
             }})
         },
