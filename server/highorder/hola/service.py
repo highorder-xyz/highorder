@@ -824,17 +824,19 @@ class HolaDataObjectService:
             await player.save()
         else:
             _id = kwargs["_id"]
-            m = HolaObject.load(
+            m = await HolaObject.load(
                 app_id=self.app_id, object_name=self.name, object_id=_id
             )
+
             obj_def = self.hola_svc.get_object_by_name(self.name)
             new_value = {}
+
             for el in obj_def.get("elements", []):
                 k = el.get("name")
                 if not k:
                     continue
                 if k in kwargs and kwargs[k]:
-                    new_value[k] = kwargs
+                    new_value[k] = kwargs[k]
             if m and new_value:
                 m.value = new_value
                 await m.save()
@@ -3945,8 +3947,6 @@ class HolaService:
         if 'locals' in handler and handler['locals']:
             context = with_context(context, locals=handler['locals'])
 
-        print(context.locals)
-
         return await self.get_show_modal_command(_modal, context)
 
     async def get_object_updated_value(self, obj_def, value, context):
@@ -3991,7 +3991,7 @@ class HolaService:
             obj_value = handler['locals']
         else:
             obj_value = _locals
-        print(obj_value)
+
         svc = HolaDataObjectService(self.app_id, obj_name, self)
         await svc.update(**obj_value)
 

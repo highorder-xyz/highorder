@@ -2183,8 +2183,20 @@ export const MultiSelect = defineComponent({
     },
 
     data() {
+        const selectValues: Array<any> = []
+        const selectOptions: Array<any> = []
+        for(const opt of this.options){
+            selectOptions.push(this.transform_option(opt))
+        }
+        const _options = selectOptions.filter((it: any) => { return this.$props.values.includes(it.code) })
+
+        for(const opt of _options){
+            selectValues.push(opt)
+        }
+
         return {
-            "selectValues": this.$props.values
+            "selectValues": selectValues,
+            "selectOptions": selectOptions
         }
     },
 
@@ -2193,6 +2205,21 @@ export const MultiSelect = defineComponent({
     },
 
     methods: {
+        transform_option(opt: any){
+            if(opt.slot){
+                return {
+                    name: opt.label,
+                    code: opt.name,
+                    slot: opt.slot
+                }
+            } else {
+                return {
+                    name: opt.label,
+                    code: opt.name
+                }
+            }
+        },
+
         valueChanged(value: Array<any>) {
             this.selectValues = value
             const selected: Array<string> = []
@@ -2210,21 +2237,6 @@ export const MultiSelect = defineComponent({
         if (this.chips){
             props.display = 'chip'
         }
-        const options = [];
-        for(const opt of this.options){
-            if(opt.slot){
-                options.push({
-                    name: opt.label,
-                    code: opt.name,
-                    slot: opt.slot
-                })
-            } else {
-                options.push({
-                    name: opt.label,
-                    code: opt.name
-                })
-            }
-        }
         const children: VNode[] = []
         if(this.label){
             const style_class : Array<string> = [styles["h-form-element"]]
@@ -2233,7 +2245,7 @@ export const MultiSelect = defineComponent({
         children.push(h(PrimeMultiSelect, {
             modelValue: this.selectValues,
             "onUpdate:modelValue": (value: any) => { this.valueChanged(value); },
-            options: options,
+            options: this.selectOptions,
             optionLabel: "name",
             ...props
         }, {
