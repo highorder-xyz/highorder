@@ -1,5 +1,10 @@
 import random
 from datetime import datetime, date, timedelta
+import builtins
+from typing import Mapping
+from likepy import safer_getattr
+
+EXPR_BUILTINS = {}
 
 THEME_COLORS = [
     "#45283c",
@@ -74,3 +79,67 @@ class HolaBulitin:
     def random_color():
         index = random.randint(0, len(THEME_COLORS) - 1)
         return THEME_COLORS[index]
+
+_safe_names = [
+    'abs',
+    'bool',
+    'chr',
+    'complex',
+    'divmod',
+    'float',
+    'hash',
+    'hex',
+    'id',
+    'int',
+    'len',
+    'oct',
+    'ord',
+    'pow',
+    'range',
+    'round',
+    'slice',
+    'str',
+    'tuple',
+    'zip'
+]
+
+_builtin_values = {
+    'true': True,
+    'false': False,
+    'null': None
+}
+
+for name in _safe_names:
+    EXPR_BUILTINS[name] = getattr(builtins, name)
+
+for name, value in _builtin_values.items():
+    EXPR_BUILTINS[name] = value
+
+EXPR_BUILTINS['_getattr_'] = safer_getattr
+
+
+class EveryExpression:
+    def __init__(self, collection):
+        self.value = collection
+
+    def __getattr__(self, name):
+        attr_value = []
+        for v in self.value:
+            if isinstance(v, (dict, Mapping)):
+                attr_value.append(v.get(name, None))
+            else:
+                attr_value.append(getattr(v, name, None))
+        return EveryExpression(attr_value)
+
+    def __eq__(self, other):
+        if not self.value:
+            return False
+        rets = list(map(lambda x: x == other, self.value))
+        return all(rets)
+
+
+def every(collection):
+    return  EveryExpression(collection)
+
+
+EXPR_BUILTINS['every'] = every

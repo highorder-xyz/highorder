@@ -68,7 +68,7 @@ from .model import (
     HolaSessionVariable,
     HolaObject,
 )
-from .builtin import HolaBulitin
+from .builtin import (HolaBulitin, EXPR_BUILTINS)
 from postmodel.models import QueryExpression
 from postmodel.transaction import in_transaction
 from .transformer import (
@@ -79,7 +79,7 @@ from .transformer import (
 import json
 
 import dataclass_factory
-from likepy.restricted import restrictedexpr, restrictedpy
+from likepy import restrictedexpr, restrictedpy
 from highorder.base.instant import (
     InstantDataStorageService,
     UserInstantDataStorageService,
@@ -1260,10 +1260,10 @@ class HolaService:
             user["authed"] = False
 
         ret = {
+            "__builtins__": EXPR_BUILTINS,
             "user": user,
             "client": page_context or {},
             "locals": page_locals or {},
-            "builtin": builtin,
             "fn": builtin,
             "content": ApplicationFolder.get_content_url_root(
                 self.app_id, self.host_url
@@ -2527,9 +2527,12 @@ class HolaService:
         if not obj_meta:
             return objects
         lookup_fields = {}
+        formula_fields = {}
         for el in obj_meta.get('elements', []):
             if 'lookup' in el and 'name' in el:
                 lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type', '')))
+            if 'formula' in el and 'name' in el:
+                formula_fields[el['name']] = (el['formula'], DataTypeParser.parse(el.get('data_type', '')))
         for obj in objects:
             for field, lookup in lookup_fields.items():
                 related_context = with_context(context, meta=obj)
@@ -2538,6 +2541,10 @@ class HolaService:
                     obj[field] = related_objects
                 elif related_objects:
                     obj[field] = related_objects[0]
+            for field, lookup in formula_fields.items():
+                related_context = with_context(context, meta=obj)
+                related_value = self.eval_expr_value(lookup[0], related_context)
+                obj[field] = related_value
         return objects
 
     async def transform_lookup(self, element, context):
