@@ -318,6 +318,7 @@ class ClientRequestContext:
     version: str = field(default="0.0.0")
     page_size: dict = field(default_factory=dict)
     screen_size: dict = field(default_factory=dict)
+    timezone: dict = field(default_factory=dict)
 
 
 @dataclass

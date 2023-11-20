@@ -1214,13 +1214,15 @@ export const App = defineComponent({
         renderCheckbox(element: CheckboxElement, context: RenderContext){
             const props: Record<string, any> = Object.assign({}, element)
             delete props.type
-            const locals: Record<string, any> =  context.locals ?? this.page.locals
-            return h(Checkbox, {...props, onCheckChanged: (check: boolean | undefined) => {
+            const locals: Record<string, any> = context.locals ?? this.page.locals
+            return h(Checkbox, {...props, onCheckChanged: (check: boolean) => {
+                console.log(check, props.value)
+                const trigger = (props.value != check)
                 if(element.name){
                     locals[element.name] = check
                 }
-                if(element.trigger && element.trigger == true){
-
+                if(element.handlers && element.handlers.check && trigger){
+                    this.pageInteract("", 'check', element.handlers.check ?? "", this.page, context)
                 }
             }})
         },
@@ -1554,11 +1556,15 @@ export const App = defineComponent({
         },
 
         renderRowLine(element: RowLineElement, context: RenderContext) {
+            let el_context = context
+            if(element.locals){
+                el_context = with_context(context, { locals: element.locals ?? {}})
+            }
             return h(Row, {...element.style}, {
                 default: () => {
                     const nodes:VNode[] = []
                     for(const el of element.elements){
-                        const sub_node = this.renderElement(el, context)
+                        const sub_node = this.renderElement(el, el_context)
                         if(Array.isArray(sub_node)){
                             nodes.push(...sub_node)
                         } else if(sub_node){
@@ -1571,11 +1577,15 @@ export const App = defineComponent({
         },
 
         renderColumn(element: ColumnElement, context: RenderContext) {
+            let el_context = context
+            if(element.locals){
+                el_context = with_context(context, { locals: element.locals ?? {}})
+            }
             return h(Column, {...element.style}, {
                 default: () => {
                     const nodes = []
                     for(const el of element.elements){
-                        nodes.push(this.renderElement(el, context))
+                        nodes.push(this.renderElement(el, el_context))
                     }
                     return nodes
                 }

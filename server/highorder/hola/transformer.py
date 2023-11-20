@@ -1,4 +1,6 @@
 import ast
+from datetime import timedelta, datetime, date
+import arrow
 import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -214,3 +216,18 @@ def expr_to_dict(expr):
 def expr_dump(expr, **kwargs):
     d = expr_to_dict(expr)
     pp.pprint(d)
+
+
+class DatetimeFormatter:
+    @classmethod
+    def format(cls, dt, format_str):
+        return arrow.get(dt).format(format_str)
+
+    @classmethod
+    def to_local(self, dt, tzoffet):
+        local_dt = dt + timedelta(seconds = -tzoffet)
+        return local_dt
+
+    @classmethod
+    def parse(self, dt_str):
+        return arrow.get(dt_str)

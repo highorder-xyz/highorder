@@ -1970,7 +1970,7 @@ export const Checkbox = defineComponent({
         style: { type: Object, default: {}}
     },
     emits: {
-        checkChanged: (check: boolean | undefined) => { return true; }
+        checkChanged: (check: boolean) => { return true; }
     },
     data() {
         return {
@@ -1983,9 +1983,10 @@ export const Checkbox = defineComponent({
     },
 
     methods: {
-        valueChanged(value: boolean | undefined) {
-            (this.checkValue as any) = value
-            this.$emit("checkChanged", value)
+        valueChanged(value: boolean) {
+            const _check = value == true ? true : false
+            this.checkValue  = _check
+            this.$emit("checkChanged", _check)
         }
     },
     render() {

@@ -21,7 +21,6 @@ from highorder.base.utils import (
 from highorder.base.munch import munchify, Munch
 from highorder.base.router import Router
 from highorder.base.model import DB_NAME
-from basepy.config import settings
 import os
 import copy
 import random
@@ -72,7 +71,11 @@ from .model import (
 from .builtin import HolaBulitin
 from postmodel.models import QueryExpression
 from postmodel.transaction import in_transaction
-from .transformer import FilterExprTransformer, expr_dump
+from .transformer import (
+    FilterExprTransformer,
+    expr_dump,
+    DatetimeFormatter
+)
 import json
 
 import dataclass_factory
@@ -835,10 +838,10 @@ class HolaDataObjectService:
                 k = el.get("name")
                 if not k:
                     continue
-                if k in kwargs and kwargs[k]:
+                if k in kwargs:
                     new_value[k] = kwargs[k]
-            if m and new_value:
-                m.value = new_value
+            if m and len(new_value) > 0:
+                m.value.update(new_value)
                 await m.save()
 
     async def delete_from(self, filter_expr, **kwargs):
@@ -1688,13 +1691,9 @@ class HolaService:
         }
 
         if "events" in element:
-            handlers = {}
-            st = StampToken()
-            for key, value in element["events"].items():
-                v = self.eval_list_or_object(value, context)
-                token = st.make("stamp_id", v)
-                handlers[key] = token
-            transformed["handlers"] = handlers
+            transformed["handlers"] = await self.transform_events(
+                element["events"], context
+            )
 
         return transformed
 
@@ -1702,7 +1701,7 @@ class HolaService:
         handlers = {}
         st = StampToken()
         for key, value in events.items():
-            v = self.eval_list_or_object(value, context)
+            v = await self.transform_any(value, context)
             token = st.make("stamp_id", v)
             handlers[key] = token
         return handlers
@@ -1713,10 +1712,6 @@ class HolaService:
             "name": self.eval_value(obj.get("name", ""), context),
             "title": self.eval_value(obj.get("title", ""), context),
         }
-        if context.locals:
-            ret["locals"] = context.locals.to_dict()
-        else:
-            ret["locals"] = {}
 
         if "title_action" in obj:
             title_action = obj["title_action"]
@@ -2073,6 +2068,7 @@ class HolaService:
 
     async def transform_input(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
+        value = ""
         if name:
             value = context.locals.get(name, None)
 
@@ -2089,6 +2085,26 @@ class HolaService:
         }
         return transformed
 
+    async def transform_checkbox(self, element, context):
+        name = self.eval_value(element.get("name", ""), context)
+        value = False
+        if name:
+            value = context.locals.get(name, None)
+
+        if not value:
+            value = self.eval_value(element.get("value", ""), context)
+        value = True if value == True else False
+
+        transformed = {
+            "type": "checkbox",
+            "text": self.eval_value(element.get("text", ""), context),
+            "name": name,
+            "value": value
+        }
+        if 'check_strike' in element:
+            transformed['check_strike'] =  self.eval_value(element["check_strike"], context)
+        return transformed
+
     async def transform_textarea(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         if name:
@@ -2103,6 +2119,15 @@ class HolaService:
             "name": name,
             "value": value,
         }
+        return transformed
+
+    async def transform_datetime_format(self, element, context):
+        transformed = ""
+        raw_value = deep_get(context, element["value"])
+        if raw_value:
+            dt_value = DatetimeFormatter.parse(raw_value)
+            dt_value = DatetimeFormatter.to_local(dt_value, context.client.get('timezone', {}).get('offset', 0))
+            return DatetimeFormatter.format(dt_value, element.get("format"))
         return transformed
 
     async def transform_calendar(self, element, context):
@@ -2256,10 +2281,10 @@ class HolaService:
                 target = obj_def["target"]
                 context[name] = munchify(await self.load_info_object(target))
 
-    async def transform_locals(self, locals_def, context):
+    async def transform_locals2(self, locals_def, context):
         locals_gen = {}
         if locals_def.get("type") == "locals":
-            pass
+            return await self.transform_object(locals_def, context)
         else:
             for name, value in locals_def.items():
                 if isinstance(value, (dict, Mapping)) and value.get("type") in [
@@ -2277,6 +2302,14 @@ class HolaService:
                 context.locals = munchify(locals_gen)
             context._locals = munchify(locals_gen)
         return locals_gen
+
+    async def transform_locals(self, locals_def, context):
+        transformed = {
+            "type": "locals"
+        }
+        for k, v in locals_def.items():
+            transformed[k] = await self.transform_any(v, context)
+        return transformed
 
     async def transform_data_format_operations(self, data, format_ops, context):
         _data = data
@@ -2351,15 +2384,18 @@ class HolaService:
         elif isinstance(element, (dict, Mapping)):
             transformed = {}
             if "type" in element:
-                return await self.transform_element(element, context)
+                if element['type'] in ['expr', 'format', 'match', 'choice']:
+                    return self.eval_value(element, context)
+                else:
+                    return await self.transform_element(element, context)
             else:
-                transformed = await self.transform_unknown_element(element, context)
+                transformed = await self.transform_object(element, context)
             return transformed
         else:
             transformed = self.eval_value(element, context)
             return transformed
 
-    async def transform_unknown_element(self, element, context):
+    async def transform_object(self, element, context):
         transformed = {}
         for k, v in element.items():
             transformed[k] = await self.transform_any(v, context)
@@ -2379,17 +2415,27 @@ class HolaService:
             if cond_value == False:
                 return None
 
-        if "locals" in element or element['type'] in ['modal']:
-            context = with_context(context, _locals={}, locals=copy.copy(context.locals or {}))
-
-        if "locals" in element:
-            await self.transform_locals(element["locals"], context)
+        if element['type'] in ['modal', 'action']:
+            _locals = await self.transform_any(element.get("locals", {}), context)
+            new_locals = copy.copy(_locals)
+            new_locals.update(context.locals.to_dict() or {})
+            context = with_context(context,
+                            _locals= new_locals,
+                            locals= new_locals)
+        elif "locals" in element:
+            _locals = await self.transform_any(element["locals"], context)
+            new_locals = copy.copy(context.locals or {})
+            new_locals.update(_locals)
+            context = with_context(context,
+                            _locals= _locals,
+                            locals= new_locals)
 
         if 'locals_format' in element:
-            _locals = await self.transform_data_format_operations(
-                context.locals, element["locals_format"], context
+            formated_locals = await self.transform_data_format_operations(
+                context._locals, element["locals_format"], context
             )
-            context.locals = munchify(_locals)
+            context._locals = munchify(formated_locals)
+            context.locals.update(formated_locals)
 
         if "visible" in element:
             visible = self.eval_value(element["visible"], context)
@@ -2400,9 +2446,9 @@ class HolaService:
         transformed = None
         if not transform_func:
             await logger.warning(
-                f"no transform for element {element['type']}, use transform_unkown instead."
+                f"no transform for element {element['type']}, use transform_object instead."
             )
-            transformed = await self.transform_unknown_element(element, context)
+            transformed = await self.transform_object(element, context)
         elif inspect.iscoroutinefunction(transform_func):
             transformed = await transform_func(element, context)
         elif callable(transform_func):
@@ -2416,8 +2462,14 @@ class HolaService:
         ):
             transformed["style"] = self.eval_object(element["style"], context)
 
-        if 'locals' in element or element["type"] == 'modal':
+        if 'locals' in element or element["type"] in ['modal']:
             transformed['locals'] = context._locals.to_dict()
+
+        if "events" in element and 'handlers' not in transformed:
+            transformed["handlers"] = await self.transform_events(
+                element["events"], context
+            )
+            transformed.pop('events', None)
         return transformed
 
     async def transform_side_bar(self, element, context):
@@ -2585,7 +2637,7 @@ class HolaService:
         }
 
     async def transform_plain_text(self, element, context):
-        return {"type": "plain-text", "text": self.eval_value(element["text"], context)}
+        return {"type": "plain-text", "text": await self.transform_any(element["text"], context)}
 
     async def transform_bulleted_list(self, element, context):
         return {
@@ -2655,14 +2707,6 @@ class HolaService:
 
     async def transform_icon_button(self, element, context):
         return await self.transform_button(element, context)
-
-    async def transform_action(self, element, context):
-        transformed = {
-            "type": "action",
-            "display_name": self.eval_value(element.get("display_name", ""), context),
-            "action": element.get("action"),
-        }
-        return transformed
 
     async def transform_star_rating(self, element, context):
         return {
@@ -3882,6 +3926,8 @@ class HolaService:
         handler_type = handler.get("type")
         if handler_type == "invoke-service":
             return await self.handle_invoke_service(handler, context)
+        elif handler_type == "invoke-action":
+            return await self.handle_invoke_action(handler, context)
         elif handler_type == "route-to":
             return await self.handle_route_to(handler, context)
         elif handler_type == "refresh":
@@ -3901,7 +3947,7 @@ class HolaService:
 
     async def handle_invoke_service(self, handler, context):
         name = handler.get("name")
-        handler_locals = handler.get("locals")
+        handler_args = handler.get("args")
         args = copy.copy(context.locals or {})
         args["__info__"] = {
             "app_id": self.app_id,
@@ -3936,9 +3982,58 @@ class HolaService:
                 await logger.warning(f"unknown service response, {ret}")
         return commands
 
+    async def handle_invoke_action(self, handler, context):
+        name = handler.get('name')
+        action_def = self.action_def.get(name)
+        if not action_def:
+            raise Exception(f'action with name {name} not found.')
+
+        handler_args = self.handle_any_args(handler.get("args", {}), context)
+        context = with_context(context, locals=handler_args)
+
+        action_el = await self.transform_element(action_def, context)
+
+        for el in action_el.get('elements', []):
+            await self.handle_data_transform(el, context)
+
+    async def handle_data_transform(self, element, context):
+        el_type = element['type']
+        if el_type == 'data-process':
+            await self.handle_data_process(element, context)
+        else:
+            await logger.warning(f'no handler for data transform {el_type}')
+
+    async def handle_data_process(self, element, context):
+        el_type = element['type']
+        for el in element.get('elements', []):
+            el_type = el.get('type')
+            if el_type == "create-object":
+                return await self.handle_create_object(el, context)
+            elif el_type == "update-object":
+                return await self.handle_update_object(el, context)
+            elif el_type == "delete-object":
+                return await self.handle_delete_object(el, context)
+            else:
+                raise Exception(f'not supported data operation {el_type} in DataProcess')
+
     async def handle_refresh(self, handler, context):
-        context.locals.update(handler.get("locals", {}))
+        context.locals.update(handler.get("args", {}))
         return await self.get_page(context.client.route, context)
+
+
+    def handle_any_args(self, args_def, context):
+        if 'type' in args_def and args_def['type'] == 'locals':
+            return self.handle_locals(args_def, context)
+        else:
+            return self.eval_value(args_def, context)
+
+
+    def handle_locals(self, locals_def, context):
+        if locals_def.get('type') == 'locals':
+            _locals = context.locals.to_dict()
+            return _locals
+        else:
+            return locals_def
 
     async def handle_show_modal(self, handler, context):
         if "name" in handler:
@@ -3951,8 +4046,9 @@ class HolaService:
         else:
             raise Exception(f"unknown to handle show modal handler.")
 
-        if 'locals' in handler and handler['locals']:
-            context = with_context(context, locals=handler['locals'])
+        if 'args' in handler and handler['args']:
+            args = await self.transform_any(handler['args'], context)
+            context = with_context(context, locals=args)
 
         return await self.get_show_modal_command(_modal, context)
 
@@ -3994,7 +4090,12 @@ class HolaService:
         obj_name = handler.get("name")
         if obj_name.startswith("object."):
             obj_name = obj_name[len("object.") :]
-        if 'locals' in handler and handler['locals']:
+
+        if 'object_id' in handler and 'value' in handler:
+            obj_value = {}
+            obj_value.update(handler['value'])
+            obj_value['_id'] = handler['object_id']
+        elif 'locals' in handler and handler['locals']:
             obj_value = handler['locals']
         else:
             obj_value = _locals

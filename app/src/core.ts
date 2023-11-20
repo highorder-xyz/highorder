@@ -54,6 +54,11 @@ export interface ButtonParam {
 }
 
 
+
+export interface ContainerElementBase {
+    locals?: Record<string, any>
+}
+
 export interface NavBarElement {
     type: string
     title?: string
@@ -201,12 +206,12 @@ export interface ItemWidgetElement {
     }
 }
 
-export interface RowLineElement {
+export interface RowLineElement extends ContainerElementBase {
     type: string;
     elements: ModalWidgetElement[];
     style?: Record<string, any>
 }
-export interface ColumnElement {
+export interface ColumnElement extends ContainerElementBase {
     type: string;
     elements: ModalWidgetElement[];
     style?: Record<string, any>
@@ -437,8 +442,8 @@ export interface CheckboxElement{
     value: boolean | undefined
     binary?: boolean
     text?: string
-    trigger?: boolean
     check_strike?: boolean;
+    handlers?: Record<string, string>
     style?: Record<string, any>
 }
 

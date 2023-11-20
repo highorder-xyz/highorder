@@ -48,6 +48,7 @@ body {
     text-align: center;
     transition: background-color 0.2s ease-in-out;
     font-size: 16px;
+    scrollbar-width: thin;
 }
 
 body,
@@ -66,6 +67,7 @@ a {
 * {
     box-sizing: border-box;
 }
+
 
 /* ruby {
     font-family: 'Ma Shan Zheng', cursive;

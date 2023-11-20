@@ -10,6 +10,7 @@ install_requires = [
     'basepy',
     'httpx',
     'phonenumbers',
+    'arrow',
     'dataclass_factory',
     'likepy',
     'postmodel',

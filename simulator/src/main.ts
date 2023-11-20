@@ -267,6 +267,9 @@ export class SimulatorHostPlatform {
             "page_size": this.pageSize,
             "is_virtual": false,
             "web_version": uaFields.browserVersion,
+            "timezone": {
+                "offset": (new Date()).getTimezoneOffset()*60
+            }
         }
     }
 

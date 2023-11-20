@@ -293,6 +293,9 @@ export class WebAppHostPlatform {
             "page_size": getPageSize(),
             "is_virtual": false,
             "web_version": uaFields.browserVersion,
+            "timezone": {
+                "offset": (new Date()).getTimezoneOffset()*60
+            }
         }
     }
 
