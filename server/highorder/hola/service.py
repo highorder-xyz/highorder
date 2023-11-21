@@ -686,15 +686,27 @@ class HolaDataObjectService:
         return HolaDataObject(self.app_id, self.name, _id, value)
 
     async def create(self, *args, **kwargs):
-        value = restruct_dict(dict(*args, **kwargs))
+        raw_value = restruct_dict(dict(*args, **kwargs))
         if self.name == "player":
             return await self.create_player(**value)
         else:
             _id = time_random_id(IDPrefix.OBJECT, 30)
+            value = {}
+            obj_def = self.hola_svc.get_object_by_name(self.name)
+
+            for el in obj_def.get("elements", []):
+                k = el.get("name")
+                if not k:
+                    continue
+                if k in raw_value:
+                    value[k] = raw_value[k]
             m = await HolaObject.create(
                 app_id=self.app_id, object_name=self.name, object_id=_id, value=value
             )
-            return HolaDataObject(self.app_id, self.name, _id, flatten_dict(value))
+            return HolaDataObject(self.app_id, self.name, _id, flatten_dict(value),
+                    created = m.created.isoformat(),
+                    updated = m.updated.isoformat(),
+                    data_ver = m.data_ver)
 
     async def create_player(self, **kwargs):
         hola_init = HolaInitService(self.hola_svc)
@@ -785,6 +797,9 @@ class HolaDataObjectService:
                     self.name,
                     m.object_id,
                     flatten_dict(copy.copy(m.value)),
+                    created = m.created.isoformat(),
+                    updated = m.updated.isoformat(),
+                    data_ver = m.data_ver
                 )
                 for m in hobjects
             ]
@@ -2281,27 +2296,6 @@ class HolaService:
                 target = obj_def["target"]
                 context[name] = munchify(await self.load_info_object(target))
 
-    async def transform_locals2(self, locals_def, context):
-        locals_gen = {}
-        if locals_def.get("type") == "locals":
-            return await self.transform_object(locals_def, context)
-        else:
-            for name, value in locals_def.items():
-                if isinstance(value, (dict, Mapping)) and value.get("type") in [
-                    "query"
-                ]:
-                    locals_gen[name] = await self.transform_query(value, context)
-                elif isinstance(value, (dict, Mapping)) and "load" in value:
-                    locals_gen[name] = await self.load_value(value["load"], context)
-                else:
-                    locals_gen[name] = self.eval_value(value, context)
-
-            if "locals" in context:
-                context.locals.update(munchify(locals_gen))
-            else:
-                context.locals = munchify(locals_gen)
-            context._locals = munchify(locals_gen)
-        return locals_gen
 
     async def transform_locals(self, locals_def, context):
         transformed = {
@@ -4054,7 +4048,7 @@ class HolaService:
             raise Exception(f"unknown to handle show modal handler.")
 
         if 'args' in handler and handler['args']:
-            args = await self.transform_any(handler['args'], context)
+            args = self.handle_any_args(handler['args'], context)
             context = with_context(context, locals=args)
 
         return await self.get_show_modal_command(_modal, context)
