@@ -170,6 +170,14 @@ class ShowMessageService:
         )
 
 
+
+class HolaThingService:
+    def __init__(self):
+        pass
+
+
+
+
 class HolaDialogService:
     @classmethod
     def build_confirm_dialog(
@@ -2062,6 +2070,8 @@ class HolaService:
         for el in element.get("elements", []):
             if el.get("type") == "menu-item":
                 items.add(await self.transform_element(el, context))
+            else:
+                items.add(await self.transform_any(el, context))
 
         return transformed
 
@@ -2378,7 +2388,7 @@ class HolaService:
         elif isinstance(element, (dict, Mapping)):
             transformed = {}
             if "type" in element:
-                if element['type'] in ['expr', 'format', 'match', 'choice']:
+                if element['type'] in ['expr', 'format']:
                     return self.eval_value(element, context)
                 else:
                     return await self.transform_element(element, context)
@@ -2504,9 +2514,24 @@ class HolaService:
         else:
             await logger.warning(f"no transform for model {el_type}.")
 
+    async def transform_match(self, element, context):
+        default = await self.transform_any(element.get('default'), context)
+        conditions = []
+
+        for el in element.get('elements', []):
+            if el.get('type') != 'case-value':
+                continue
+            case = await self.transform_any(el.get('case'), context)
+            if case:
+                matched_value = await self.transform_any(el.get('value'), context)
+                return matched_value
+        return default
+
     async def transform_query(self, element, context):
         name = element["from"].split(".")[-1]
-        filter_expr = element.get("filter") or ""
+        filter_expr = ""
+        if 'filter' in element:
+            filter_expr = await self.transform_any(element['filter'], context)
         order_by = element.get("order_by")
         limit = element.get("limit")
         kwargs = {}
@@ -4018,7 +4043,8 @@ class HolaService:
                 raise Exception(f'not supported data operation {el_type} in DataProcess')
 
     async def handle_refresh(self, handler, context):
-        context.locals.update(handler.get("args", {}))
+        args = self.handle_any_args(handler.get("args", {}), context)
+        context = with_context(context, locals=args)
         return await self.get_page(context.client.route, context)
 
 

@@ -174,7 +174,14 @@ class FilterExprTransformer:
         if name in self.name_replace:
             return self.name_replace[name]
         else:
-            return name
+            if name == 'true':
+                return True
+            elif name == 'false':
+                return False
+            elif name == 'null':
+                return None
+            else:
+                return name
 
     def transform_list(self, node):
         transformed_list = []

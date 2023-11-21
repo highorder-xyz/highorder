@@ -109,3 +109,14 @@ def test_filter_expr_4():
         "operator": "AND",
         "negate": False
     })
+
+
+def test_filter_expr_5():
+    expr = 'it.active == true'
+    t = FilterExprTransformer()
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "it.active": True
+    })

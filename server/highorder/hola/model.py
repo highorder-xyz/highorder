@@ -174,11 +174,13 @@ class HolaThing(MetaverModel):
     class Meta:
         table = "hola_thing"
         primary_key = ("app_id", "thing_id")
+        indexes = (("app_id", "device_id"),)
         db_name = "highorder"
 
     app_id = models.CharField(max_length=128)
     thing_id = models.CharField(max_length=256, default=partial(time_random_id, IDPrefix.THING, 20))
-    thing_type = models.CharField(max_length=256)
+    device_id = models.CharField(max_length=256)
+    thing_type = models.CharField(max_length=128)
     thing_info = models.JSONField()
     bind_to = models.JSONField()
     home_url = models.CharField(max_length=1024, null=True)
