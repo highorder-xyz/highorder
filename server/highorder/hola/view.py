@@ -113,7 +113,7 @@ async def hola_main(request):
     return Response(ret_data, content_type="application/json")
 
 
-async def validate_console(app_id, sign, request):
+async def validate_editor(app_id, sign, request):
     hex_sign, timestamp, client_key = sign.split(",", 3)
     raw_data = await request.body()
 
@@ -142,7 +142,7 @@ async def validate_setup_request(request):
     app_id = request.headers.get("X-HighOrder-Application-Id")
     assert app_id != None
 
-    sign_valid = await validate_console(app_id, sign, request)
+    sign_valid = await validate_editor(app_id, sign, request)
     if not sign_valid:
         return False, error.client_invalid("sign not correct.")
     request.app_id = app_id

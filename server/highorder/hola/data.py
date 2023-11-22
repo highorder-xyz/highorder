@@ -314,11 +314,13 @@ class ClientRequestContext:
     os: str
     os_version: str
     is_virtual: bool
+    as_device: bool = field(default = False)
     vendor: str = field(default="")
     version: str = field(default="0.0.0")
     page_size: dict = field(default_factory=dict)
     screen_size: dict = field(default_factory=dict)
     timezone: dict = field(default_factory=dict)
+    device: dict = field(default_factory=dict)
 
 
 @dataclass

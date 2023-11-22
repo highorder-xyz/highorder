@@ -232,12 +232,17 @@ export class SimulatorHostPlatform {
     platform: string
     pageSize: {width:number, height:number}
     language: string
+    asDevice: boolean
+    deviceInfo: Record<string, any>
 
-    constructor(platform: string, pageSize: {width:number, height: number}, language: string) {
+    constructor(platform: string, pageSize: {width:number, height: number}, language: string,
+            asDevice:boolean, deviceInfo: Record<string, any>) {
         this.wechatPlugin = new DefaultSimWeChatSimulationPlugin();
         this.platform = platform
         this.pageSize = pageSize
         this.language = language
+        this.asDevice = asDevice
+        this.deviceInfo = deviceInfo
     }
 
     async initialize(options: Record<string, any>): Promise<void> {
@@ -267,9 +272,11 @@ export class SimulatorHostPlatform {
             "page_size": this.pageSize,
             "is_virtual": false,
             "web_version": uaFields.browserVersion,
+            "as_device": this.asDevice,
             "timezone": {
                 "offset": (new Date()).getTimezoneOffset()*60
-            }
+            },
+            "device": this.deviceInfo
         }
     }
 
@@ -312,7 +319,37 @@ function transformToOject(paramstr: string) {
     return params;
 }
 
+function makeID(prefix:string, length:number) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return prefix + result;
+}
+
+function getDeviceID(){
+    const key = "ho_simulator_device_id"
+    let device_id = localStorage.getItem(key);
+    if(!device_id){
+        device_id = makeID('SIMU', 12)
+    }
+    localStorage.setItem(key, device_id);
+    return device_id
+}
+
 const options = getSearchParameters();
+
+let as_device = false
+const device_info: Record<string, any> = {}
+if(options.device_type && options.device_type.length > 0 ){
+    as_device = true
+    device_info.device_type = options.device_type
+    device_info.device_id = getDeviceID()
+}
 
 const highorder_app_config = {
     appId: options.app_id ?? "",
@@ -352,7 +389,7 @@ if(import.meta.env.PROD){
     console.log = function() {}
 }
 
-app_platform.register(new SimulatorHostPlatform(platfrom, pageSize, language))
+app_platform.register(new SimulatorHostPlatform(platfrom, pageSize, language, as_device, device_info))
 
 createHighOrderApp(app_configs, init_options).then((app: any) => {
     app.mount('#app')

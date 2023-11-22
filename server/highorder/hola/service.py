@@ -67,6 +67,7 @@ from .model import (
     HolaSessionPlayerItembox,
     HolaSessionVariable,
     HolaObject,
+    HolaThing,
 )
 from .builtin import (HolaBulitin, EXPR_BUILTINS)
 from postmodel.models import QueryExpression
@@ -172,8 +173,49 @@ class ShowMessageService:
 
 
 class HolaThingService:
-    def __init__(self):
-        pass
+    @classmethod
+    async def create(cls, app_id, config_def, device_info):
+        info = copy.copy(device_info or {})
+        device_id = info.pop('device_id')
+        device_type = info.pop('device_type')
+        device_info = info
+        thing = await HolaThing.get_or_none(app_id = app_id, device_id = device_id)
+        if not thing:
+            thing = await HolaThing.create(
+                app_id = app_id,
+                device_id = device_id,
+                device_type = device_type,
+                device_info = info,
+                home_url = "",
+                bind_to = {},
+                related = {}
+            )
+
+        return cls(app_id, config_def, thing)
+
+    def __init__(self, app_id, config_def, thing):
+        self.app_id = app_id
+        self.config_def = config_def
+        self.thing = thing
+
+    def get_home_url(self):
+        home_url = self.thing.home_url
+        if home_url:
+            return home_url
+
+        for _conf in self.config_def:
+            for config in _conf.get('elements', []):
+                if config.get('type') != 'thing-route-config':
+                    continue
+                if config.get('device_type') == self.thing.device_type:
+                    home_url = config.get('home_url')
+                    if home_url:
+                        break
+        return home_url
+
+    @property
+    def bind_to(self):
+        return self.thing.bind_to
 
 
 
@@ -683,6 +725,11 @@ class HolaDataObject(Munch):
 
 
 class HolaDataObjectService:
+    native_object_models = {
+        'player': HolaPlayer,
+        'thing': HolaThing
+    }
+
     def __init__(self, app_id, name, hola_svc):
         self.app_id = app_id
         self.name = name
@@ -695,6 +742,8 @@ class HolaDataObjectService:
 
     async def create(self, *args, **kwargs):
         raw_value = restruct_dict(dict(*args, **kwargs))
+        if self.name == 'thing':
+            raise Exception(f'thing can not be created.')
         if self.name == "player":
             return await self.create_player(**value)
         else:
@@ -786,12 +835,15 @@ class HolaDataObjectService:
         return query_expr
 
     async def query(self, filter_expr, **kwargs):
-        if self.name in ["player"]:
-            query_expr = self.build_native_query_expr(HolaPlayer, filter_expr, **kwargs)
+        if self.name in ["player", "thing"]:
+            model_class = self.native_object_models.get(self.name)
+            if not model_class:
+                raise Exception(f'no model class for objet {self.name}')
+            query_expr = self.build_native_query_expr(model_class, filter_expr, **kwargs)
             hobjects = list(await query_expr.all())
             objects = [
                 HolaDataObject(
-                    self.app_id, self.name, m.user_id, flatten_dict(m.to_dict())
+                    self.app_id, self.name, m.pk[1], flatten_dict(m.to_dict())
                 )
                 for m in hobjects
             ]
@@ -1057,6 +1109,7 @@ class HolaService:
 
         self.variables_def = []
         self.objects_def = []
+        self.config_def = []
         self.attribute_def = []
         self.item_def = []
         self.itembox_def = []
@@ -1075,6 +1128,8 @@ class HolaService:
                 self.variables_def.append(obj)
             elif obj_type == "object-meta":
                 self.objects_def.append(obj)
+            elif obj_type == 'config':
+                self.config_def.append(obj)
 
         self.action_def = {}
         for action in hola_def.actions:
@@ -4390,6 +4445,11 @@ class HolaService:
             )
             await self.load_variables_to_context(context=context)
             await self.load_player_to_context(context=context)
+            if context.client.as_device == True:
+                thingsvc = await HolaThingService.create(self.app_id, self.config_def, context.client.device or {})
+                home_url = thingsvc.get_home_url()
+                context.home_url = home_url
+                context.locals.bind_to = munchify(thingsvc.bind_to)
             if request_cmd.command == "session_start":
                 ret_commands.add(await self.handle_session_start(args, context=context))
             elif request_cmd.command == "page_interact":
@@ -4457,7 +4517,10 @@ class HolaService:
         if commands:
             return commands
         new_context = with_context(context, locals={})
-        return await self.get_page(args.get("route", "/"), context=new_context)
+        page_url = args.get('route', '/')
+        if page_url == '/' and context.home_url:
+            page_url = context.home_url
+        return await self.get_page(page_url, context=new_context)
 
     async def handle_page_interact(self, args, context):
         commands = AutoList()
