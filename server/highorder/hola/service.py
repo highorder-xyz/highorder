@@ -222,6 +222,43 @@ class HolaThingService:
     def bind_to(self):
         return self.thing.bind_to
 
+    async def get_bind_to_obj(self):
+        bind_to = self.thing.bind_to
+        if not bind_to: return None
+        _id = bind_to.get('object_id') or bind_to.get('_id')
+        _name = bind_to.get('object_name') or bind_to.get('_name')
+        if not _id or not _name or _name == 'thing':
+            return None
+        bind_to_obj = await self.load_obj(_name, _id)
+        if bind_to_obj:
+            return bind_to_obj
+
+    async def load_obj(self, obj_name, obj_id):
+        if obj_name == 'player':
+            m = await HolaPlayer.load(app_id = self.app_id, user_id=obj_id)
+            if m:
+                obj = HolaDataObject(
+                    self.app_id, obj_name, obj_id, flatten_dict(m.to_dict())
+                )
+                return obj
+        elif obj_name == 'thing':
+            return None
+        else:
+            m = await HolaObject.load(
+                app_id=self.app_id, object_name = obj_name, object_id = obj_id
+            )
+            if m:
+                obj = HolaDataObject(
+                    self.app_id,
+                    obj_name,
+                    m.object_id,
+                    flatten_dict(copy.copy(m.value)),
+                    created = m.created.isoformat(),
+                    updated = m.updated.isoformat(),
+                    data_ver = m.data_ver
+                )
+                return obj
+
     async def update(self, **kwargs):
         if 'bind_to' in kwargs:
             self.thing.bind_to = kwargs['bind_to']
@@ -4505,9 +4542,11 @@ class HolaService:
                 thingsvc = await HolaThingService.create(self.app_id, self.config_def, context.client.device or {})
                 home_url = thingsvc.get_home_url()
                 context.home_url = home_url
-                context.locals.bind_to = munchify(thingsvc.bind_to)
+                bind_to = await thingsvc.get_bind_to_obj() or {}
+                context.bind_to = munchify(bind_to)
             else:
                 context.home_url = '/'
+                context.bind_to = munchify({})
             if request_cmd.command == "session_start":
                 ret_commands.add(await self.handle_session_start(args, context=context))
             elif request_cmd.command == "page_interact":
