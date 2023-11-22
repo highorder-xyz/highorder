@@ -14,9 +14,7 @@ from highorder.base.utils import (
     time_random_id,
     IDPrefix,
     StampToken,
-    restruct_dict,
     random_str,
-    flatten_dict,
 )
 from highorder.base.munch import munchify, Munch
 from highorder.base.router import Router
@@ -93,10 +91,6 @@ from functools import reduce
 from string import Formatter
 
 factory = dataclass_factory.Factory()
-
-def deep_get(dictionary, keys, default=None):
-    return reduce(lambda d, key: d.get(key, default) if isinstance(d, (dict, HolaDataObject)) else default, keys.split("."), dictionary)
-
 
 def get_page_size_name(page_width):
     if page_width <= 300:
@@ -238,7 +232,7 @@ class HolaThingService:
             m = await HolaPlayer.load(app_id = self.app_id, user_id=obj_id)
             if m:
                 obj = HolaDataObject(
-                    self.app_id, obj_name, obj_id, flatten_dict(m.to_dict())
+                    self.app_id, obj_name, obj_id, m.to_dict()
                 )
                 return obj
         elif obj_name == 'thing':
@@ -252,7 +246,7 @@ class HolaThingService:
                     self.app_id,
                     obj_name,
                     m.object_id,
-                    flatten_dict(copy.copy(m.value)),
+                    copy.copy(m.value),
                     created = m.created.isoformat(),
                     updated = m.updated.isoformat(),
                     data_ver = m.data_ver
@@ -783,12 +777,12 @@ class HolaDataObjectService:
         self.hola_svc = hola_svc
 
     def new(self, *args, **kwargs):
-        value = restruct_dict(dict(*args, **kwargs))
+        value = dict(*args, **kwargs)
         _id = time_random_id(IDPrefix.OBJECT, 30)
         return HolaDataObject(self.app_id, self.name, _id, value)
 
     async def create(self, *args, **kwargs):
-        raw_value = restruct_dict(dict(*args, **kwargs))
+        raw_value = dict(*args, **kwargs)
         if self.name == 'thing':
             raise Exception(f'thing can not be created.')
         if self.name == "player":
@@ -807,7 +801,7 @@ class HolaDataObjectService:
             m = await HolaObject.create(
                 app_id=self.app_id, object_name=self.name, object_id=_id, value=value
             )
-            return HolaDataObject(self.app_id, self.name, _id, flatten_dict(value),
+            return HolaDataObject(self.app_id, self.name, _id, value,
                     created = m.created.isoformat(),
                     updated = m.updated.isoformat(),
                     data_ver = m.data_ver)
@@ -818,7 +812,7 @@ class HolaDataObjectService:
         currency_init = hola_init.get_currency_initial()
         state_init = {}
         profile_init = {}
-        r_args = restruct_dict(kwargs)
+        r_args = kwargs
         state_init.update(r_args.get("state", {}))
         profile_init.update(r_args.get("profile", {}))
         attribute_init.update(r_args.get("attribute", {}))
@@ -838,7 +832,7 @@ class HolaDataObjectService:
             )
 
             return HolaDataObject(
-                self.app_id, self.name, user_id, flatten_dict(player.to_dict())
+                self.app_id, self.name, user_id, player.to_dict()
             )
         else:
             raise Exception(f"can't create player withiout name and password.")
@@ -886,7 +880,7 @@ class HolaDataObjectService:
             m = await HolaPlayer.load(app_id = self.app_id, user_id=obj_id)
             if m:
                 obj = HolaDataObject(
-                    self.app_id, obj_name, obj_id, flatten_dict(m.to_dict())
+                    self.app_id, obj_name, obj_id, m.to_dict()
                 )
                 return obj
         elif obj_name == 'thing':
@@ -900,7 +894,7 @@ class HolaDataObjectService:
                     self.app_id,
                     obj_name,
                     m.object_id,
-                    flatten_dict(copy.copy(m.value)),
+                    copy.copy(m.value),
                     created = m.created.isoformat(),
                     updated = m.updated.isoformat(),
                     data_ver = m.data_ver
@@ -913,7 +907,7 @@ class HolaDataObjectService:
             hobjects = list(await query_expr.all())
             objects = [
                 HolaDataObject(
-                    self.app_id, self.name, m.pk[1], flatten_dict(m.to_dict())
+                    self.app_id, self.name, m.pk[1], m.to_dict()
                 )
                 for m in hobjects
             ]
@@ -933,7 +927,7 @@ class HolaDataObjectService:
                     obj.bind_to = bind_to_obj
             objects = [
                 HolaDataObject(
-                    self.app_id, self.name, m.pk[1], flatten_dict(m.to_dict())
+                    self.app_id, self.name, m.pk[1], m.to_dict()
                 )
                 for m in hobjects
             ]
@@ -946,7 +940,7 @@ class HolaDataObjectService:
                     self.app_id,
                     self.name,
                     m.object_id,
-                    flatten_dict(copy.copy(m.value)),
+                    copy.copy(m.value),
                     created = m.created.isoformat(),
                     updated = m.updated.isoformat(),
                     data_ver = m.data_ver
@@ -956,7 +950,7 @@ class HolaDataObjectService:
             return objects
 
     async def delete(self, *args, **kwargs):
-        dargs = restruct_dict(dict(*args, **kwargs))
+        dargs = dict(*args, **kwargs)
         if self.name == "player":
             user_id = kwargs["user_id"]
 
@@ -971,7 +965,7 @@ class HolaDataObjectService:
                 await m.delete()
 
     async def update(self, *args, **kwargs):
-        up_args = restruct_dict(dict(*args, **kwargs))
+        up_args = dict(*args, **kwargs)
         if self.name == "player":
             user_id = up_args["user_id"]
 
@@ -2026,7 +2020,7 @@ class HolaService:
     async def transform_dropdown(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         if name:
-            value = context.locals.get(name, None)
+            value = context.locals.deep_get(name, None)
 
         if not value:
             value = self.eval_value(element.get("value", ""), context)
@@ -2243,7 +2237,7 @@ class HolaService:
         name = self.eval_value(element.get("name", ""), context)
         value = ""
         if name:
-            value = context.locals.get(name, None)
+            value = context.locals.deep_get(name, None)
 
         if not value:
             value = self.eval_value(element.get("value", ""), context)
@@ -2262,7 +2256,7 @@ class HolaService:
         name = self.eval_value(element.get("name", ""), context)
         value = False
         if name:
-            value = context.locals.get(name, None)
+            value = context.locals.deep_get(name, None)
 
         if not value:
             value = self.eval_value(element.get("value", ""), context)
@@ -2281,7 +2275,7 @@ class HolaService:
     async def transform_textarea(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         if name:
-            value = context.locals.get(name, None)
+            value = context.locals.deep_get(name, None)
 
         if not value:
             value = self.eval_value(element.get("value", ""), context)
@@ -2296,7 +2290,7 @@ class HolaService:
 
     async def transform_datetime_format(self, element, context):
         transformed = ""
-        raw_value = deep_get(context, element["value"])
+        raw_value = context.deep_get(element["value"])
         if raw_value:
             dt_value = DatetimeFormatter.parse(raw_value)
             dt_value = DatetimeFormatter.to_local(dt_value, context.client.get('timezone', {}).get('offset', 0))
@@ -2306,7 +2300,7 @@ class HolaService:
     async def transform_calendar(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         if name:
-            value = context.locals.get(name, None)
+            value = context.locals.deep_get(name, None)
 
         if not value:
             value = self.eval_value(element.get("value", ""), context)
@@ -2329,7 +2323,7 @@ class HolaService:
         name = self.eval_value(element.get("name", ""), context)
         values = None
         if name:
-            values = context.locals.get(name, None)
+            values = context.locals.deep_get(name, None)
 
         if not values:
             values = self.eval_value(element.get("values", ""), context)
@@ -2743,7 +2737,7 @@ class HolaService:
 
     async def transform_local_value(self, element, context):
         field = element["field"]
-        return deep_get(context, field, None)
+        return context.deep_get(field, None)
 
     async def transform_component_use(self, element, context):
         component_name = self.eval_value(element["name"], context)
@@ -4253,7 +4247,7 @@ class HolaService:
             if not obj_def:
                 raise Exception(f'No object definition form name {obj_name}.')
             obj_value = await self.get_object_updated_value(
-                obj_def, flatten_dict(_locals, ignore_keys=["_more"]), context
+                obj_def, _locals, context
             )
         else:
             obj_value = _locals

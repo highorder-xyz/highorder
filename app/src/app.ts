@@ -1,5 +1,6 @@
 import { defineComponent, h, reactive, VNode, resolveComponent, DefineComponent, ref} from 'vue'
 import i18next from 'i18next';
+import { deepSet } from './common/utils';
 import {
     PlainTextObject,
     HeaderElement,
@@ -118,9 +119,6 @@ const themes_all = {
     'lara-light-blue': {}
 }
 
-function replaceAll(string:string, search:string, replace:string) {
-    return string.split(search).join(replace);
-}
 
 function toPascalCase(name:string) {
     let thePascalCase = `-${name}`.replace(/-./g, match => match[1].toUpperCase())
@@ -1216,10 +1214,10 @@ export const App = defineComponent({
             delete props.type
             const locals: Record<string, any> = context.locals ?? this.page.locals
             return h(Checkbox, {...props, onCheckChanged: (check: boolean) => {
-                console.log(check, props.value)
+
                 const trigger = (props.value != check)
                 if(element.name){
-                    locals[element.name] = check
+                    deepSet(locals, element.name, check)
                 }
                 if(element.handlers && element.handlers.check && trigger){
                     this.pageInteract("", 'check', element.handlers.check ?? "", this.page, context)
@@ -1239,7 +1237,7 @@ export const App = defineComponent({
             const locals: Record<string, any> =  context.locals ?? this.page.locals
             return h(Calendar, {...props, onCalendarChanged: (calendar: string | Array<string>) => {
                 if(element.name){
-                    locals[element.name] = calendar
+                    deepSet(locals, element.name, calendar)
                 }
             }})
         },
@@ -1250,7 +1248,7 @@ export const App = defineComponent({
             const locals: Record<string, any> =  context.locals ?? this.page.locals
             return h(InputSwitch, {...props, onCheckChanged: (check: boolean) => {
                 if(element.name){
-                    locals[element.name] = check
+                    deepSet(locals, element.name, check)
                 }
             }})
         },
@@ -1281,7 +1279,7 @@ export const App = defineComponent({
 
             return h(MultiSelect, {...props, onSelectChanged: (selected: any) => {
                 if(element.name){
-                    locals[element.name] = selected
+                    deepSet(locals, element.name, selected)
                 }
             }})
         },
@@ -1293,7 +1291,7 @@ export const App = defineComponent({
 
             return h(Textarea, {...props, onTextChanged: (text: string) => {
                 if(element.name){
-                    locals[element.name] = text
+                    deepSet(locals, element.name, text)
                 }
             }})
         },
@@ -1873,7 +1871,7 @@ export const App = defineComponent({
                 name: name,
                 onTextChanged: (text: string) => {
                     if(name.length > 0){
-                        locals[name] = text
+                        deepSet(locals, name, text)
                     }
                 }
             })
@@ -1909,7 +1907,7 @@ export const App = defineComponent({
                 ...props,
                 onSelectChanged: (value: any) => {
                     if(name.length > 0){
-                        locals[name] = value
+                        deepSet(locals, name, value)
                     }
                 }
             })
@@ -1994,17 +1992,8 @@ export const App = defineComponent({
         renderDataTable(element: DataTableElement, context: RenderContext): VNode {
             const style = element.style ?? {}
             const columns: any[] = []
-            const data = []
-            for(const obj of element.data ?? []){
-                const new_obj = Object.assign({__col_names: {}}, obj)
-                for(const [k, v] of Object.entries(obj)){
-                    if(k.includes(".")){
-                        const new_k = replaceAll(k, '.', '__');
-                        (new_obj.__col_names as Record<string, any>)[new_k] = v
-                    }
-                }
-                data.push(new_obj)
-            }
+            const data = element.data ?? []
+
             for(const col of (element.columns ?? [])){
                 const field_name = col['field'] ?? ""
                 if(field_name.indexOf('__col_') == 0) {
@@ -2021,12 +2010,6 @@ export const App = defineComponent({
                         const new_context = with_context(context, {locals: new_locals})
                         return this.renderElementOrList(locals[field_name], new_context)
                     }
-                    columns.push(new_col)
-                } else  if(field_name.includes('.')){
-                    const _name = replaceAll(field_name, '.', '__')
-                    const new_name = `__col_names.${_name}`
-                    const new_col = Object.assign({}, col)
-                    new_col['field'] = new_name
                     columns.push(new_col)
                 } else {
                     columns.push(col)

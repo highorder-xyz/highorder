@@ -206,8 +206,6 @@ class Munch(dict):
         self.clear()
         self.update(state)
 
-    __members__ = __dir__  # for python2.x compatibility
-
     @classmethod
     def from_dict(cls, d):
         """Recursively transforms a dictionary into a Munch via copy.
@@ -239,6 +237,22 @@ class Munch(dict):
             return d
         return self[k]
 
+    def deep_get(self, k, d=None):
+        nd = self
+        for key in k.split('.'):
+            if isinstance(nd, dict):
+                nd = nd.get(key, d)
+            else:
+                return nd
+        return nd
+
+    def deep_set(self, k, v):
+        parts = k.split('.')
+        nd = self
+        for key in parts[:-1]:
+            nd = nd.setdefault(key, Munch())
+        nd[parts[-1]] = v
+
     def setdefault(self, k, d=None):
         """
         D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D
@@ -246,6 +260,14 @@ class Munch(dict):
         if k not in self:
             self[k] = d
         return self[k]
+
+    def deep_setdefault(self, k, d=None):
+        parts = k.split('.')
+        nd = self
+        for key in parts[:-1]:
+            nd = nd.setdefault(key, Munch())
+        return nd.setdefault(parts[-1], d)
+
 
     def to_json(self, **options):
         """Serializes this Munch to JSON. Accepts the same keyword options as `json.dumps()`.
