@@ -1881,14 +1881,33 @@ export const App = defineComponent({
         },
 
         renderDropdown(element: DropdownElement, context: RenderContext): VNode {
-            const name = element.name ?? ""
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            delete props.options
+            const options: Array<Record<string, any>> = []
             let locals: Record<string, any> =  context.locals ?? this.page.locals
+            for(const opt of element.options?? []){
+                if(opt.type && opt.type == 'element-option'){
+                    options.push({
+                        label: opt.label,
+                        name: opt.name,
+                        slot: () => {
+                            return this.renderElementOrList(opt.element, context)
+                        }
+                    })
+                } else {
+                    options.push({
+                        label: opt.label,
+                        name: opt.name
+                    })
+                }
+            }
+            props.options = options
+            const name = element.name ?? ""
+
             const input = h(Dropdown, {
-                label: element.label ?? "",
-                value: element.value ?? "",
-                options: element.options ?? [],
-                name: name,
-                onSelectChanged: (value: string) => {
+                ...props,
+                onSelectChanged: (value: any) => {
                     if(name.length > 0){
                         locals[name] = value
                     }

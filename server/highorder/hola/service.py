@@ -193,6 +193,11 @@ class HolaThingService:
 
         return cls(app_id, config_def, thing)
 
+    @classmethod
+    async def load(cls, app_id, thing_id):
+        thing = await HolaThing.load(app_id = app_id, thing_id = thing_id)
+        return cls(app_id, [], thing)
+
     def __init__(self, app_id, config_def, thing):
         self.app_id = app_id
         self.config_def = config_def
@@ -217,7 +222,17 @@ class HolaThingService:
     def bind_to(self):
         return self.thing.bind_to
 
+    async def update(self, **kwargs):
+        if 'bind_to' in kwargs:
+            self.thing.bind_to = kwargs['bind_to']
 
+        if 'home_url' in kwargs:
+            self.thing.home_url = kwargs['home_url']
+
+        if 'related' in kwargs:
+            self.thing.related = kwargs['related']
+
+        await self.thing.save()
 
 
 class HolaDialogService:
@@ -725,11 +740,6 @@ class HolaDataObject(Munch):
 
 
 class HolaDataObjectService:
-    native_object_models = {
-        'player': HolaPlayer,
-        'thing': HolaThing
-    }
-
     def __init__(self, app_id, name, hola_svc):
         self.app_id = app_id
         self.name = name
@@ -834,13 +844,56 @@ class HolaDataObjectService:
             query_expr = query_expr.limit(limit)
         return query_expr
 
+    async def load(self, obj_name, obj_id):
+        if obj_name == 'player':
+            m = await HolaPlayer.load(app_id = self.app_id, user_id=obj_id)
+            if m:
+                obj = HolaDataObject(
+                    self.app_id, obj_name, obj_id, flatten_dict(m.to_dict())
+                )
+                return obj
+        elif obj_name == 'thing':
+            return None
+        else:
+            m = await HolaObject.load(
+                app_id=self.app_id, object_name = obj_name, object_id = obj_id
+            )
+            if m:
+                obj = HolaDataObject(
+                    self.app_id,
+                    obj_name,
+                    m.object_id,
+                    flatten_dict(copy.copy(m.value)),
+                    created = m.created.isoformat(),
+                    updated = m.updated.isoformat(),
+                    data_ver = m.data_ver
+                )
+                return obj
+
     async def query(self, filter_expr, **kwargs):
-        if self.name in ["player", "thing"]:
-            model_class = self.native_object_models.get(self.name)
-            if not model_class:
-                raise Exception(f'no model class for objet {self.name}')
-            query_expr = self.build_native_query_expr(model_class, filter_expr, **kwargs)
+        if self.name == "player":
+            query_expr = self.build_native_query_expr(HolaPlayer, filter_expr, **kwargs)
             hobjects = list(await query_expr.all())
+            objects = [
+                HolaDataObject(
+                    self.app_id, self.name, m.pk[1], flatten_dict(m.to_dict())
+                )
+                for m in hobjects
+            ]
+            return objects
+        elif self.name == "thing":
+            query_expr = self.build_native_query_expr(HolaThing, filter_expr, **kwargs)
+            hobjects = list(await query_expr.all())
+            for obj in hobjects:
+                bind_to = obj.bind_to
+                if not bind_to: continue
+                _id = bind_to.get('object_id') or bind_to.get('_id')
+                _name = bind_to.get('object_name') or bind_to.get('_name')
+                if not _id or not _name or _name == 'thing':
+                    continue
+                bind_to_obj = await self.load(_name, _id)
+                if bind_to_obj:
+                    obj.bind_to = bind_to_obj
             objects = [
                 HolaDataObject(
                     self.app_id, self.name, m.pk[1], flatten_dict(m.to_dict())
@@ -900,6 +953,10 @@ class HolaDataObjectService:
                     setattr(player, k, up_args[k])
 
             await player.save()
+        elif self.name == "thing":
+            thing_id = up_args.get('_id') or up_args.get('thing_id')
+            thing_svc = await HolaThingService.load(app_id=self.app_id, thing_id=thing_id)
+            await thing_svc.update(**up_args)
         else:
             _id = kwargs["_id"]
             m = await HolaObject.load(
@@ -1943,11 +2000,10 @@ class HolaService:
             "label": self.eval_value(element.get("label", ""), context),
             "validate": self.eval_object(element.get("validate", {}), context),
             "value": value,
-            "options": [],
+            "options": AutoList(),
         }
 
-        for option in element.get("options", []):
-            transformed["options"].append(await self.transform_element(option, context))
+        transformed["options"].add(await self.transform_any(element.get("options", []), context))
 
         return transformed
 
@@ -4450,6 +4506,8 @@ class HolaService:
                 home_url = thingsvc.get_home_url()
                 context.home_url = home_url
                 context.locals.bind_to = munchify(thingsvc.bind_to)
+            else:
+                context.home_url = '/'
             if request_cmd.command == "session_start":
                 ret_commands.add(await self.handle_session_start(args, context=context))
             elif request_cmd.command == "page_interact":

@@ -1846,47 +1846,59 @@ export const Toolbar = defineComponent({
     }
 });
 
-
 export const Dropdown = defineComponent({
     name: 'Dropdown',
     props: {
         label: { type: String, default: "" },
         name: { type: String, default: "" },
-        value: { type: String, default: "" },
+        value: { type: [String, Object], default: "" },
         style: { type: Object, default: {} },
         options: { type: Array as PropType<Array<any>>, default: [] }
     },
     data() {
-        const options = []
-        for (const opt of this.options) {
-            options.push({
-                name: opt['label'],
-                code: opt['name']
-            })
+        let selectValue: any = ''
+        const selectOptions: Array<any> = []
+        for(const opt of this.options){
+            selectOptions.push(this.transform_option(opt))
+        }
+        const _options = selectOptions.filter((it: any) => { return this.$props.value == it.code })
+
+        if (_options.length > 0){
+            selectValue = _options[0]
         }
 
-        const selected_options = options.filter((item: any) => (item.code === this.value))
-        const init_value = selected_options ? selected_options[0] : undefined
-
         return {
-            "select": init_value ? init_value.code : '',
-            "_value": init_value,
-            "_options": options
+            "selectValue": selectValue,
+            "selectOptions": selectOptions
         }
     },
 
     emits: {
-        selectChanged: (select: string) => { return true; }
+        selectChanged: (select: any) => { return true; }
     },
 
     beforeMount() {
-        this.$emit("selectChanged", this.select)
+        this.$emit("selectChanged", this.selectValue.code)
     },
 
     methods: {
+        transform_option(opt: any){
+            if(opt.slot){
+                return {
+                    name: opt.label,
+                    code: opt.name,
+                    slot: opt.slot
+                }
+            } else {
+                return {
+                    name: opt.label,
+                    code: opt.name
+                }
+            }
+        },
+
         valueChanged(value: any) {
-            this._value = value
-            this.select = value.code
+            this.selectValue = value
             this.$emit("selectChanged", value.code)
         }
     },
@@ -1904,12 +1916,23 @@ export const Dropdown = defineComponent({
         }
         children.push(h(PrimeDropdown, {
             class: [styles["h-dropdown"]],
-            modelValue: this._value,
+            modelValue: this.selectValue,
             "onUpdate:modelValue": this.valueChanged,
             optionLabel: 'name',
-            options: this._options
+            options: this.selectOptions
         }, {
-
+            "option": (slotProps: any) => {
+                if(slotProps.option.slot){
+                    return slotProps.option.slot()
+                }
+                return h('div', {}, slotProps.option.name)
+            },
+            "value": (slotProps: any) => {
+                if(slotProps.value.slot){
+                    return slotProps.value.slot()
+                }
+                return h('div', {}, slotProps.value.name)
+            }
         }))
         return h('div', { class: [styles["h-form-line"]] }, children)
     }
