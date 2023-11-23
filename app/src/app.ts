@@ -54,7 +54,8 @@ import {
     InputSwitchElement,
     MultiSelectElement,
     TextareaElement,
-    QrcodeElement
+    QrcodeElement,
+    ClockElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import {
@@ -87,7 +88,8 @@ import {
     InputSwitch,
     MultiSelect,
     Textarea,
-    Qrcode
+    Qrcode,
+    Clock
 } from './components'
 
 import { app_platform } from './platform';
@@ -1209,6 +1211,12 @@ export const App = defineComponent({
             return h(Avatar, {...props})
         },
 
+        renderClock(element: ClockElement, context: RenderContext) {
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            return h(Clock, {...props})
+        },
+
         renderCheckbox(element: CheckboxElement, context: RenderContext){
             const props: Record<string, any> = Object.assign({}, element)
             delete props.type
@@ -1667,6 +1675,8 @@ export const App = defineComponent({
                 return this.renderTag(element as TagElement, context)
             } else if (element.type === "avatar") {
                 return this.renderAvatar(element as AvatarElement, context)
+            } else if (element.type === "clock") {
+                return this.renderClock(element as ClockElement, context)
             } else if (element.type === "checkbox") {
                 return this.renderCheckbox(element as CheckboxElement, context)
             } else if (element.type === "progressbar") {

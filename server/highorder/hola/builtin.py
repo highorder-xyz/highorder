@@ -3,6 +3,8 @@ from datetime import datetime, date, timedelta
 import builtins
 from typing import Mapping
 from likepy import safer_getattr
+import arrow
+
 
 EXPR_BUILTINS = {}
 
@@ -80,6 +82,11 @@ class HolaBulitin:
         index = random.randint(0, len(THEME_COLORS) - 1)
         return THEME_COLORS[index]
 
+
+    @staticmethod
+    def format_datetime(fstr, dt):
+        return arrow.get(dt).format(fstr)
+
 _safe_names = [
     'abs',
     'bool',
@@ -143,3 +150,30 @@ def every(collection):
 
 
 EXPR_BUILTINS['every'] = every
+
+
+class FilterExpression:
+    def __init__(self, collection):
+        self.value = collection
+
+    def __getattr__(self, name):
+        attr_value = []
+        for v in self.value:
+            if isinstance(v, (dict, Mapping)):
+                attr_value.append(v.get(name, None))
+            else:
+                attr_value.append(getattr(v, name, None))
+        return FilterExpression(attr_value)
+
+    def __eq__(self, other):
+        if not self.value:
+            return []
+        rets = list(filter(lambda x: x == other, self.value))
+        return rets
+
+
+def _filter(collection):
+    return  FilterExpression(collection)
+
+
+EXPR_BUILTINS['filter'] = _filter

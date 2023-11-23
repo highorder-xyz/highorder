@@ -1688,3 +1688,31 @@
 .h-tag {
     margin: 0.15rem;
 }
+
+.h-progressbar.hs-xxlarge {
+    width: 30rem;
+}
+
+.h-progressbar.hs-xlarge {
+    width: 25rem;
+}
+
+.h-progressbar.hs-large {
+    width: 20rem;
+}
+
+.h-progressbar.hs-medium {
+    width: 15rem;
+}
+
+.h-progressbar.hs-small {
+    width: 12rem;
+}
+
+.h-progressbar.hs-xsmall {
+    width: 8rem;
+}
+
+.h-progressbar.hs-xxsmall {
+    width: 6rem;
+}

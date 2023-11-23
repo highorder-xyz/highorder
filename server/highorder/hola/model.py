@@ -89,6 +89,18 @@ class HolaObject(MetaverModel):
     value = models.JSONField()
 
 
+class HolaResource(MetaverModel):
+    class Meta:
+        table = "hola_resource"
+        primary_key = ("app_id", "res_name", "res_key")
+        db_name = "highorder"
+
+    app_id = models.CharField(max_length=128)
+    res_name = models.CharField(max_length=512)
+    res_key = models.CharField(max_length=512)
+    allocation = models.JSONField()
+
+
 class HolaVariable(MetaverModel):
     class Meta:
         table = "hola_variable"

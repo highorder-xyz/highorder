@@ -65,6 +65,7 @@ from .model import (
     HolaSessionPlayerItembox,
     HolaSessionVariable,
     HolaObject,
+    HolaResource,
     HolaThing,
 )
 from .builtin import (HolaBulitin, EXPR_BUILTINS)
@@ -2638,8 +2639,8 @@ class HolaService:
 
         if model_data:
             context = copy.copy(origin_context)
-            for sub_element in element.get("elements", []):
-                for obj in model_data:
+            for obj in model_data:
+                for sub_element in element.get("elements", []):
                     context.it = obj
                     transformed.add(await self.transform_element(sub_element, context))
 
@@ -2805,7 +2806,10 @@ class HolaService:
         }
 
     async def transform_plain_text(self, element, context):
-        return {"type": "plain-text", "text": await self.transform_any(element["text"], context)}
+        text = await self.transform_any(element["text"], context)
+        if isinstance(text, (list, tuple)):
+            text = ''.join(text)
+        return {"type": "plain-text", "text": text}
 
     async def transform_bulleted_list(self, element, context):
         return {
@@ -2816,6 +2820,26 @@ class HolaService:
     async def transform_progress_bar(self, element, context):
         transformed = {
             "type": "progress-bar",
+            "style": self.eval_object(element.get("style", {}), context),
+        }
+
+        if "percent" in element:
+            percent = self.eval_value(element["percent"], context)
+            transformed["percent"] = percent
+
+        if "value" in element:
+            value = self.eval_value(element["value"], context)
+            transformed["value"] = value
+
+        if "total" in element:
+            total = self.eval_value(element["total"], context)
+            transformed["total"] = total
+
+        return transformed
+
+    async def transform_progressbar(self, element, context):
+        transformed = {
+            "type": "progressbar",
             "style": self.eval_object(element.get("style", {}), context),
         }
 
@@ -3149,6 +3173,8 @@ class HolaService:
             route=page_route,
             elements=elements,
         )
+        if page_def.refresh:
+            page_to.refresh = await self.transform_any(page_def.refresh, context)
         commands.add(ShowPageCommand(args=ShowPageCommandArg(page=page_to)))
         return commands
 
@@ -4595,7 +4621,7 @@ class HolaService:
     async def handle_session_start(self, args, context):
         commands = AutoList()
         commands.add(await self.get_init_ad(context=context))
-        commands.add(await self.get_page("/", context=context))
+        commands.add(await self.get_page(context.home_url or "/", context=context))
         return commands
 
     async def handle_call_action(self, args, context):

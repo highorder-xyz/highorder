@@ -25,6 +25,7 @@ class PageDefine:
     route: str
     name: Optional[str] = field(default_factory=str)
     valid: Optional[dict] = field(default_factory=dict)
+    refresh: Optional[dict] = field(default_factory=dict)
     permissions: Optional[List[dict]] = field(default_factory=list)
     locals: Optional[dict] = field(default_factory=dict)
     events: Optional[dict] = field(default_factory=dict)
@@ -180,6 +181,7 @@ class UpdatePageCommand:
 class PageInterface:
     name: str
     route: str
+    refresh: Optional[dict] = field(default_factory=dict)
     locals: Optional[dict] = field(default_factory=dict)
     elements: Optional[List[dict]] = field(default_factory=list)
     type: str = 'page'

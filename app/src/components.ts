@@ -2058,9 +2058,53 @@ export const Progressbar = defineComponent({
         if((this.style.tags ?? []).includes('indeterminate')){
             props.mode = 'indeterminate'
         }
+
+        const sizeName = get_size_name(this.$props.style.size_hint ?? -1)
+        const sizeClassName = `hs-${sizeName}`
         return h(PrimeProgressBar, {
+            class: [styles["h-progressbar"], styles[sizeClassName]],
             ...props
         })
+    }
+});
+
+
+export const Clock = defineComponent({
+    name: 'Clock',
+    props: {
+        show_date: { type:Boolean, default:false },
+        style: { type: Object, default: {}}
+    },
+    data() {
+        return {
+            currentTime: new Date(),
+            updateTimeInterval: undefined
+        }
+    },
+    beforeMount() {
+        this.currentTime = new Date()
+        const updateTimeInterval = setInterval(() => {
+            this.currentTime = new Date();
+        }, 500);
+        (this.updateTimeInterval as any) = updateTimeInterval
+    },
+    beforeUnmount(){
+        if(this.updateTimeInterval) {
+            clearInterval(this.updateTimeInterval)
+        }
+    },
+    render() {
+        const timeStr = this.currentTime.toLocaleTimeString()
+        return h('div', {
+            class: [
+                styles["h-clock"]
+            ]
+        },
+            h('p', {
+                class: [
+                    styles["h-clock-text"]
+                ]
+            }, timeStr))
     }
 });
 

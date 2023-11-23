@@ -436,6 +436,12 @@ export interface AvatarElement{
     style?: Record<string, any>
 }
 
+export interface ClockElement{
+    type: string
+    show_date?: boolean
+    style?: Record<string, any>
+}
+
 export interface CheckboxElement{
     type: string
     name?: string
