@@ -17,3 +17,6 @@ sass --update themes/lara/lara-light/blue/theme.scss:dist/themes/lara-light-blue
 sass --update themes/lara/lara-light/indigo/theme.scss:dist/themes/lara-light-indigo/theme.css
 sass --update themes/lara/lara-light/purple/theme.scss:dist/themes/lara-light-purple/theme.css
 sass --update themes/lara/lara-light/teal/theme.scss:dist/themes/lara-light-teal/theme.css
+
+
+cp -r dist/themes ../app/public/assets/

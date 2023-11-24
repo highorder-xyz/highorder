@@ -1594,11 +1594,12 @@
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .h-row.full {
     width: 100%;
+    flex-grow: 1;
 }
 
 .h-form-line {
