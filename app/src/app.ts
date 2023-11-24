@@ -639,7 +639,7 @@ export const App = defineComponent({
             let locals = page.locals
             if(context.locals){
                 locals = context.locals
-                locals['_more'] = page.locals
+                locals['page_locals'] = page.locals
             }
             app_core.pageInteract(name, event, handler, locals).then((commands: HolaCommand[]) => {
                 clearTimeout(timerId)
@@ -673,7 +673,7 @@ export const App = defineComponent({
             let locals = page.locals
             if(context.locals){
                 locals = context.locals
-                locals['_more'] = page.locals
+                locals['page_locals'] = page.locals
             }
 
             app_core.dialogInteract(context.modal_id ?? "", name, event, handler, locals).then((commands: HolaCommand[]) => {

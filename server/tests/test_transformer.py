@@ -29,7 +29,7 @@ def compare_transformed(transformed, desire_dict):
 
 def test_filter_expr_1():
     expr = 'model_item.name == "aaa"'
-    t = FilterExprTransformer(name_replace = {"model_item": "value"})
+    t = FilterExprTransformer(target = "model_item", rename= "value")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -39,7 +39,7 @@ def test_filter_expr_1():
 
 def test_filter_expr_1_1():
     expr = 'model_item.name == "aaa"'
-    t = FilterExprTransformer(name_replace = {"model_item": ""})
+    t = FilterExprTransformer(target = "model_item", rename= "")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -49,7 +49,7 @@ def test_filter_expr_1_1():
 
 def test_filter_expr_1_2():
     expr = 'model_item.name in ["aaa", "bb"]'
-    t = FilterExprTransformer(name_replace = {"model_item": ""})
+    t = FilterExprTransformer(target = "model_item", rename= "")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -59,7 +59,7 @@ def test_filter_expr_1_2():
 
 def test_filter_expr_1_2():
     expr = 'model_item.name in ("aaa", "bb")'
-    t = FilterExprTransformer(name_replace = {"model_item": ""})
+    t = FilterExprTransformer(target = "model_item", rename = "")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -69,7 +69,7 @@ def test_filter_expr_1_2():
 
 def test_filter_expr_2():
     expr = 'model_item.name == "aaa" and model_item.type.name == "bb" '
-    t = FilterExprTransformer()
+    t = FilterExprTransformer(target = "model_item")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -92,7 +92,7 @@ def test_filter_expr_2():
 
 def test_filter_expr_3():
     expr = 'model_item.name.contains("abc") '
-    t = FilterExprTransformer()
+    t = FilterExprTransformer(target = "model_item")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -103,7 +103,7 @@ def test_filter_expr_3():
 
 def test_filter_expr_4():
     expr = ''
-    t = FilterExprTransformer(name_replace = {"model_item": "value"})
+    t = FilterExprTransformer(target = "model_item", rename = "value")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
@@ -113,10 +113,34 @@ def test_filter_expr_4():
 
 def test_filter_expr_5():
     expr = 'it.active == true'
-    t = FilterExprTransformer()
+    t = FilterExprTransformer(target = "it")
     compare_transformed(t.transform(expr), {
         "type": "expression",
         "operator": "AND",
         "negate": False,
         "it.active": True
+    })
+
+
+def test_filter_expr_6():
+    expr = 'it.user_id == user.user_id'
+    t = FilterExprTransformer(target = "it", rename="", context={"user": {"user_id": "UIDXXX", "user_name":"tom"}})
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "user_id": "UIDXXX"
+    })
+
+def test_filter_expr_7():
+    expr = 'it.name == user.user_name'
+    t = FilterExprTransformer(target = "it",
+        rename = "value",
+        context={"user": {"user_id": "UIDXXX", "user_name":"tom"}}
+    )
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "value.name": "tom"
     })

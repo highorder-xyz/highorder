@@ -842,7 +842,9 @@ class HolaDataObjectService:
         order_by = kwargs.get("order_by")
         limit = kwargs.get("limit")
         ft = FilterExprTransformer(
-            QueryExpression, name_replace={"it": "value"}, **kwargs
+            target = "it",
+            rename = "value",
+            expr_cls = QueryExpression, **kwargs
         )
         if filter_expr:
             qexpr = ft.transform(filter_expr)
@@ -862,7 +864,7 @@ class HolaDataObjectService:
     def build_native_query_expr(self, model_class, filter_expr, **kwargs):
         order_by = kwargs.get("order_by")
         limit = kwargs.get("limit")
-        ft = FilterExprTransformer(QueryExpression, name_replace={"it": ""}, **kwargs)
+        ft = FilterExprTransformer(target="it", expr_cls = QueryExpression, **kwargs)
         if filter_expr:
             qexpr = ft.transform(filter_expr)
             qexpr = operator.and_(QueryExpression(app_id=self.app_id), qexpr)
@@ -1013,11 +1015,7 @@ class HolaDataObjectService:
         await query_expr.all().delete()
 
 
-class HolaDataProcessSerivce:
-    pass
-
-
-class HolaInterfaceService:
+class HolaResourceService:
     pass
 
 
@@ -2684,6 +2682,7 @@ class HolaService:
             kwargs["limit"] = limit
         dataobj_svc = HolaDataObjectService(self.app_id, name, self)
         formated_filter = self.eval_format_value(filter_expr, context)
+        kwargs['context'] = context
         objects = await dataobj_svc.query(formated_filter, **kwargs)
         obj_meta = self.get_object_by_name(name)
         if not obj_meta:
@@ -2716,6 +2715,8 @@ class HolaService:
         kwargs = {}
         if order_by:
             kwargs["order_by"] = order_by
+
+        kwargs['context'] = context
         dataobj_svc = HolaDataObjectService(self.app_id, name, self)
         formated_filter = self.eval_format_value(filter_expr, context)
 
@@ -4675,6 +4676,9 @@ class HolaService:
                 )
             )
         if not commands:
+            if 'page_locals' in context.locals:
+                _locals = context.locals['page_locals']
+                context = with_context(context, locals=_locals)
             commands.add(await self.get_page(context.client.route, context))
 
         return commands
@@ -4682,6 +4686,9 @@ class HolaService:
     async def handle_page_refresh(self, args, context):
         commands = AutoList()
         route = context.client.route
+        if 'page_locals' in context.locals:
+            _locals = context.locals['page_locals']
+            context = with_context(context, locals=_locals)
         commands.add(await self.get_page(route, context=context))
         return commands
 
@@ -4718,7 +4725,7 @@ class HolaService:
                 )
             )
 
-        context.locals = munchify(_locals.get("_more", {}))
+        context.locals = munchify(_locals.get("page_locals", {}))
         if not commands:
             commands.add(await self.get_close_dialog_command(dialog_id, context))
             commands.add(await self.get_page(context.client.route, context))

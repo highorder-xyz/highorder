@@ -9,6 +9,14 @@ pp = pprint.PrettyPrinter(indent=4)
 def camel_to_snake(s):
     return "".join(["_" + c.lower() if c.isupper() else c for c in s]).lstrip("_")
 
+def deep_get(dictionary, k, d=None):
+    nd = dictionary
+    for key in k.split('.'):
+        if isinstance(nd, dict):
+            nd = nd.get(key, d)
+        else:
+            return nd
+    return nd
 
 class HolaExprParseError(Exception):
     pass
@@ -66,9 +74,11 @@ class FilterExprTransformer:
         "notin": "not_in",
     }
 
-    def __init__(self, expr_cls=QueryExpr, **kwargs):
+    def __init__(self, target, rename=None, expr_cls=QueryExpr, **kwargs):
         self.expr_cls = expr_cls
-        self.name_replace = kwargs.get("name_replace", {})
+        self.target = target
+        self.rename = rename
+        self.context = kwargs.get("context", {})
 
     def parse(self, expr):
         syntax_error_template = (
@@ -115,8 +125,8 @@ class FilterExprTransformer:
             parts = order_by.split(".")
 
         key = parts[0]
-        if key in self.name_replace:
-            parts[0] = self.name_replace[key]
+        if key == self.target and self.rename != None:
+            parts[0] = self.rename
 
         parts = list(filter(lambda x: x, parts))
         transformed = ".".join(parts)
@@ -166,22 +176,26 @@ class FilterExprTransformer:
         else:
             keys.append(node.attr)
 
-        keys = list(filter(lambda x: x, keys))
-        return ".".join(keys) + suffix
+        name = keys[0]
+        if name == self.target or name.startswith(f'{self.target}.') or len(suffix) > 0:
+            if name == self.target and self.rename != None:
+                keys[0] = self.rename
+                keys = list(filter(lambda x: x, keys))
+            return ".".join(keys) + suffix
+        else:
+            obj_key = ".".join(keys)
+            return deep_get(self.context, obj_key, None)
 
     def transform_name(self, node):
         name = node.id
-        if name in self.name_replace:
-            return self.name_replace[name]
+        if name == 'true':
+            return True
+        elif name == 'false':
+            return False
+        elif name == 'null':
+            return None
         else:
-            if name == 'true':
-                return True
-            elif name == 'false':
-                return False
-            elif name == 'null':
-                return None
-            else:
-                return name
+            return name
 
     def transform_list(self, node):
         transformed_list = []
