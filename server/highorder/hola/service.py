@@ -2411,12 +2411,12 @@ class HolaService:
 
     async def transform_hero(self, obj, context):
         elements = AutoList()
-        elements.add(await self.transform_element(obj.get("element"), context))
+        elements.add(await self.transform_any(obj.get("elements", []), context))
         ret = {
             "type": "hero",
             "title": self.eval_value(obj.get("title"), context),
             "text": self.eval_value(obj.get("text"), context),
-            "element": elements.first,
+            "elements": elements,
         }
         if "image_src" in obj:
             ret["image_src"] = self.eval_value(obj["image_src"], context)

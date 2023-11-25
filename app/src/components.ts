@@ -1277,58 +1277,28 @@ export const Toast = defineComponent({
 
 export type AlertType = InstanceType<typeof Alert>
 
-export interface HeroAnnotationText {
-    text: string;
-    annotation: string;
-}
-
 export const Hero = defineComponent({
     name: 'Hero',
     props: {
         title: { type: String, default: "" },
         text: { type: String, default: "" },
-        iamge_src: { type: String, default: "" },
-        annotation_text: { type: Object as PropType<HeroAnnotationText>, default: undefined },
+        iamge_src: { type: String, default: "" }
     },
     render() {
-        if (this.annotation_text) {
-            const textNodes: VNode[] = []
-            let text = this.annotation_text.text.trim().split(' ')
-            const annotation = this.annotation_text.annotation.trim().split(' ')
-            if (text.length == 1) {
-                text = text[0].split('')
-            }
-            const annotation_text_array = text.map((k, idx) => {
-                if (idx < annotation.length) {
-                    return [k, annotation[idx]]
-                } else {
-                    return [k, '']
-                }
-            })
-            for (const item of annotation_text_array) {
-                textNodes.push(h('div', { class: styles["hero-letter"] },
-                    h('ruby', [
-                        item[0],
-                        h('rp', '('),
-                        h('rt', item[1] || ''),
-                        h('rp', ')')
-                    ])
-                ))
-            }
-            return h('div', { class: styles["hero-line"] }, textNodes)
-        } else {
-            const children = []
-            if (this.iamge_src) {
-                children.push(h('img', { src: this.iamge_src }))
-            }
-            if (this.title) {
-                children.push(h('div', { class: styles["title"] }, this.title))
-            }
-            if (this.text) {
-                children.push(h('div', {}, this.text))
-            }
-            return h('div', { class: styles["h-hero"] }, children)
+        const children = []
+        if (this.iamge_src) {
+            children.push(h('img', { src: this.iamge_src }))
         }
+        if (this.title) {
+            children.push(h('div', { class: styles["title"] }, this.title))
+        }
+        if (this.text) {
+            children.push(h('div', {}, this.text))
+        }
+        if(this.$slots.default){
+            children.push(...this.$slots.default())
+        }
+        return h('div', { class: styles["h-hero"] }, children)
 
     }
 });

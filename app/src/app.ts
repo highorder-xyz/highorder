@@ -1951,7 +1951,11 @@ export const App = defineComponent({
                 title: element.title ?? "",
                 text: element.text ?? "",
                 image_src: element.image_src ?? "",
-                annotation_text: element.element })
+                }, {
+                    "default": () => {
+                        return this.renderElementOrList(element.elements ?? [])
+                    }
+                })
         },
 
         renderNavMenu(element: NavMenuElement, context: RenderContext): VNode {

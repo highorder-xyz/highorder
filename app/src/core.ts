@@ -288,7 +288,7 @@ export interface HeroElement {
     title?: string
     text?: string
     image_src?: string
-    element?: AnnotationTextObject
+    elements?: HolaElement[]
 }
 
 export interface DecorationElement {
