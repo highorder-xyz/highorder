@@ -2641,6 +2641,8 @@ class HolaService:
                 for sub_element in element.get("elements", []):
                     context.it = obj
                     transformed.add(await self.transform_element(sub_element, context))
+        elif 'alt' in element:
+            transformed.add(await self.transform_any(element['alt'], context))
 
         return transformed
 
