@@ -1427,6 +1427,7 @@ class HolaService:
 
         ret = {
             "__builtins__": EXPR_BUILTINS,
+            "home_url": "/",
             "user": user,
             "client": page_context or {},
             "locals": page_locals or {},
@@ -2613,7 +2614,7 @@ class HolaService:
             and ("style" not in transformed)
             and "style" in element
         ):
-            transformed["style"] = self.eval_object(element["style"], context)
+            transformed["style"] = await self.transform_any(element["style"], context)
 
         if 'locals' in element or element["type"] in ['modal']:
             transformed['locals'] = context._locals.to_dict()
@@ -2836,6 +2837,13 @@ class HolaService:
         if isinstance(text, (list, tuple)):
             text = ''.join(text)
         return {"type": "plain-text", "text": text}
+
+    async def transform_status_text(self, element, context):
+        label = self.eval_value(element.get('label', ''), context)
+        text = await self.transform_any(element["text"], context)
+        if isinstance(text, (list, tuple)):
+            text = ''.join(text)
+        return {"type": "status-text", "text": text, "label": label}
 
     async def transform_bulleted_list(self, element, context):
         return {

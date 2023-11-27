@@ -55,7 +55,9 @@ import {
     MultiSelectElement,
     TextareaElement,
     QrcodeElement,
-    ClockElement
+    ClockElement,
+    PlainTextElement,
+    StatusTextElement
 } from './core'
 import { InitAdCommand, InitAdCommandArg, PlayableApplyCommand, PlayableApplyCommandArg, PlayableResult, ShowAdCommand, ShowAdCommandArg } from './client'
 import {
@@ -89,7 +91,9 @@ import {
     MultiSelect,
     Textarea,
     Qrcode,
-    Clock
+    Clock,
+    PlainText,
+    StatusText
 } from './components'
 
 import { app_platform } from './platform';
@@ -1557,8 +1561,16 @@ export const App = defineComponent({
             return h(AnnotationText, {text: element.text, annotation: element.annotation})
         },
 
-        renderPlainText(element: PlainTextObject, context: RenderContext) {
-            return h('div', {}, element.text)
+        renderPlainText(element: PlainTextElement, context: RenderContext) {
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            return h(PlainText, {...props})
+        },
+
+        renderStatusText(element: StatusTextElement, context: RenderContext) {
+            const props: Record<string, any> = Object.assign({}, element)
+            delete props.type
+            return h(StatusText, { ...props })
         },
 
         renderRowLine(element: RowLineElement, context: RenderContext) {
@@ -1658,7 +1670,9 @@ export const App = defineComponent({
             } else if (element.type == 'column') {
                 return this.renderColumn(element as ColumnElement, context)
             } else if (element.type == 'plain-text') {
-                return this.renderPlainText(element as PlainTextObject, context)
+                return this.renderPlainText(element as PlainTextElement, context)
+            } else if (element.type == 'status-text') {
+                return this.renderStatusText(element as StatusTextElement, context)
             } else if (element.type == 'image') {
                 return this.renderImage(element as ImageElement, context)
             } else if (element.type == 'video') {
@@ -1729,9 +1743,10 @@ export const App = defineComponent({
                 onModalConfirmed: () => {
                     const name = open_modal.name ?? ""
                     const handler = open_modal.confirm?.click ?? ""
+                    const trigger = open_modal.confirm?.trigger ?? true
                     if(open_modal.confirm?.action){
                         this.executeAction(open_modal.confirm.action, open_modal.confirm.args, context)
-                    } else if( name.length > 0 || handler.length > 0 ) {
+                    } else if( trigger && (name.length > 0 || handler.length > 0 )) {
                         this.dialogInteract(name, "confirm", handler, this.page, context)
                     } else {
                         this.modal_helper.popup(context.modal_id ?? "")
@@ -1953,7 +1968,7 @@ export const App = defineComponent({
                 image_src: element.image_src ?? "",
                 }, {
                     "default": () => {
-                        return this.renderElementOrList(element.elements ?? [])
+                        return this.renderElementOrList(element.elements ?? [], context)
                     }
                 })
         },

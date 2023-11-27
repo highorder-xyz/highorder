@@ -1690,6 +1690,16 @@
     margin: 0.15rem;
 }
 
+.h-progressbar.thin {
+    height: 1rem;
+    font-size: 0.8rem;
+}
+
+.h-progressbar.margin-x6{
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+}
+
 .h-progressbar.hs-xxlarge {
     width: 30rem;
 }
@@ -1716,4 +1726,42 @@
 
 .h-progressbar.hs-xxsmall {
     width: 6rem;
+}
+
+.h-plain-text {
+    font-size: 1rem;
+}
+
+.h-plain-text.status {
+    font-size: 0.9em;
+    margin-left: 0.5rem;
+    opacity: 0.9;
+}
+
+.h-plain-text.bold {
+    font-weight: bold;
+}
+
+.h-plain-text.italic {
+    font-style:italic;
+}
+
+.h-plain-text.strike {
+    text-decoration: line-through
+}
+
+.h-plain-text.underline {
+    text-decoration: underline
+}
+
+.h-status-text {
+    font-size: 0.9em;
+}
+
+.h-status-label {
+    font-weight: bold;
+}
+
+.h-status-text-content {
+    margin-left: 0.5rem;
 }

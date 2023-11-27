@@ -79,6 +79,20 @@ export interface PlainTextObject {
     text: string;
 }
 
+export interface PlainTextElement {
+    type: string;
+    text: string;
+    style?: Record<string, any>
+}
+
+export interface StatusTextElement {
+    type: string;
+    label: string;
+    text: string;
+    style?: Record<string, any>
+}
+
+
 export interface SeparatorElement {
     type: string;
 }
@@ -237,6 +251,7 @@ export interface ModalElement {
         action: string
         args: Record<string, any>
         click?: string
+        trigger?: boolean
     };
     cancel?: {
         text: string;

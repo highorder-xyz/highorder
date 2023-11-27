@@ -2031,8 +2031,12 @@ export const Progressbar = defineComponent({
 
         const sizeName = get_size_name(this.$props.style.size_hint ?? -1)
         const sizeClassName = `hs-${sizeName}`
+        const tagClasses = []
+        for(const name of this.style.tags ?? []){
+            tagClasses.push(styles[name])
+        }
         return h(PrimeProgressBar, {
-            class: [styles["h-progressbar"], styles[sizeClassName]],
+            class: [styles["h-progressbar"], styles[sizeClassName], ...tagClasses],
             ...props
         })
     }
@@ -2575,6 +2579,50 @@ export const VideoPlayer = defineComponent({
             disablePictureInPicture: true,
             class: playerClasses
         })
+    }
+});
+
+export const PlainText = defineComponent({
+    name: 'PlainText',
+    props: {
+        text: { type: String, default: "" },
+        style: { type: Object, default: {}}
+    },
+    computed: {
+    },
+    render() {
+        const tags = this.style.tags ?? []
+        const tagClasses = []
+        if (tags.length > 0){
+            for(const name of tags){
+                tagClasses.push(styles[name])
+            }
+        }
+        return h('div', {class: [styles["h-plain-text"], ...tagClasses]}, this.text)
+    }
+});
+
+export const StatusText = defineComponent({
+    name: 'StatusText',
+    props: {
+        label: { type: String, default: "" },
+        text: { type: String, default: "" },
+        style: { type: Object, default: {}}
+    },
+    computed: {
+    },
+    render() {
+        const tags = this.style.tags ?? []
+        const tagClasses = []
+        if (tags.length > 0){
+            for(const name of tags){
+                tagClasses.push(styles[name])
+            }
+        }
+        const label = `${this.label}:`
+        return h('div', {class: [styles["h-status-text"], ...tagClasses]}, [
+            h('span', {class: [styles["h-status-label"]]}, label),
+            h('span', {class: [styles["h-status-text-content"]]}, this.text)])
     }
 });
 
