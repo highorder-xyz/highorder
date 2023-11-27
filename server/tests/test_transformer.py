@@ -67,6 +67,16 @@ def test_filter_expr_1_2():
         "name__in": ["aaa", 'bb']
     })
 
+def test_filter_expr_1_3():
+    expr = 'model_item.name in ("aaa", "bb")'
+    t = FilterExprTransformer(target = "model_item")
+    compare_transformed(t.transform(expr), {
+        "type": "expression",
+        "operator": "AND",
+        "negate": False,
+        "model_item.name__in": ["aaa", 'bb']
+    })
+
 def test_filter_expr_2():
     expr = 'model_item.name == "aaa" and model_item.type.name == "bb" '
     t = FilterExprTransformer(target = "model_item")

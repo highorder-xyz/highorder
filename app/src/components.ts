@@ -1339,7 +1339,7 @@ export const Row = defineComponent({
     name: 'Row',
     props: {
         justify: { type: String, default: "start" },
-        align: { type: String, default: "start" },
+        align: { type: String, default: "center" },
         width_size: { type: Number, default: -1 },
         tags: { type: Array, default: [] }
     },

@@ -864,13 +864,14 @@ class HolaDataObjectService:
     def build_native_query_expr(self, model_class, filter_expr, **kwargs):
         order_by = kwargs.get("order_by")
         limit = kwargs.get("limit")
-        ft = FilterExprTransformer(target="it", expr_cls = QueryExpression, **kwargs)
+        ft = FilterExprTransformer(target="it", rename="", expr_cls = QueryExpression, **kwargs)
         if filter_expr:
             qexpr = ft.transform(filter_expr)
             qexpr = operator.and_(QueryExpression(app_id=self.app_id), qexpr)
         else:
             qexpr = QueryExpression(app_id=self.app_id)
 
+        # print(expr_dump(qexpr))
         query_expr = model_class.filter(qexpr)
         if order_by:
             query_expr = query_expr.order_by(*ft.transform_order_by(order_by))
@@ -883,7 +884,7 @@ class HolaDataObjectService:
             m = await HolaPlayer.load(app_id = self.app_id, user_id=obj_id)
             if m:
                 obj = HolaDataObject(
-                    self.app_id, obj_name, obj_id, m.to_dict()
+                    self.app_id, obj_name, obj_id, m.to_jsondict()
                 )
                 return obj
         elif obj_name == 'thing':
@@ -910,7 +911,7 @@ class HolaDataObjectService:
             hobjects = list(await query_expr.all())
             objects = [
                 HolaDataObject(
-                    self.app_id, self.name, m.pk[1], m.to_dict()
+                    self.app_id, self.name, m.pk[1], m.to_jsondict()
                 )
                 for m in hobjects
             ]
@@ -930,7 +931,7 @@ class HolaDataObjectService:
                     obj.bind_to = bind_to_obj
             objects = [
                 HolaDataObject(
-                    self.app_id, self.name, m.pk[1], m.to_dict()
+                    self.app_id, self.name, m.pk[1], m.to_jsondict()
                 )
                 for m in hobjects
             ]
@@ -2018,20 +2019,23 @@ class HolaService:
 
     async def transform_dropdown(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
-        if name:
-            value = context.locals.deep_get(name, None)
+        value = None
 
-        if not value:
+        if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
+        elif name:
+            value = context.locals.deep_get(name, None)
 
         transformed = {
             "type": "dropdown",
             "name": name,
             "label": self.eval_value(element.get("label", ""), context),
             "validate": self.eval_object(element.get("validate", {}), context),
-            "value": value,
             "options": AutoList(),
         }
+
+        if value:
+            transformed['value'] = value
 
         transformed["options"].add(await self.transform_any(element.get("options", []), context))
 
@@ -2235,11 +2239,11 @@ class HolaService:
     async def transform_input(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         value = ""
-        if name:
-            value = context.locals.deep_get(name, None)
 
-        if not value:
+        if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
+        elif name:
+            value = context.locals.deep_get(name, None)
 
         transformed = {
             "type": "input",
@@ -2254,11 +2258,12 @@ class HolaService:
     async def transform_checkbox(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         value = False
-        if name:
+
+        if 'value' in element:
+            value = self.eval_value(element.get("value", ""), context)
+        elif name:
             value = context.locals.deep_get(name, None)
 
-        if not value:
-            value = self.eval_value(element.get("value", ""), context)
         value = True if value == True else False
 
         transformed = {
@@ -2273,11 +2278,12 @@ class HolaService:
 
     async def transform_textarea(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
-        if name:
-            value = context.locals.deep_get(name, None)
+        value = ""
 
-        if not value:
+        if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
+        elif name:
+            value = context.locals.deep_get(name, None)
 
         transformed = {
             "type": "textarea",
@@ -2298,21 +2304,24 @@ class HolaService:
 
     async def transform_calendar(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
-        if name:
-            value = context.locals.deep_get(name, None)
+        value = None
 
-        if not value:
+        if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
+        elif name:
+            value = context.locals.deep_get(name, None)
 
         transformed = {
             "type": "calendar",
             "label": self.eval_value(element.get("label", ""), context),
             "name": name,
-            "value": value,
             "value_format": self.eval_value(element.get("value_format", "yy-mm-dd"), context),
             "icon": True,
             "show_date": True
         }
+        if value:
+            transformed['value'] = value
+
         for k in ['min_value', 'max_value', 'range', 'locale', 'icon', 'show_date', 'show_time']:
             if k in element:
                 transformed[k] = self.eval_value(element[k], context)
@@ -2321,11 +2330,11 @@ class HolaService:
     async def transform_multi_select(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
         values = None
-        if name:
-            values = context.locals.deep_get(name, None)
 
-        if not values:
+        if 'values' in element:
             values = self.eval_value(element.get("values", ""), context)
+        elif name:
+            values = context.locals.deep_get(name, None)
 
         transformed = {
             "type": "multi-select",
@@ -2368,7 +2377,6 @@ class HolaService:
 
     async def transform_expr(self, element, context):
         return self.eval_value(element, context)
-
 
 
     async def transform_popup_menu(self, element, context):
@@ -2697,8 +2705,14 @@ class HolaService:
             if 'formula' in el and 'name' in el:
                 formula_fields[el['name']] = (el['formula'], DataTypeParser.parse(el.get('data_type', '')))
         for obj in objects:
+            related_context = with_context(context, meta=obj)
             for field, lookup in lookup_fields.items():
-                related_context = with_context(context, meta=obj)
+                if field in obj and obj.get(field, "") == None:
+                    if lookup[1] == 'list':
+                        obj[field] = []
+                    else:
+                        obj[field] = None
+                    continue
                 related_objects = await self.transform_lookup(lookup[0], related_context)
                 if lookup[1] == 'list':
                     obj[field] = related_objects
@@ -2724,13 +2738,22 @@ class HolaService:
 
         objects = await dataobj_svc.query(formated_filter, **kwargs)
         obj_meta = self.get_object_by_name(name)
+        if not obj_meta:
+            return objects
+
         lookup_fields = {}
         for el in obj_meta.get('elements', []):
             if 'lookup' in el and 'name' in el:
                 lookup_fields[el['name']] = (el['lookup'], DataTypeParser.parse(el.get('data_type')))
         for obj in objects:
+            related_context = with_context(context, meta=obj)
             for field, lookup in lookup_fields.items():
-                related_context = with_context(context, meta=obj)
+                if field in obj and obj.get(field, "") == None:
+                    if lookup[1] == 'list':
+                        obj[field] = []
+                    else:
+                        obj[field] = None
+                    continue
                 related_objects = await self.transform_lookup(lookup[0], related_context)
                 if lookup[1] == 'list':
                     obj[field] = related_objects
