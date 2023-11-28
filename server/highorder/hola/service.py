@@ -2244,7 +2244,7 @@ class HolaService:
         if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
         elif name:
-            value = context.locals.deep_get(name, None)
+            value = context.locals.deep_get(name, "")
 
         transformed = {
             "type": "input",
@@ -2284,7 +2284,7 @@ class HolaService:
         if 'value' in element:
             value = self.eval_value(element.get("value", ""), context)
         elif name:
-            value = context.locals.deep_get(name, None)
+            value = context.locals.deep_get(name, "")
 
         transformed = {
             "type": "textarea",
@@ -2330,21 +2330,22 @@ class HolaService:
 
     async def transform_multi_select(self, element, context):
         name = self.eval_value(element.get("name", ""), context)
-        values = None
+        values = []
 
         if 'values' in element:
             values = self.eval_value(element.get("values", ""), context)
         elif name:
-            values = context.locals.deep_get(name, None)
+            values = context.locals.deep_get(name, [])
 
         transformed = {
             "type": "multi-select",
             "label": self.eval_value(element.get("label", ""), context),
             "name": name,
-            "values": values,
             "options": [],
             "chips": True
         }
+        if values:
+            transformed['values'] = values
         for k in ['options', 'chips']:
             if k in element:
                 transformed[k] = await self.transform_any(element[k], context)
