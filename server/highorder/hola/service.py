@@ -787,7 +787,7 @@ class HolaDataObjectService:
         if self.name == 'thing':
             raise Exception(f'thing can not be created.')
         if self.name == "player":
-            return await self.create_player(**value)
+            return await self.create_player(**raw_value)
         else:
             _id = time_random_id(IDPrefix.OBJECT, 30)
             value = {}
