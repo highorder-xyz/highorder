@@ -1970,6 +1970,11 @@ export const Checkbox = defineComponent({
             "checkValue": this.$props.value
         }
     },
+    watch: {
+        value(newValue:boolean, oldValue:boolean) {
+            this.checkValue = newValue as boolean;
+        }
+    },
 
     beforeMount() {
         this.valueChanged(this.checkValue)
@@ -1978,7 +1983,7 @@ export const Checkbox = defineComponent({
     methods: {
         valueChanged(value: boolean) {
             const _check = value == true ? true : false
-            this.checkValue  = _check
+            // this.checkValue  = _check
             this.$emit("checkChanged", _check)
         }
     },
