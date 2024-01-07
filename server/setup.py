@@ -4,16 +4,17 @@ import re
 from setuptools import find_namespace_packages,  setup
 
 install_requires = [
-    'callpy>=0.4.0dev',
+    'callpy>=0.4.0',
     'aiobotocore',
     'asyncpg',
-    'basepy',
+    'basepy>=0.5',
     'httpx',
     'phonenumbers',
     'arrow',
     'dataclass_factory',
-    'likepy',
-    'postmodel',
+    'likepy>=0.3.0',
+    'postmodel>=0.3.0',
+    'wavegui>=1.0',
     'aiofiles',
     'redis',
     'rich'
