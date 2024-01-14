@@ -6,6 +6,17 @@ export default defineConfig({
     description: "HighOrder",
     base: '/docs/',
     head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+    locales: {
+        root: {
+            label: 'Chinese',
+            lang: 'ch'
+        },
+        fr: {
+            label: 'English',
+            lang: 'en', // optional, will be added  as `lang` attribute on `html` tag
+            link: '/en/' // default /fr/ -- shows on navbar translations menu, can be external
+        }
+    },
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
         nav: [
