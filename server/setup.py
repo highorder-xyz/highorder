@@ -15,6 +15,8 @@ install_requires = [
     'likepy>=0.3.0',
     'postmodel>=0.3.0',
     'wavegui>=1.0',
+    'dominate==2.9.1',
+    'html5lib==1.1',
     'aiofiles',
     'redis',
     'rich'
