@@ -1,0 +1,14 @@
+{
+    "app":{
+        "appId": "",
+        "baseUrl": "",
+        "privacyUrl": "",
+        "clientKey": "client_id",
+        "clientSecret": "client_secret"
+    },
+    "wechat": {
+        "appId": "",
+        "merchantId":  "",
+        "universalLink":""
+    }
+}
