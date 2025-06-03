@@ -1,0 +1,18 @@
+
+httptools
+uvloop>=0.14.0
+websockets>=9.0
+basepy>=0.3.1
+setproctitle
+
+
+# Testing
+codecov
+isort
+pytest
+pytest-cov
+requests
+
+# Documentation
+mkdocs
+mkdocs-material

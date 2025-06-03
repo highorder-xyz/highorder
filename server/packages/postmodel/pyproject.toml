@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "postmodel"
+dynamic = ["version"]
+description = "Async ORM for Python"
+readme = "README.md"
+requires-python = ">=3.6"
+license = {text = "MIT"}
+dependencies = [
+    "pypika>=0.35.21",
+    "ciso8601>=2.1.2",
+    "basepy>=0.3.1",
+    "asyncpg>=0.20.1",
+    "contextvars>=2.4;python_version<'3.7'"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["postmodel"]
+
+[tool.hatch.version]
+path = "postmodel/__init__.py"
+
+

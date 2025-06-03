@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "likepy"
+dynamic = ["version"]
+description = "Provide a trust environment for python like programming language, like RestrictedPython."
+readme = "README.md"
+requires-python = ">=3.6, <3.12"
+license = {text = "MIT License"}
+authors = [
+    {name = "Zhuo Wei", email = "zeaphoo@qq.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython"
+]
+keywords = ["restricted"]
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-mock",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["likepy"]
+
+[tool.hatch.version]
+path = "likepy/__init__.py"
+
+
