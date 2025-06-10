@@ -2,8 +2,6 @@
 // need dioxus
 use dioxus::prelude::*;
 
-use components::Hero;
-
 /// Define a components module that contains all shared components for our app.
 mod components;
 
@@ -12,6 +10,7 @@ mod components;
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 // The asset macro also minifies some assets like CSS and JS to make bundled smaller
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
+const DAISYUI_CSS: Asset = asset!("/assets/styling/daisyui.min.css");
 
 fn main() {
     // The `launch` function is the main entry point for a dioxus app. It takes a component and renders it with the platform feature
@@ -30,10 +29,8 @@ fn App() -> Element {
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,
         // we are using the `document::Link` component to add a link to our favicon and main CSS file into the head of our app.
         document::Link { rel: "icon", href: FAVICON }
+        
+        document::Link { rel: "stylesheet", href: DAISYUI_CSS }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
-
-
-        Hero {}
-
     }
 }

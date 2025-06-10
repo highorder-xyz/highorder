@@ -8,8 +8,6 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.6.0", features = [] }
-dioxus-daisyui = "0.8.0"
-dioxus-tailwindcss = "0.8.0"
 
 [features]
 default = ["web"]
