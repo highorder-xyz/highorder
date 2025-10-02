@@ -1,0 +1,2 @@
+
+目前支持的移远物联网4G全网通CAT1模块Python编程QuecPython学习开发板
