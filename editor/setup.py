@@ -4,8 +4,10 @@ import os, re
 
 install_requires = [
     'basepy',
+    'peewee',
     'httpx',
     'wavegui',
+    'typer',
     'rich'
 ]
 here = os.path.dirname(os.path.abspath(__file__))
@@ -23,5 +25,8 @@ setup(
     zip_safe=False,
     license='AGPL',
     entry_points={
+        'console_scripts': [
+            'highorder-editor-cli=highorder_editor.cli:main',
+        ],
     },
 )

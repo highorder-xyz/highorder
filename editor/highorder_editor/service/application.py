@@ -215,7 +215,61 @@ class ApplicationDataFileService:
         await ApplicationStorage.write_app_configs('datafile', self._datafile)
 
 
-class Application():
+class ApplicationDB():
+    """Database-backed Application class for console mode"""
+    def __init__(self, model, **kwargs):
+        assert model != None
+        self.model = model
+        self.members = []
+        self.workspace_name = None
+
+    @property
+    def app_id(self):
+        return self.model.app_id
+
+    @property
+    def workspace_id(self):
+        return self.model.workspace_id
+
+    @property
+    def name(self):
+        return self.model.name
+
+    @property
+    def description(self):
+        return self.model.description
+
+    @classmethod
+    async def load(cls, app_id):
+        from highorder_editor.model import ApplicationModel
+        m = await ApplicationModel.get_or_none(app_id=app_id)
+        if not m:
+            return None
+        inst = cls(m)
+        return inst
+
+    async def save_profile(self, name, description):
+        if name:
+            self.model.name = name
+        if description:
+            self.model.description = description
+        await self.model.save()
+
+    async def create_client_key(self):
+        from highorder_editor.model import ApplicationClientKeyModel
+        key_id = random_string(8)
+        key_secret = random_string(32)
+        clientkey = await ApplicationClientKeyModel.create(app_id = self.app_id,
+                clientkey_id = key_id, clientkey_secret = key_secret, valid=True
+            )
+        return clientkey
+
+# Alias for backward compatibility
+Application = ApplicationDB
+
+
+class ApplicationFile():
+    """File-based Application class for single app mode"""
     def __init__(self, app_id, **kwargs):
         self.app_id = app_id
         self.name = kwargs.get('name', '')

@@ -3,13 +3,39 @@ import traceback
 from highorder_editor.base.helpers import ApplicationFolder
 from wavegui import app, Q, ui, on, handle_on, WaveServer
 from basepy.asynclog import logger
+from basepy.config import settings
 import os
 import importlib
 import importlib.resources
 from highorder_editor.service import Auth, Session
+from highorder_editor.service.user import User
 from .common import popup_exception, render_header, goto_page, render_layout_simple, popup_wrong_page_error
-from . import application
+from . import application, auth
 from starlette.responses import FileResponse
+from highorder_editor.model import db
+
+def boot_components():
+    """Initialize database connection"""
+    # SQLite database is already configured in model.py
+    from highorder_editor.model import init_db
+    init_db()
+
+def load_user(session_id, q):
+    """Load user from database session"""
+    session = Session.load(session_id)
+    if session:
+        user = User.load(session.user_id)
+        q.user = {
+            'user_id': user.user_id,
+            'instance': user
+        }
+        return True
+    else:
+        q.user = {
+            'user_id': None,
+            'instance': None
+        }
+        return False
 
 def render_login_form(email=None, password=None, email_error=None, password_error=None):
     return ui.form_card(box='simple_content', items=[
@@ -31,12 +57,10 @@ async def editor_home(q: Q):
             popup_exception(q, ex)
             await logger.error(traceback.format_exc())
 
-    session = await Session.load(q.session.session_id)
-
-    if session:
-        user = session['user_name']
-    else:
-        user = None
+    # Use database authentication (SQLite)
+    load_user(q.session.session_id, q)
+    user = q.user['instance']
+    
     if not q.args['#']:
         goto_page(q, '#application')
         await q.page.save()
@@ -57,10 +81,10 @@ async def editor_home(q: Q):
 async def login_submit(q:Q):
     session_id = q.session.session_id
     if q.args.email and q.args.password:
-        success, user = await Auth.check_pass(q.args.email, q.args.password)
+        success, user = Auth.check_pass(q.args.email, q.args.password)
 
         if success:
-            await Session.save(session_id, user['name'])
+            Session.create(session_id=session_id, user_id=user.user_id)
 
         if success:
             q.page.drop()
@@ -85,7 +109,7 @@ async def login(q:Q):
 @on('#logout')
 async def logout(q:Q):
     session_id = q.session.session_id
-    await Session.delete(session_id)
+    Session.delete(session_id)
     goto_page(q, '#')
     q.page['meta'] = ui.meta_card(box='', script=ui.inline_script(content="location.reload(true);"))
     await q.page.save()
@@ -114,6 +138,10 @@ def setup_editor(appfolder, www_dir=None):
     simulator_dir = None
     with importlib.resources.path('highorder_editor', '__init__.py') as f:
         simulator_dir = os.path.join(os.path.dirname(f), 'simulator')
+    
+    # Initialize database on startup
+    boot_components()
+    
     server = WaveServer.setup(init_options=dict(upload_dir=upload_dir), on_startup = [], static_dirs ={
         'simulator': simulator_dir
     })
