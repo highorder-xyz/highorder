@@ -1,0 +1,1777 @@
+
+ObjectMeta {
+    name: "tag"
+    unique_keys: ["name"]
+    Property {
+        name: "name"
+        data_type: "string"
+        max_length: 20
+    }
+    Property {
+        name: "description"
+        data_type: "string"
+        max_length: 512
+    }
+    
+    Property {
+        name: "color"
+        default: {
+            "expr": "fn.random_color()"
+        }
+        data_type: "color"
+    }
+    
+    Property {
+        name: "active"
+        data_type: "bool"
+        default: true
+    }
+}
+
+
+ObjectMeta {
+    name: "todo"
+
+    Property {
+        name: "content"
+        data_type: "string"
+        required: true
+    }
+
+    Property {
+        name: "owner"
+        data_type: "user_id"
+        lookup: {
+            "from": "player"
+            "filter": "it.user_id == meta.owner"
+        }
+    }
+    
+    Property {
+        name: "done"
+        data_type: "bool"
+        default: false
+    }
+    
+    Property {
+        name: "start_time"
+        required: false
+        data_type: "datetime"
+    }
+    Property {
+        name: "deadline"
+        required: false
+        data_type: "datetime"
+    }
+    Property {
+        name: "notifier"
+        data_type: "list[user_id]"
+    }
+    Property {
+        name: "priority"
+        data_type: Enum {
+            enum: ["low", "normal", "high"]
+            default: "normal"
+        }
+    }
+    Property {
+        name: "todo_list_id"
+        data_type: "string"
+    }
+}
+
+ObjectMeta {
+    name: "todo_list"
+    Property {
+        name: "title"
+        data_type: "string"
+        required: true
+    }
+    Property {
+        name: "detail"
+        data_type: "text"
+    }
+    Property {
+        name: "watcher"
+        data_type: "list[user_id]"
+    }
+    
+    Property {
+        name: "deadline"
+        data_type: "datetime"
+    }
+    
+    Property {
+        name: "done"
+        data_type: "bool"
+        formula: "every(meta.todos).done == true"
+    }
+
+    Property {
+        name: "progress"
+        data_type: "number"
+        formula: "len(filter(meta.todos).done == true)*100/len(meta.todos) if meta.todos else 0"
+    }
+    
+    Property {
+        name: "todos"
+        lookup: {
+            "from": "object.todo"
+            "filter": "it.todo_list_id == meta._id"
+            order_by: "created"
+        }
+        data_type: "list[ojects.todo]"
+    }
+    Property {
+        name: "tags"
+        lookup: {
+            "from": "object.tag"
+            "filter": "it.name in meta.tags"
+        }
+        data_type: "list[string]"
+    }
+}
+
+ObjectMeta {
+    name: "meeting_room"
+    Property {
+        name: "name"
+        data_type: "string"
+    }
+    Property {
+        name: "description"
+        data_type: "string"
+    }
+    Property {
+        name: "available"
+        data_type: "bool"
+    }
+}
+
+Resource {
+    name: "room_reservation"
+    res_key: "room_id"
+    mutex: {
+        start: "start"
+        reserve: "duration"
+    }
+    Property {
+        name: "staff"
+        data_type: "user_id"
+    }
+    Property {
+        name: "room_id"
+        data_type: "string"
+    }
+    Property {
+        name: "start"
+        data_type: "number"
+    }
+    Property {
+        name: "duration"
+        data_type: "number"
+    } 
+}
+
+Attribute {
+    name: "display_name"
+    default: {
+        "expr": "user.name"
+    }
+    data_type: "string"
+}
+
+Attribute {
+    name: "avatar"
+    data_type: Avatar {
+        default: ""
+    }
+}
+
+Attribute {
+    name: "role"
+    data_type: Enum {
+        values: ["guest", "member", "admin", "owner", "primary_owner"]
+        default: "member"
+    }
+}
+
+Config {
+    ThingRouteConfig {
+        device_type: "meetingroom"
+        home_url : "/meetingroom"
+    }
+    ThingRouteConfig {
+        device_type: "dashboard"
+        home_url : "/dashboard"
+    }
+}
+
+Action {
+    name: "make-todo-done"
+    locals: {
+        "todo_id": ""
+        "check": false
+    }
+    DataProcess {
+        UpdateObject {
+            name: "object.todo"
+            object_id: Expr{ expr: "locals.todo_id" }
+            value: {
+                "done": Expr{ expr: "locals.check" }
+            }
+        }
+    }
+}
+
+Modal {
+    name: "admin-edit-user"
+    title: "Update User"
+    style: {
+        
+    }
+    locals: {
+    }
+    confirm: {
+        text: "Update User"
+        click: [
+            UpdateObject{
+                name: "player"
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "name"
+        label: "User name:"
+        validate: {
+            required: true
+        }
+        
+    }
+    Input {
+        name: "password"
+        label: "Set the password:"
+        password: true
+        validate: {
+            required: true
+        }
+    }
+    Dropdown {
+        name: "attribute.role"
+        label: "Select the role:"
+        value: "member"
+        validate: {
+            required: true
+        }
+        options: [
+            TextOption { label: "Guest", name: "guest" }
+            TextOption { label: "Member", name: "member" }
+            TextOption { label: "Administrator", name: "admin" }
+            TextOption { label: "Owner", name: "owner" }
+        ]
+    }
+}
+
+
+Modal {
+    name: "admin-create-user"
+    title: "Create New User"
+    style: {
+        
+    }
+    confirm: {
+        text: "Create User"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5}
+                password: { required: true, min_length: 6}
+                role: { required: true}
+            }
+            CreateObject{
+                name: "player"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "name"
+        label: "User name:"
+        validate: {
+            required: true
+        }
+        
+    }
+    Input {
+        name: "password"
+        label: "Set the password:"
+        password: true
+        validate: {
+            required: true
+        }
+    }
+    Dropdown {
+        name: "attribute.role"
+        label: "Select the role:"
+        value: "member"
+        validate: {
+            required: true
+        }
+        options: [
+            TextOption { label: "Guest", name: "guest" }
+            TextOption { label: "Member", name: "member" }
+            TextOption { label: "Administrator", name: "admin" }
+            TextOption { label: "Owner", name: "owner" }
+        ]
+    }
+}
+
+Modal {
+    name: "admin-edit-meetingroom"
+    title: "Update Meeting Room"
+    style: {
+        
+    }
+    locals: {
+    }
+    confirm: {
+        text: "Update Meeting Room"
+        click: [
+            UpdateObject{
+                name: "meeting_room"
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "name"
+        label: "Name of meeting room:"
+        validate: {
+            required: true
+        }
+        
+    }
+    Textarea {
+        name: "description"
+        label: "Describe the meeting room:"
+    }
+}
+
+
+Modal {
+    name: "admin-create-meetingroom"
+    title: "Create New Meeting Room"
+    style: {
+        
+    }
+    confirm: {
+        text: "Create MeetingRoom"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5}
+            }
+            CreateObject{
+                name: "meeting_room"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "name"
+        label: "Name of meeting room:"
+        validate: {
+            required: true
+        }
+        
+    }
+    Textarea {
+        name: "description"
+        label: "Describe the meeting room:"
+    }
+}
+
+Modal {
+    name: "admin-create-tag"
+    title: "Create New Tag"
+    style: {
+        
+    }
+    confirm: {
+        text: "Create Tag"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5 }
+            }
+            CreateObject{
+                name: "object.tag"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "name"
+        label: "Tag Name:"
+        validate: {
+            required: true
+        }
+        
+    }
+}
+
+Modal {
+    name: "admin-thing-bind"
+    title: "Bind To Object"
+    style: {
+        
+    }
+    confirm: {
+        text: "Bind Object"
+        click: [
+            ValidateLocals{ 
+                name: { required: true, min_length: 5 }
+            }
+            UpdateObject{
+                name: "thing"
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Dropdown {
+        name: "bind_to"
+        label: "Select Object:"
+        validate: {
+            required: true
+        }
+        value: {
+            object_name: "meeting_room"
+            object_id: Expr { expr: "locals.bind_to._id"}
+        }
+        options: Foreach {
+            model: Query{
+                from: "object.meeting_room"
+                order_by: "-created"
+                limit: 30
+            }
+            ElementOption {
+                name: {
+                    object_name: "meeting_room"
+                    object_id: Expr { expr: "it._id"}
+                }
+                element: PlainText {
+                    text: Format{ format: "{it.name}" }
+                }
+            }
+        }
+    }
+}
+
+Modal {
+    name: "home-create-todolist"
+    title: "Create New TodoList"
+    style: {
+        
+    }
+    confirm: {
+        text: "Create TodoList"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5 }
+            }
+            CreateObject{
+                name: "object.todo_list"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "title"
+        label: "TodoList Title:"
+        validate: {
+            required: true
+        }
+        
+    }
+
+    Textarea {
+        name: "detail"
+        label: "Decribe This TodoList:"        
+    }
+
+    Calendar {
+        name: "deadline"
+        label: "Deadline:"
+    }
+
+    MultiSelect {
+        name: "tags",
+        label: "Specifiy Tags:"
+        options: Foreach {
+            
+            model: Query{
+                from: "object.tag"
+                fiter: "it.active == true"
+                order_by: "-created"
+                limit: 30
+            }
+            ElementOption {
+                name: Format{ format: "{it.name}" }
+                element: Tag {
+                    text: Format{ format: "{it.name}" }
+                    color: Format{ format: "{it.color}" }
+                }
+            }
+        }
+    }
+}
+
+Modal {
+    name: "home-edit-todolist"
+    title: "Edit TodoList"
+    style: {
+        
+    }
+    locals_format: DataFormat {
+        DataFilter {
+            keys: ['title', '_id', '_name', 'detail', 'deadline', 'tags']
+        }
+        DataExtract {
+            key: "tags"
+            expr: "it.name"
+        }
+    }
+    confirm: {
+        text: "Update TodoList"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5 }
+            }
+            UpdateObject{
+                name: "object.todo_list"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "title"
+        label: "TodoList Title:"
+        validate: {
+            required: true
+        }
+        
+    }
+
+    Textarea {
+        name: "detail"
+        label: "Decribe This TodoList:"        
+    }
+
+    Calendar {
+        name: "deadline"
+        label: "Deadline:"
+    }
+
+    MultiSelect {
+        name: "tags",
+        label: "Specifiy Tags:"
+        options: Foreach {
+            
+            model: Query{
+                from: "object.tag"
+                fiter: "it.active == true"
+                order_by: "-created"
+                limit: 30
+            }
+            ElementOption {
+                name: Format{ format: "{it.name}" }
+                element: Tag {
+                    text: Format{ format: "{it.name}" }
+                    color: Format{ format: "{it.color}" }
+                }
+            }
+        }
+    }
+}
+
+Modal {
+    name: "home-create-todo"
+    title: "Create Todo"
+    style: {
+        
+    }
+    confirm: {
+        text: "Create Todo"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5 }
+            }
+            CreateObject{
+                name: "object.todo"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "content"
+        label: "Todo content:"
+        validate: {
+            required: true
+        }
+        
+    }
+
+    Dropdown {
+        name: "owner"
+        label: "Owner:"
+        validate: {
+            required: true
+        }
+        options: Foreach {
+            model: Query {
+                from: "player"
+                order_by: "created"
+            }
+            TextOption { 
+                label: Format { format: "{it.name}"}
+                name: Format { format: "{it.user_id}"}
+            }
+        }
+    }
+
+    Calendar {
+        name: "start_time"
+        label: "Started from:"
+        default: Expr{ expr: "fn.today()"}
+    }
+
+    Calendar {
+        name: "deadline"
+        label: "Deadline:"
+    }
+
+    Dropdown{
+        name: "priority"
+        label: "Priority:"
+        default: "medium"
+        options: [
+            TextOption { label: "🔥High", name: "high" }
+            TextOption { label: "Medium", name: "medium" }
+            TextOption { label: "Low", name: "low" }
+        ]
+    }
+}
+
+Modal {
+    name: "home-edit-todo"
+    title: "Edit Todo"
+    style: {
+        
+    }
+    confirm: {
+        text: "Edit Todo"
+        click: [
+            ValidateLocals{
+                name: { required: true, min_length: 5 }
+            }
+            UpdateObject{
+                name: "object.todo"
+                value: Locals{}
+            }
+        ]
+    }
+    cancel: {
+        text: "Cancel"
+        trigger: false
+    }
+    
+    Input {
+        name: "content"
+        label: "Todo content:"
+        validate: {
+            required: true
+        }
+        
+    }
+
+    Dropdown {
+        name: "owner"
+        label: "Owner:"
+        value: Format { format: "{locals.owner.user_id}"}
+        validate: {
+            required: true
+        }
+        options: Foreach {
+            model: Query {
+                from: "player"
+                order_by: "created"
+            }
+            TextOption { 
+                label: Format { format: "{it.name}"}
+                name: Format { format: "{it.user_id}"}
+            }
+        }
+    }
+
+    Calendar {
+        name: "start_time"
+        label: "Started from:"
+        default: Expr{ expr: "fn.today()"}
+    }
+
+    Calendar {
+        name: "deadline"
+        label: "Deadline:"
+    }
+
+    Dropdown{
+        name: "priority"
+        label: "Priority:"
+        default: "medium"
+        options: [
+            TextOption { label: "🔥High", name: "high" }
+            TextOption { label: "Medium", name: "medium" }
+            TextOption { label: "Low", name: "low" }
+        ]
+    }
+}
+
+Modal {
+    name: "home-todo-detail"
+    title: "Detail of Todo"
+    style: {
+        
+    }
+    confirm: {
+        text: "Close"
+        trigger: false
+    }
+
+    Column {
+        style: {
+            align: "start"
+        }
+        StatusText {
+            label: "Content"
+            text: Format{ format: "{locals.content}"}
+        }
+        
+        StatusText {
+            label: "Owner"
+            text: Format{ format: "{locals.owner.name}"}
+        }
+    
+        StatusText {
+            label: "Start"
+            text: Format{ format: "{locals.start_time}"}
+        }
+    
+        StatusText {
+            label: "Deadline"
+            text: Format{ format: "{locals.deadline}"}
+        }
+    
+        StatusText {
+            label: "Priority"
+            text: Format{ format: "{locals.priority}"}
+        }
+    }
+
+}
+
+
+Component {
+    name: "admin-page-user"
+    Column {
+        Toolbar {
+            start_elements: [
+                Button {
+                    text: "Create User"
+                    events: {
+                        click: ShowModal{
+                            name: "admin-create-user"
+                        }
+                    }
+                }
+            ]
+        }
+        DataTable {
+            data: Query{
+                "from": "player",
+                order_by: "-created"
+            }
+            
+            TableColumn {
+                field: "_id"
+                label: "User ID"
+            }
+
+            TableColumn {
+                field: "name"
+                label: "User Name"
+            }
+
+            TableColumn {
+                field: "attribute.role"
+                label: "Role"
+            }
+
+            TableColumn {
+                field: "created"
+                label: "Created Time"
+            }
+
+            TableColumn {
+                label: "Actions"
+                Button {
+                    icon: "pencil",
+                    style: {
+                        tags: ["outlined", "rounded", "success"]
+                    }
+                    events: {
+                        click: [
+                            ShowModal{
+                                name: "admin-edit-user"
+                                args: Locals{}
+                            }
+                        ]
+                    }
+                }
+                Button {
+                    icon: "trash",
+                    style: {
+                        tags: ["outlined", "rounded", "danger"]
+                    }
+                    events: {
+                        click: [
+                            DeleteObject {
+                                name: "player",
+                                confirm: "The user will no longer available, CONFIRM TO DELETE?"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
+
+Component {
+    name: "admin-page-meetingroom"
+    Column {
+        Toolbar {
+            start_elements: [
+                Button {
+                    text: "Create Meeting Room"
+                    events: {
+                        click: ShowModal{
+                            name: "admin-create-meetingroom"
+                        }
+                    }
+                }
+            ]
+        }
+        DataTable {
+            data: Query{
+                "from": "meeting_room",
+                order_by: "-created"
+            }
+            
+            TableColumn {
+                field: "name"
+                label: "Name"
+            }
+
+            TableColumn {
+                field: "description"
+                label: "Description"
+            }
+
+            TableColumn {
+                field: "created"
+                label: "Created Time"
+            }
+
+            TableColumn {
+                label: "Actions"
+                Button {
+                    icon: "pencil",
+                    style: {
+                        tags: ["outlined", "rounded", "success"]
+                    }
+                    events: {
+                        click: [
+                            ShowModal{
+                                name: "admin-edit-meetingroom"
+                                args: Locals{}
+                            }
+                        ]
+                    }
+                }
+                Button {
+                    icon: "trash",
+                    style: {
+                        tags: ["outlined", "rounded", "danger"]
+                    }
+                    events: {
+                        click: [
+                            DeleteObject {
+                                name: "meeting_room",
+                                confirm: "The meeting_room will no longer available, CONFIRM TO DELETE?"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
+
+Component {
+    name: "admin-page-tag"
+    Column {
+        Toolbar {
+            start_elements: [
+                Button {
+                    text: "Create Tag"
+                    events: {
+                        click: ShowModal{
+                            name: "admin-create-tag"
+                        }
+                    }
+                }
+            ]
+        }
+        DataTable {
+            data: Query{
+                "from": "object.tag",
+                order_by: "-created"
+            }
+
+            TableColumn {
+                field: "name"
+                label: "Tag Name"
+            }
+
+            TableColumn {
+                label: "Color"
+                Tag {
+                    text: Format{
+                        format: "{field.color}"
+                    }
+                    color: Format{
+                        format: "{field.color}"
+                    }
+                }
+            }
+
+            TableColumn {
+                label: "Actions"
+                Button {
+                    icon: "trash",
+                    style: {
+                        tags: ["outlined", "rounded", "danger"]
+                    }
+                    events: {
+                        click: [
+                            DeleteObject {
+                                name: "object.tag",
+                                confirm: "The tag will no longer available, CONFIRM TO DELETE?"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
+
+Component {
+    name: "admin-page-thing"
+    Column {
+        DataTable {
+            data: Query{
+                "from": "thing",
+                order_by: "-created"
+            }
+            
+            TableColumn {
+                field: "device_id"
+                label: "Device ID"
+            }
+
+            TableColumn {
+                field: "device_type"
+                label: "Device Type"
+            }
+
+            TableColumn {
+                field: "device_info"
+                label: "Device Info"
+            }
+
+            TableColumn {
+                field: "bind_to.name"
+                label: "Bind To Object"
+            }
+            
+            TableColumn {
+                field: "created"
+                label: "Created Time"
+            }
+
+            TableColumn {
+                label: "Actions"
+                Button {
+                    icon: "paperclip",
+                    style: {
+                        tags: ["outlined", "rounded", "success"]
+                    }
+                    events: {
+                        click: [
+                            ShowModal{
+                                name: "admin-thing-bind"
+                                args: Locals{}
+                            }
+                        ]
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+Component {
+    name: "home-page-my"
+    Column {
+        style: {
+            size_hint: 3
+        }
+        Card {
+            style: {
+                size_hint: 2
+            }
+            title: "🔥Very Important Todos"
+            Foreach {
+                model: Query {
+                    from: "object.todo",
+                    filter: "(it.owner == user.user_id or it.owner == user.user_name) and it.priority == 'high'"
+                    order_by: "-created"
+                    group_by: "priority"
+                    limit: 30
+                }
+                Row {
+                    style:{
+                        tags: ['full']
+                        justify: 'space-between'
+                    }
+                    locals: {
+                        todo_id: Format{ format: "{it._id}"}
+                        check: Expr{ expr: "it.done"}
+                    }
+                    Checkbox {
+                        name: "check"
+                        value: Expr{ expr: "it.done"}
+                        text: Format{ format: "{it.content}🔥"}
+                        check_strike: true
+                        events: {
+                            'check': InvokeAction {
+                                name: "make-todo-done"
+                                args: Locals{}
+                            }
+                        }
+                    }
+                    PlainText {
+                        style: {
+                            tags: ['status']
+                        }
+                        text: DatetimeFormat { value: "it.deadline", "format": "YYYY-MM-DD"}
+                    }
+                }
+            }
+        }
+        Card {
+            style: {
+                size_hint: 2
+            }
+            title: "Todos"
+            Foreach {
+                model: Query {
+                    from: "object.todo",
+                    filter: "(it.owner == user.user_id or it.owner == user.user_name) and it.priority != 'high'"
+                    order_by: "-updated"
+                    group_by: "priority"
+                    limit: 30
+                }
+                alt: PlainText {
+                    text: "no working todo."
+                }
+                Row {
+                    style:{
+                        tags: ['full']
+                        justify: "space-between"
+                    }
+                    locals: {
+                        todo_id: Format{ format: "{it._id}"}
+                        check: Expr{ expr: "it.done"}
+                    }
+                    Checkbox {
+                        name: "check"
+                        value: Expr{ expr: "it.done"}
+                        text: Format{ format: "{it.content}"}
+                        check_strike: true
+                        events: {
+                            'check': InvokeAction {
+                                name: "make-todo-done"
+                                args: Locals{}
+                            }
+                        }
+                    }
+                    PlainText {
+                        style: {
+                            tags: ['status']
+                        }
+                        text: DatetimeFormat { value: "it.deadline", "format": "YYYY-MM-DD"}
+                    }
+                }
+            }
+        }
+        
+    }
+}
+
+Component {
+    name: "home-page-todo"
+    Column {
+        style: {
+            justify: "start"
+        }
+        Toolbar {
+            start_elements: [
+                Button {
+                    text: "Create TodoList"
+                    events: {
+                        click: ShowModal{
+                            name: "home-create-todolist"
+                        }
+                    }
+                }
+            ]
+        }
+        Foreach {
+            model: Query {
+                from: "object.todo_list",
+                filter: Match{
+                    default: ""
+                    CaseValue {
+                        case: Expr{expr: "locals.tag"}
+                        value: Format{ format: "it.tags__contains('{locals.tag}')" }
+                    }
+                }
+                order_by: "-created",
+                limit: 30
+            }
+            Card {
+                title: Format{ format: "{it.title}"}
+                text: Format{ format: "{it.detail}"}
+                style: {
+                    size_hint: 2
+                }
+                Row {
+                    style:{
+                        tags: ['full']
+                        justify: "space-between"
+                    }
+                    Row {
+                        Foreach {
+                            model: LocalValue{field: "it.tags"}
+                            Tag {
+                                text: Format{ format: "{it.name}"}
+                                color: Format{ format: "{it.color}"}
+                            }
+                        }
+                        
+                        PlainText {
+                            style: {
+                                tags: ['status', 'bold', 'underline']
+                            }
+                            text: DatetimeFormat{
+                                value: "it.deadline",
+                                format: "YYYY-MM-DD"
+                            }
+                        }
+                        Progressbar {
+                            style: {
+                                tags: ["thin", "margin-x6"]
+                                size_hint: 5
+                            }
+                            percent: Expr{ expr: "it.progress" }
+                        }
+                        PlainText {
+                            visible: Expr{ expr: "it.done == true" }
+                            text: "✅"
+                        }
+                        
+                    }
+                    PopupMenu {
+                        icon: "ellipsis-v"
+                        MenuItem {
+                            label: "Change List"
+                            icon: "pencil"
+                            events: {
+                                "click": ShowModal{
+                                    name: "home-edit-todolist"
+                                    args: Expr{ expr: "it"}
+                                }
+                            }
+                        }
+                        
+                        MenuItem {
+                            label: "Add Todo"
+                            icon: "plus"
+                            events: {
+                                "click": ShowModal{
+                                    name: "home-create-todo"
+                                    args: {
+                                        "todo_list_id": Expr{ expr: "it._id"}
+                                    }
+                                }
+                            }
+                        }
+                        
+                        MenuItem {
+                            label: "Delete All"
+                            icon: "trash"
+                            events: {
+                                "click": DeleteObject {
+                                    name: "object.todo_list"
+                                    object_id: Format{ format: "{it._id}"}
+                                    confirm: "Will delete the TodoList and related Todos, CONFIRM TO DELETE?"
+                                }
+                            }
+                        }
+                    }
+                }
+                Divider {
+                    visible: Expr{ expr: "len(it.todos) > 0"}
+                }
+                Foreach {
+                    model: LocalValue{field: "it.todos"}
+                    Row {
+                        style: {
+                            "tags": ["full"]
+                            "justify": "space-between"
+                        }
+                        Row {
+                            locals: {
+                                "todo_id": Expr{ expr: "it._id"}
+                            }
+                            Checkbox {
+                                name: "check"
+                                value: Expr{ expr: "it.done"}
+                                text: Format{ format: "{it.content}"}
+                                check_strike: true
+                                events: {
+                                    'check': InvokeAction {
+                                        name: "make-todo-done"
+                                        args: Locals {}
+                                    }
+                                }
+                            }
+                            PlainText {
+                                visible: Expr{ expr: "it.priority == 'high'"}
+                                text: "🔥"
+                            }
+                            PlainText {
+                                style: {
+                                    tags: ['status']
+                                }
+                                text: DatetimeFormat { value: "it.deadline", "format": "YYYY-MM-DD"}
+                            }
+                            PlainText {
+                                style: {
+                                    tags: ['status']
+                                }
+                                text: Format { format: "@{it.owner.name}"}
+                            }
+                        }
+                        
+                        PopupMenu {
+                            icon: "ellipsis-v"
+                            MenuItem {
+                                label: "Edit Todo"
+                                visible: Expr{ expr: "not it.done"}
+                                icon: "pencil"
+                                events: {
+                                    "click": ShowModal{
+                                        name: "home-edit-todo"
+                                        args: Expr{ expr: "it"}
+                                    }
+                                }
+                            }
+
+                            MenuItem {
+                                label: "Todo Detail"
+                                visible: Expr{ expr: "it.done"}
+                                icon: "pencil"
+                                events: {
+                                    "click": ShowModal{
+                                        name: "home-todo-detail"
+                                        args: Expr{ expr: "it"}
+                                    }
+                                }
+                            }
+                            
+                            MenuItem {
+                                label: "Delete Todo"
+                                visible: Expr{ expr: "not it.done"}
+                                icon: "trash"
+                                events: {
+                                    "click": DeleteObject {
+                                        name: "object.todo"
+                                        object_id: Format{ format: "{it._id}"}
+                                        confirm: "Will delete the Todo, CONFIRM TO DELETE?"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                Divider {}
+            }
+        }
+    }
+}
+
+
+Page {
+    route: "/login"
+    Card {
+        title: "Login With Name/Password"
+        style: {
+            content_tags: ["align-center"]
+        }
+        Column {
+            style: {
+                align: "start"
+            }
+            
+            Input{
+                label: "Name or Email"
+                name: "name"
+            }
+            Input{
+                label: "Password"
+                name: "password"
+                password: true
+            }
+        }
+        Button{
+            text: "Login"
+            events: {
+                "click": [
+                    InvokeService{
+                        "name": "account.login_name_password"
+                        args: Locals{}
+                    }
+                    RouteTo {
+                        route: "/"
+                    }
+                ]
+            }
+        }
+    }
+}
+
+Page {
+    route: "/admin"
+    locals: {
+        "selected": "user"
+    }
+    Header {
+        end_elements: [
+            Menu {
+                label: Format {
+                    "format": "{user.name}"
+                }
+                icon: "user"
+                MenuItem {
+                    label: "Home"
+                    icon: "home"
+                    events: {
+                        "click": RouteTo {
+                            route: "/"
+                        }
+                    }
+                }
+                MenuItem {
+                    label: "Logout"
+                    icon: "sign-out"
+                    events: {
+                        "click": InvokeService {
+                            name: "account.logout"
+                        }
+                    }
+                }
+            }
+        ]
+        PlainText {
+            text: "TeamFlow Admin Settings"
+        }
+    }
+
+    Row {
+        style:{
+            tags: ["full"]
+            align: "start"
+        }
+        SideBar {
+            Menu {
+                label: "Admin Settings"
+                icon: "lock"
+                MenuItem {
+                    label: "User"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args: {
+                                    "selected": "user"
+                                }
+                            }
+                        ]
+                    }
+                }
+                MenuItem {
+                    label: "Meeting Room"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args:{
+                                    "selected": "meetingroom"
+                                }
+                            }
+                        ]
+                    }
+                }
+                MenuItem {
+                    label: "Tag"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args: {
+                                    "selected": "tag"
+                                }
+                            }
+                        ]
+                    }
+                }
+
+                MenuItem {
+                    label: "Thing"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args: {
+                                    "selected": "thing"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+            
+        }
+        ComponentUse {
+            "name": Format {
+                "format": "admin-page-{locals.selected}"
+            }
+        }
+    }
+}
+
+Page {
+    route: "/"
+    valid: {
+        "page_size": ["large", "xlarge"]
+    }
+    locals: {
+        "content": "todo"
+    }
+    permissions: [
+        ConditionCheck {
+            "condition": "user.authed"
+            "on_false": RouteTo {
+                route: "/login"
+            }
+        }
+    ]
+    Header {
+        end_elements: [
+            Menu {
+                label: Format {
+                    "format": "{user.name}"
+                }
+                icon: "user"
+                MenuItem {
+                    label: "Admin"
+                    icon: "lock"
+                    events: {
+                        "click": RouteTo {
+                            route: '/admin'
+                        }
+                    }
+                    visible: Expr{
+                        "expr": "player.role in ['admin', 'owner', 'primary_owner']"
+                    }
+                }
+                MenuItem {
+                    label: "Logout"
+                    icon: "sign-out"
+                    events: {
+                        "click": InvokeService {
+                            name: "account.logout"
+                        }
+                    }
+                }
+            }
+        ]
+        PlainText {
+            text: "teamflow for desktop/web"
+        }
+    }
+    Row {
+        style:{
+            tags: ["full"]
+            align: "start"
+        }
+        SideBar {
+            Menu {
+                label: "Main"
+                MenuItem{
+                    label: "My Todos"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args: {
+                                    "content": "my"
+                                }
+                            }
+                        ]
+                    }
+                }
+                MenuItem{
+                    label: "All Todos"
+                    events: {
+                        "click": [
+                            Refresh {
+                                args: {
+                                    "content": "todo"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+            Divider {}
+            Menu {
+                label: "Tags"
+                Foreach {
+                    model: Query{
+                        from: "object.tag"
+                        filter: "it.active == true"
+                        order_by: "-it.created"
+                        limit: 20
+                    }
+                    MenuItem {
+                        "label": Format {
+                            "format": "{it.name}"
+                        }
+                        events: {
+                            "click": [
+                                Refresh {
+                                    args: {
+                                        "content": "todo"
+                                        "tag": Format { format: "{it.name}"}
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+            
+        }
+        ComponentUse { 
+            "name": Format {
+                "format": "home-page-{locals.content}"
+            }
+        }
+    }
+    
+}
+
+Page {
+    route: "/"
+    valid: {
+        "page_size": ["small", "medium"]
+    }
+    PlainText {
+        text: "teamflow"
+    }
+}
+    
+Page {
+    route: "/"
+    valid: {
+        "platform": ["lite"]
+        "page_size": ["xsmall"]
+    }
+    
+    PlainText {
+        text: "请选择设备类型："
+    }
+    Column {
+        Button { 
+            text: "会议室设备"
+        }
+        PlainText {
+            text: "或者扫码登录："
+        }
+        Qrcode {
+            code: "https://highorder.xyz/"
+            text: "扫描登录"
+        }
+    }
+}
+
+Page {
+    route: "/todos"
+    valid: {
+        "platform": ["lite"]
+        "page_size": ["xsmall"]
+    }
+    events: {
+    }
+    
+    Clock {
+        style: {
+            tags: ["digital"]
+        }
+        show_date: true
+    }
+    TabBar {
+        tabs: [
+            {"href": "/completed","text": "过去"}
+            {"href": "/","text": "当下","checked": true}
+            {"href": "/future","text": "未来","checked": true}
+        ]
+    }
+    Column {
+    }
+}
+
+Page {
+    route: "/meetingroom"
+    Column { 
+        PlainText {
+            text: "meeting room"
+        }
+    }
+}
+
+Page {
+    route: "/dashboard"
+    refresh: {
+        interval: 6
+    }
+    Column {
+        style: {
+            size_hint: 3
+        }
+        Clock {
+            style: {
+                tags: ["digital"]
+            }
+            show_date: true
+        }
+        Foreach {
+            model: Query {
+                from: "object.todo"
+                filter: "it.done == true"
+                order_by: "-updated"
+                limit: 3
+            }
+            PlainText {
+                visible: true
+                style: {
+                    tags: ["strike"]
+                }
+                text: [
+                    Format { format: "{it.content}  ("}
+                    Expr{expr: "fn.format_datetime('MM月DD日', it.updated)"}
+                    ")"
+                ]
+            }
+        }
+        Foreach {
+            model: Query {
+                from: "object.todo_list",
+                order_by: "-created",
+                limit: 10
+            }
+            Divider{}
+            PlainText {
+                text: Format { format: "{it.title}"}
+            }
+            Progressbar {
+                style: {
+                    size_hint: 5
+                }
+                percent: Expr { expr: "it.progress" }
+            }
+        }
+    }
+}

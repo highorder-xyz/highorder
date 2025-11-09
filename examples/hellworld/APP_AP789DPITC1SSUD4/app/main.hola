@@ -1,0 +1,32 @@
+Modal {
+    name: "hello-world"
+    title: "Hello Hola"
+    confirm: {
+        text: "OK"
+        trigger: false
+    }
+    PlainText {
+        text: "This is a Modal. Click OK to close."
+    }
+}
+
+Page {
+    route: "/"
+
+    Column {
+        style: {
+            justify:"center"
+        }
+        PlainText {
+            text: "Hello Hol"
+        }
+        Button {
+            text: "hello"
+            events: {
+                click: ShowModal {
+                    name: "hello-world"
+                }
+            }
+        }
+    }
+}
