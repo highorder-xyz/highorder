@@ -85,22 +85,22 @@ class ApplicationFolder:
         return cls.upload_dir
 
     @classmethod
-    def get_app_root(cls):
-        app_root = os.path.join(cls.root_folder, f'app')
+    def get_app_root(cls, app_id):
+        app_root = os.path.join(cls.root_folder, f'APP_{app_id}', 'app')
         if not os.path.exists(app_root):
             os.makedirs(app_root, exist_ok=True)
         return app_root
 
     @classmethod
-    def get_content_root(cls):
-        content_root = os.path.join(cls.root_folder, 'content')
+    def get_content_root(cls, app_id):
+        content_root = os.path.join(cls.root_folder, f'APP_{app_id}', 'content')
         if not os.path.exists(content_root):
             os.makedirs(content_root, exist_ok=True)
         return content_root
 
     @classmethod
-    def get_datafile_root(cls):
-        datafile_root = os.path.join(cls.root_folder, 'datafile')
+    def get_datafile_root(cls, app_id):
+        datafile_root = os.path.join(cls.root_folder, f'APP_{app_id}', 'datafile')
         if not os.path.exists(datafile_root):
             os.makedirs(datafile_root, exist_ok=True)
         return datafile_root

@@ -320,8 +320,8 @@ class WeiXinService:
     async def access_token(cls, code):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/oauth2/access_token"
-            app_id = settings.server.get("weixin_app_id")
-            app_secret = settings.server.get("weixin_app_secret")
+            app_id = settings.get("weixin_app_id")
+            app_secret = settings.get("weixin_app_secret")
             params = {
                 "appid": app_id,
                 "secret": app_secret,
@@ -339,7 +339,7 @@ class WeiXinService:
     async def refresh_token(cls, refresh_token):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/oauth2/refresh_token"
-            app_id = settings.server.get("weixin_app_id")
+            app_id = settings.get("weixin_app_id")
             params = {
                 "appid": app_id,
                 "refresh_token": refresh_token,
@@ -391,7 +391,7 @@ class SocialAccountService:
         access_token = refresh_ret["data"]["access_token"]
         auth_info = refresh_ret["data"]
         auth_info["access_token"] = access_token
-        platform_app = settings.server.weixin_app_id
+        platform_app = settings.weixin_app_id
         social_id = f"wx:{platform_app}:{open_id}"
         model = await SocialAccount.load(app_id=app_id, social_id=social_id)
         if not model:

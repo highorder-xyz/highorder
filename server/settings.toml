@@ -1,16 +1,14 @@
-
-[server]
 debug = true
 port = 9000
 run_editor = true
 db_url = 'postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30'
-config_dir = './.highorderapps/'
+data_dir = "./data"
 #content_url = ''
 webapp_root = '../webapp/dist/'
 redis_urls = [ "redis://127.0.0.1:6379" ]
 weixin_app_id = ''
 weixin_app_secret = ''
 
-[[server.setup_keys]]
+[[setup_keys]]
     client_key = 'console_client_key'
     client_secret = 'console_client_secret'

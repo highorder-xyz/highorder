@@ -22,7 +22,7 @@ async def get_redis():
     conn = None
     try:
         if g_sentinel == None or g_redis == None:
-            urls = list(map(lambda x: parse_redis_url(x), settings.app.redis_urls))
+            urls = list(map(lambda x: parse_redis_url(x), settings.get('redis_urls')))
             if len(urls) >= 2:
                 g_sentinel = Sentinel(urls)
             else:

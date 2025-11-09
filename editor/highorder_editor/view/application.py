@@ -375,7 +375,7 @@ class ApplicationContentView:
 
     async def get_service(self):
         if self.service == None:
-            self.service = await ApplicationContentService.load()
+            self.service = await ApplicationContentService.load(self.app.app_id)
         return self.service
 
     async def get_collections(self):
@@ -415,7 +415,7 @@ class ApplicationContentView:
             ui.text(content=name),
         ]
         url_root = get_editor_root(self.q.headers['origin'])
-        link = f'{url_root}/appfile/content/{collection}/{name}'
+        link = f'{url_root}/appfile/APP_{self.app.app_id}/content/{collection}/{name}'
         if ext.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
             items.append(
                 ui.image(title=name, path=link, width="400px")
@@ -540,7 +540,7 @@ class ApplicationDataFileView:
 
     async def get_service(self):
         if self.service == None:
-            self.service = await ApplicationDataFileService.load()
+            self.service = await ApplicationDataFileService.load(self.app.app_id)
         return self.service
 
     async def save_datafile(self, data_files):
@@ -567,7 +567,7 @@ class ApplicationDataFileView:
             ui.text(content=name),
         ]
         url_root = get_editor_root(self.q.headers['origin'])
-        link = f'{url_root}/appfile/datafile/{name}'
+        link = f'{url_root}/appfile/APP_{self.app.app_id}/datafile/{name}'
         items.append(ui.link(label = "Open in New Tab", path=link, download=True, button=True, target='_blank'))
         self.q.page['meta'].dialog = ui.dialog(title='',
             items = items,

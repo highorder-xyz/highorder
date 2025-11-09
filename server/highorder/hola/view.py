@@ -119,7 +119,7 @@ async def validate_editor(app_id, sign, request):
 
     app_config = await AppConfig.get(app_id)
     client_secret = None
-    for setup_key in settings.server.get("setup_keys", []):
+    for setup_key in settings.get("setup_keys", []):
         if setup_key["client_key"] == client_key:
             client_secret = setup_key["client_secret"]
             break

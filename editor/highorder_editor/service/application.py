@@ -15,8 +15,8 @@ import httpx
 class ApplicationStorage:
     @classmethod
     @threaded
-    def load_app_configs(cls, name):
-        app_config_root = ApplicationFolder.get_app_root()
+    def load_app_configs(cls, app_id, name):
+        app_config_root = ApplicationFolder.get_app_root(app_id)
         if not os.path.exists(app_config_root):
             os.makedirs(app_config_root, exist_ok=True)
         fpath = os.path.join(app_config_root, f'{name}.json')
@@ -27,8 +27,8 @@ class ApplicationStorage:
 
     @classmethod
     @threaded
-    def write_app_configs(cls, name, value):
-        app_config_root = ApplicationFolder.get_app_root()
+    def write_app_configs(cls, app_id, name, value):
+        app_config_root = ApplicationFolder.get_app_root(app_id)
         if not os.path.exists(app_config_root):
             os.makedirs(app_config_root, exist_ok=True)
         with open(os.path.join(app_config_root, f'{name}.json'), 'w') as f:
@@ -38,8 +38,8 @@ class ApplicationStorage:
 
     @classmethod
     @threaded
-    def write_app_hola(cls, name, code):
-        app_config_root = ApplicationFolder.get_app_root()
+    def write_app_hola(cls, app_id, name, code):
+        app_config_root = ApplicationFolder.get_app_root(app_id)
         if not os.path.exists(app_config_root):
             os.makedirs(app_config_root, exist_ok=True)
         with open(os.path.join(app_config_root, name), 'w') as f:
@@ -48,8 +48,8 @@ class ApplicationStorage:
 
     @classmethod
     @threaded
-    def load_app_hola(cls, name):
-        app_config_root = ApplicationFolder.get_app_root()
+    def load_app_hola(cls, app_id, name):
+        app_config_root = ApplicationFolder.get_app_root(app_id)
         if not os.path.exists(app_config_root):
             os.makedirs(app_config_root, exist_ok=True)
         fpath = os.path.join(app_config_root, f'{name}')
@@ -75,14 +75,15 @@ class UploadedFileRecord:
 class ApplicationContentService:
     def __init__(self, content, **kwargs):
         self._content = content
+        self.app_id = kwargs.get('app_id')
 
     @classmethod
-    async def load(cls):
-        content = await ApplicationStorage.load_app_configs("content")
+    async def load(cls, app_id):
+        content = await ApplicationStorage.load_app_configs(app_id, "content")
         assert content != None
         if not content:
             content['main'] = {'files': []}
-        inst = cls(content)
+        inst = cls(content, app_id=app_id)
         await inst.save()
         return inst
 
@@ -99,7 +100,7 @@ class ApplicationContentService:
             await self.save()
 
     def get_collection_root(self, collection):
-        collection_root = os.path.join(ApplicationFolder.get_content_root(), collection)
+        collection_root = os.path.join(ApplicationFolder.get_content_root(self.app_id), collection)
         if not os.path.exists(collection_root):
             os.makedirs(collection_root, exist_ok=True)
         return collection_root
@@ -150,17 +151,18 @@ class ApplicationContentService:
 
 
     async def save(self):
-        await ApplicationStorage.write_app_configs('content', self._content)
+        await ApplicationStorage.write_app_configs(self.app_id, 'content', self._content)
 
 
 class ApplicationDataFileService:
     def __init__(self, datafile, **kwargs):
         self._datafile = datafile
+        self.app_id = kwargs.get('app_id')
 
     @classmethod
-    async def load(cls):
-        datafile = await ApplicationStorage.load_app_configs("datafile")
-        return cls(datafile)
+    async def load(cls, app_id):
+        datafile = await ApplicationStorage.load_app_configs(app_id, "datafile")
+        return cls(datafile, app_id=app_id)
 
     @property
     def config(self):
@@ -173,7 +175,7 @@ class ApplicationDataFileService:
             src_path = ApplicationStorage.translate_upload_path(file)
             filename = os.path.basename(file)
             uploaded.append(src_path)
-            dest_path = os.path.join(ApplicationFolder.get_datafile_root(), filename)
+            dest_path = os.path.join(ApplicationFolder.get_datafile_root(self.app_id), filename)
             statinfo = os.stat(src_path)
             await FileSystem.copy_file(src_path, dest_path)
 
@@ -204,11 +206,11 @@ class ApplicationDataFileService:
         others_meta = list(filter(lambda x: x['name'] != filename, files_meta))
         self._datafile['files'] = others_meta
         await self.save()
-        dest = os.path.join(ApplicationFolder.get_datafile_root(), filename)
+        dest = os.path.join(ApplicationFolder.get_datafile_root(self.app_id), filename)
         await FileSystem.remove(dest)
 
     async def save(self):
-        await ApplicationStorage.write_app_configs('datafile', self._datafile)
+        await ApplicationStorage.write_app_configs(self.app_id, 'datafile', self._datafile)
 
 
 class ApplicationDB():
@@ -282,16 +284,16 @@ class ApplicationDB():
         return row.clientkey_secret if row else None
 
     async def get_hola_json(self, name="main.hola"):
-        return await ApplicationStorage.load_app_configs(name)
+        return await ApplicationStorage.load_app_configs(self.app_id, name)
 
     async def save_hola_json(self, json_obj, name="main.hola"):
-        await ApplicationStorage.write_app_configs(name, json_obj)
+        await ApplicationStorage.write_app_configs(self.app_id, name, json_obj)
 
     async def get_hola_code(self, name="main.hola"):
-        return await ApplicationStorage.load_app_hola(name)
+        return await ApplicationStorage.load_app_hola(self.app_id, name)
 
     async def save_hola_code(self, code, name="main.hola"):
-        await ApplicationStorage.write_app_hola(name, code)
+        await ApplicationStorage.write_app_hola(self.app_id, name, code)
 
 # Alias for backward compatibility
 Application = ApplicationDB
@@ -300,7 +302,7 @@ Application = ApplicationDB
 class ApplicationSetupService:
     @classmethod
     async def load(cls, app_id, server_url):
-        setup_hola = await ApplicationStorage.load_app_hola('setup.hola')
+        setup_hola = await ApplicationStorage.load_app_hola(app_id, 'setup.hola')
         inst = cls(app_id, setup_hola, server_url)
         return inst
 
@@ -311,7 +313,7 @@ class ApplicationSetupService:
 
     async def save_setup_hola(self, code=""):
         self.hola = code
-        await ApplicationStorage.write_app_hola('setup.hola', code)
+        await ApplicationStorage.write_app_hola(self.app_id, 'setup.hola', code)
 
     def get_sign(self, client_key, client_secret, body):
         assert isinstance(body, (bytes))

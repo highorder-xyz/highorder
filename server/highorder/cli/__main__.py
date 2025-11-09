@@ -94,17 +94,14 @@ class AppCreator:
                 "handlers": ["stdout"],
                 "stdout": {"handler_type": "stdout", "level": "debug"},
             },
-            "server": {
-                "db_url": "postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30",
-                "debug": True,
-                "mode": "single",
-                "port": 9000,
-                "redis_urls": ["redis://127.0.0.1:6379"],
-                "run_editor": True,
-                "setup_keys": [
-                    {"client_key": client_key, "client_secret": client_secret}
-                ],
-            },
+            "db_url": "postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30",
+            "debug": True,
+            "port": 9000,
+            "redis_urls": ["redis://127.0.0.1:6379"],
+            "run_editor": True,
+            "setup_keys": [
+                {"client_key": client_key, "client_secret": client_secret}
+            ],
         }
         with open(os.path.join(folder, "editor.json"), "w") as f:
             f.write(json.dumps(editor_config, ensure_ascii=False, indent=4))

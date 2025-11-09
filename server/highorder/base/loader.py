@@ -133,36 +133,33 @@ class FileCache:
 
 
 class ApplicationFolder:
-    _root_dir = os.path.abspath(os.getcwd())
+    _root_dir = settings.get("data_dir") or os.path.abspath(os.getcwd())
 
     @classmethod
     def setup_root(cls, root_dir):
-        cls._root_dir = root_dir
+        if settings.get("data_dir"):
+            cls._root_dir = settings.data_dir
+        else:
+            cls._root_dir = root_dir
 
     @classmethod
     def get_app_root(cls, app_id):
-        if settings.server.get("mode", "single") == "single":
-            return cls._root_dir
-        elif settings.server.get("config_dir"):
-            return os.path.abspath(
-                os.path.join(settings.server.config_dir, f"APP_{app_id}")
-            )
-        else:
-            return os.path.abspath(os.path.join(cls._root_dir, f"APP_{app_id}"))
+        return os.path.abspath(os.path.join(cls._root_dir, f"APP_{app_id}"))
 
     @classmethod
     def get_content_url_root(cls, app_id, host_url):
         host_url = host_url.strip("/")
-        root_url = settings.server.get("content_url", "").strip("/")
+        root_url = settings.get("content_url", "").strip("/")
         if not root_url:
             root_url = host_url
         return f"{root_url}/static/APP_{app_id}/content"
 
 
 class ConfigLoader:
-    def __init__(self, app_id):
+    def __init__(self, app_id, live=True):
         self.app_id = app_id
         self.config_dir = ApplicationFolder.get_app_root(app_id)
+        self.live = live
         self.config_file = None
         self.max_cached = -1
         self._client_keys = None
@@ -184,8 +181,12 @@ class ConfigLoader:
             self.max_cached = 1200
 
         jsondata = await self.get_config("app")
-        app_summary = factory.load(jsondata, ApplicationSummary)
-        self._client_keys = app_summary.client_keys
+        if jsondata:
+            app_summary = factory.load(jsondata, ApplicationSummary)
+            self._client_keys = app_summary.client_keys
+        else:
+            # default empty summary if app/app.json not present yet
+            self._client_keys = []
 
     def get_filepath(self, name):
         if self.config_file:
