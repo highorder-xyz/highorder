@@ -146,10 +146,95 @@ async def application_home(q:Q):
     q.page.drop()
     render_layout_main(q)
     render_header(q)
-    app = await Application.load()
-    application_id = app.app_id
-    goto_page(q, f'#application/{application_id}/app')
+    view = ApplicationSummaryView(q)
+    await view.handle()
     await q.page.save()
+
+class ApplicationSummaryView:
+    def __init__(self, q:Q):
+        self.q = q
+        self.show_create = True
+
+    async def handle(self):
+        q = self.q
+        if q.args.create_app_submit:
+            await self.create_app()
+        elif q.args.create_app_action:
+            self.show_create = True
+            await self.render()
+        else:
+            await self.render()
+
+    async def create_app(self):
+        q = self.q
+        name, description = q.args.name, q.args.description
+        name_error = None
+        description_error = None
+        if not name or len(name) <= 3:
+            name_error = 'The length of name must be greater than 3.'
+        if not description or len(description) <= 3:
+            description_error = 'The length of description must be greater than 3.'
+
+        if name_error or description_error:
+            self.show_create = True
+            await self.render(name_error=name_error, description_error=description_error)
+            return
+
+        user = self.q.user['instance']
+        app = await Application.create(name, description, user.user_id)
+        if app:
+            goto_page(q, f'#application/{app.app_id}/app')
+        else:
+            popup_internal_error(q)
+
+    def render_action(self):
+        return [
+            ui.inline(items=[
+                ui.label(label=">> To create new App, please "),
+                ui.button(name="create_app_action", label="Create Application", primary=True)
+            ])
+        ]
+
+    def render_app_create(self, name_error=None, description_error=None):
+        q = self.q
+        return [
+            ui.label(label=f'Create Application'),
+            ui.textbox(name='name', label='Name of new Application', error=name_error, value=q.args.name, required=True),
+            ui.textbox(name='description', label='Description of Application', multiline=True, error=description_error, value=q.args.description, required=True),
+            ui.buttons(justify="center", items=[
+                ui.button(name='create_app_submit', label='Create Application', primary=True)
+            ])
+        ]
+
+    def render_apps(self):
+        items = []
+        items.append(ui.separator())
+        user = self.q.user['instance']
+        applications = user.list_applications()
+        if applications:
+            for app in applications:
+                items.append(
+                    ui.link(label=f"--> {app.name} ({app.description})", path=f"#application/{app.app_id}/app")
+                )
+        else:
+            items.append(
+                ui.label(label="No applications, please create one first.")
+            )
+            self.show_create = True
+        return items
+
+    async def render(self, **kwargs):
+        items = []
+        if self.show_create:
+            items.extend(self.render_app_create(name_error=kwargs.get('name_error'), description_error=kwargs.get('description_error')))
+        else:
+            items.extend(self.render_action())
+        items.extend(self.render_apps())
+        self.q.page['application_summary'] = ui.form_card(
+            box='content',
+            title='',
+            items=items
+        )
 
 class ApplicationGeneralView:
     def __init__(self, q:Q, app:Application):

@@ -7,7 +7,7 @@ from basepy.config import settings
 import os
 import importlib
 import importlib.resources
-from highorder_editor.service import Auth, Session
+from highorder_editor.service.auth import Auth, Session
 from highorder_editor.service.user import User
 from .common import popup_exception, render_header, goto_page, render_layout_simple, popup_wrong_page_error
 from . import application, auth
@@ -137,14 +137,22 @@ def setup_editor(appfolder, www_dir=None):
 
     simulator_dir = None
     with importlib.resources.path('highorder_editor', '__init__.py') as f:
-        simulator_dir = os.path.join(os.path.dirname(f), 'simulator')
+        pkg_dir = os.path.dirname(f)
+        candidate1 = os.path.join(pkg_dir, 'simulator')
+        candidate2 = os.path.abspath(os.path.join(pkg_dir, '..', '..', 'simulator', 'dist'))
+        if os.path.isdir(candidate1):
+            simulator_dir = candidate1
+        elif os.path.isdir(candidate2):
+            simulator_dir = candidate2
     
     # Initialize database on startup
     boot_components()
     
-    server = WaveServer.setup(init_options=dict(upload_dir=upload_dir), on_startup = [], static_dirs ={
-        'simulator': simulator_dir
-    })
+    static_dirs = {}
+    if simulator_dir and os.path.isdir(simulator_dir):
+        static_dirs['simulator'] = simulator_dir
+
+    server = WaveServer.setup(init_options=dict(upload_dir=upload_dir), on_startup = [], static_dirs = static_dirs)
     return server
 
 def start_view(appfolder, port, www_dir=None):

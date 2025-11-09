@@ -1,8 +1,4 @@
 
-import tempfile
-from typing import List
-from highorder_editor.service import EditorConfig
-
 from highorder_editor.base.helpers import (
     ApplicationFolder, random_string, get_media_type
 )
@@ -242,10 +238,18 @@ class ApplicationDB():
     @classmethod
     async def load(cls, app_id):
         from highorder_editor.model import ApplicationModel
-        m = await ApplicationModel.get_or_none(app_id=app_id)
+        m = ApplicationModel.get_or_none(ApplicationModel.app_id == app_id)
         if not m:
             return None
         inst = cls(m)
+        return inst
+
+    @classmethod
+    async def create(cls, name, description, creator_id, detail=None):
+        from highorder_editor.model import ApplicationModel
+        app = ApplicationModel.create(name=name, description=description, detail=detail or {}, creator=creator_id)
+        inst = cls(app)
+        await inst.create_client_key()
         return inst
 
     async def save_profile(self, name, description):
@@ -253,49 +257,29 @@ class ApplicationDB():
             self.model.name = name
         if description:
             self.model.description = description
-        await self.model.save()
+        self.model.save()
 
     async def create_client_key(self):
         from highorder_editor.model import ApplicationClientKeyModel
         key_id = random_string(8)
         key_secret = random_string(32)
-        clientkey = await ApplicationClientKeyModel.create(app_id = self.app_id,
+        clientkey = ApplicationClientKeyModel.create(app_id = self.app_id,
                 clientkey_id = key_id, clientkey_secret = key_secret, valid=True
             )
         return clientkey
 
-# Alias for backward compatibility
-Application = ApplicationDB
+    async def get_valid_clientkeys(self):
+        from highorder_editor.model import ApplicationClientKeyModel
+        rows = (ApplicationClientKeyModel
+                .select()
+                .where((ApplicationClientKeyModel.app_id == self.app_id) & (ApplicationClientKeyModel.valid == True)))
+        return [dict(app_id=row.app_id, client_key=row.clientkey_id, client_secret=row.clientkey_secret, valid=row.valid) for row in rows]
 
-
-class ApplicationFile():
-    """File-based Application class for single app mode"""
-    def __init__(self, app_id, **kwargs):
-        self.app_id = app_id
-        self.name = kwargs.get('name', '')
-        self.description = kwargs.get('description', '')
-        self._app = None
-
-    @classmethod
-    async def load(cls, app_id = None):
-        app = await EditorConfig.get_app()
-        if app_id and app_id != app['app_id']:
-            return None
-        else:
-            inst = cls(**app)
-            _app_config = await ApplicationStorage.load_app_configs('app')
-
-            if not _app_config:
-                _app_config = dict(
-                    app_id = app_id,
-                    app_name = app['name'],
-                    client_keys = [cls.gen_client_key(app_id)]
-                )
-                inst._app = _app_config
-                await inst.write_app_info()
-            else:
-                inst._app = _app_config
-            return inst
+    async def get_client_secret(self, client_key):
+        from highorder_editor.model import ApplicationClientKeyModel
+        row = (ApplicationClientKeyModel
+               .get_or_none((ApplicationClientKeyModel.app_id == self.app_id) & (ApplicationClientKeyModel.clientkey_id == client_key) & (ApplicationClientKeyModel.valid == True)))
+        return row.clientkey_secret if row else None
 
     async def get_hola_json(self, name="main.hola"):
         return await ApplicationStorage.load_app_configs(name)
@@ -309,36 +293,8 @@ class ApplicationFile():
     async def save_hola_code(self, code, name="main.hola"):
         await ApplicationStorage.write_app_hola(name, code)
 
-    async def write_app_info(self):
-        await ApplicationStorage.write_app_configs('app', self._app)
-
-    async def get_valid_clientkeys(self):
-        return self._app.get('client_keys', [])
-
-    async def get_client_secret(self, client_key):
-        client_keys = self._app.get('client_keys', [])
-        filtered = list(filter(lambda x: x['client_key'] == client_key, client_keys))
-        if not filtered:
-            return None
-        return filtered[0]['client_secret']
-
-    @classmethod
-    def gen_client_key(cls, app_id):
-        key_id = random_string(8)
-        key_secret = random_string(32)
-        clientkey = dict(app_id = app_id,
-                client_key = key_id,
-                client_secret = key_secret,
-                valid=True
-            )
-        return clientkey
-
-    async def create_client_key(self):
-        clientkey = self.gen_client_key(self.app_id)
-        client_keys = self._app.setdefault('client_keys', [])
-        client_keys.append(clientkey)
-        await self.write_app_info()
-        return clientkey
+# Alias for backward compatibility
+Application = ApplicationDB
 
 
 class ApplicationSetupService:
@@ -369,9 +325,14 @@ class ApplicationSetupService:
         return b','.join([signature, timestamp, client_key.encode('utf-8')])
 
     async def call_setup_service(self, hola_code):
-        server = await EditorConfig.get_server()
-        client_key = server['client_key']
-        client_secret = server['client_secret']
+        app = await Application.load(self.app_id)
+        valid_keys = await app.get_valid_clientkeys()
+        if not valid_keys:
+            await app.create_client_key()
+            valid_keys = await app.get_valid_clientkeys()
+        ck = valid_keys[0]
+        client_key = ck['client_key']
+        client_secret = ck['client_secret']
         server_url = self.server_url
         data = {
             "command":"app_setup",

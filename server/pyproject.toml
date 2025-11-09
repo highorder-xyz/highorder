@@ -29,6 +29,8 @@ dependencies = [
     "html5lib==1.1",
     "aiofiles",
     "rich",
+    "redis",
+    "highorder_editor",
 ]
 
 [project.optional-dependencies]
@@ -46,13 +48,19 @@ packages = ["highorder"]
 [tool.hatch.version]
 path = "highorder/__init__.py"
 
+[project.scripts]
+highorder = "highorder.__main__:main"
+highorder-editor = "highorder_editor.__main__:main"
+
 [tool.uv]
 
 [tool.uv.workspace]
-members = [".", "packages/*"]
+members = [".", "packages/*", "../editor"]
 
 [tool.uv.sources]
 basepy = {workspace = true}
 likepy = {workspace = true}
 callpy = {workspace = true}
 postmodel = {workspace = true}
+wavegui = {workspace = true}
+highorder_editor = { workspace = true }

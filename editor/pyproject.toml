@@ -17,7 +17,6 @@ dependencies = [
     "typer",
     "rich",
     "dataclass_factory",
-    "highorder",
 ]
 
 [project.scripts]
@@ -32,9 +31,3 @@ include = [
     "highorder_editor/**",
 ]
 
-[tool.uv.sources]
-basepy = { path = "../server/packages/basepy" }
-likepy = { path = "../server/packages/likepy" }
-callpy = { path = "../server/packages/callpy" }
-postmodel = { path = "../server/packages/postmodel" }
-highorder = { path = "../server" }
