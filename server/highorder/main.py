@@ -63,7 +63,7 @@ if not content_url:
 @app.before_start
 async def app_before_start():
     if not debug:
-        await logger.init(settings.log)
+        await logger.init()
     else:
         await logger.init()
     try:

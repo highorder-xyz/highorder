@@ -105,6 +105,29 @@ class ApplicationFolder:
             os.makedirs(datafile_root, exist_ok=True)
         return datafile_root
 
+    @classmethod
+    def get_app_build_root(cls, app_id):
+        app_build_root = os.path.join(cls.root_folder, f'APP_{app_id}')
+        if not os.path.exists(app_build_root):
+            os.makedirs(app_build_root, exist_ok=True)
+        return app_build_root
+
+
+def get_publish_package_root(app_id):
+    package_root = os.path.abspath(os.path.join(ApplicationFolder.root_folder, 'packages'))
+    app_package_root = os.path.join(package_root, f'APP_{app_id}')
+    if not os.path.exists(app_package_root):
+        os.makedirs(app_package_root, exist_ok=True)
+    return app_package_root
+
+def get_publish_content_root(app_id):
+    # Server serves from APP_{app_id}/content under data_dir. Keep same layout.
+    return ApplicationFolder.get_content_root(app_id)
+
+def get_publish_release_root(app_id):
+    # Server loads release.json and core zip from APP_{app_id} under data_dir. Keep same layout.
+    return ApplicationFolder.get_app_build_root(app_id)
+
 
 def get_readable_filesize(size):
     units = ['', 'KB', 'MB', 'GB', 'TB']

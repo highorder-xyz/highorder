@@ -56,7 +56,8 @@ def render_sidenav(q:Q, app:Application, selected=None):
                 ui.nav_item(name=f'#application/{app.app_id}/hola_editor', label='Hola Editor', icon="CoffeeScript"),
             ]),
             ui.nav_group('Setup', items=[
-                ui.nav_item(name=f'#application/{app.app_id}/setup', label='Setup', icon="Onboarding")
+                ui.nav_item(name=f'#application/{app.app_id}/setup', label='Setup', icon="Onboarding"),
+                ui.nav_item(name=f'#application/{app.app_id}/publish', label='Publish', icon="WebPublish")
             ])
         ]
     q.page['nav'] = ui.nav_card(
@@ -293,6 +294,144 @@ class ApplicationGeneralView:
         app = await Application.load(application_id)
         view = ApplicationGeneralView(q, app)
         await view.handle()
+        await q.page.save()
+
+
+class ApplicationPublishView:
+    def __init__(self, q:Q, app:Application):
+        self.q = q
+        self.app = app
+
+    async def show_create_dialog(self):
+        self.q.page['meta'].dialog = ui.dialog(title='Create Package for Release',
+            items=[
+                ui.textbox(name='package_description', label='Please describe the package to create.', required=True, multiline=True),
+                ui.buttons([ui.button(name='create_package_submit', label='Create Package', primary=True)])
+            ],
+            closable=True,
+            blocking=True
+        )
+
+    async def show_create_process_dialog(self):
+        self.q.page['meta'].dialog = ui.dialog(title='Creating Package',
+            items=[ui.text('Creating... It may take several minutes')],
+            closable=False,
+            blocking=True
+        )
+
+    async def show_publish_dialog(self):
+        choices = [ui.choice(name='building', label='building')]
+        all_packages = await self.app.get_all_packages()
+        for package in all_packages:
+            choices.append(ui.choice(name=package['app_version'], label=package['app_version']))
+        selected = 'building'
+        self.q.page['meta'].dialog = ui.dialog(title='Publish Package Online',
+            items=[
+                ui.dropdown(name='version_selected', label='Please Select the Version to Publish.', choices=choices, required=True, value=selected),
+                ui.buttons([ui.button(name='publish_package_submit', label='Publish Package', primary=True)])
+            ],
+            closable=True,
+            blocking=True
+        )
+
+    async def show_publish_process_dialog(self):
+        self.q.page['meta'].dialog = ui.dialog(title='Publishing Package',
+            items=[ui.text('Publishing... It may take several minutes')],
+            closable=False,
+            blocking=True
+        )
+
+    async def close_dialog(self):
+        self.q.page['meta'].dialog = None
+
+    async def render(self):
+        await self.render_toolbar()
+        await self.render_publish()
+
+    async def render_toolbar(self):
+        state = await self.app.get_state()
+        online_text = f'Online Version {state.current_version}' if state.current_version else 'Not Online Yet.'
+        latest_text = f'Latest Version {state.latest_version}' if state.latest_version else 'Not Build Yet.'
+
+        self.q.page['publish_header'] = ui.form_card(
+            title='',
+            box=ui.box(zone='content_header'),
+            items=[
+                ui.inline(items=[
+                    ui.button(name='create_package', label='Create Package', icon='ProductRelease'),
+                    ui.text(latest_text, width='180px'),
+                    ui.button(name='publish_package', label='Publish Package', icon='WebPublish'),
+                    ui.text(online_text, width='180px')
+                ])
+            ]
+        )
+
+    async def render_publish(self):
+        q = self.q
+        app_pub = await self.app.get_all_publish()
+        rows = []
+        for pub in app_pub:
+            rows.append(
+                ui.table_row(name=pub['app_version'], cells=[
+                    pub['app_version'],
+                    pub['description'],
+                    pub['publish_type'],
+                    get_readable_date(pub['publish_date'])
+                ])
+            )
+        q.page['publish_view'] = ui.form_card(
+            box=ui.box(zone='content', height='100%'),
+            items=[
+                ui.table(
+                    name='publish_table',
+                    height=f"{max((len(rows)+1)*48 + 8, 300)}px",
+                    columns=[
+                        ui.table_column(name='app_version', label='Version', min_width='60px'),
+                        ui.table_column(name='description', label='Description', min_width='240px'),
+                        ui.table_column(name='publish_type', label='Publish Type', min_width='100px'),
+                        ui.table_column(name='publish_date', label='Publish Date', min_width='140px'),
+                    ],
+                    rows=rows
+                )
+            ]
+        )
+
+    @on('#application/{application_id:str}/publish')
+    @staticmethod
+    async def service(q:Q, application_id:str):
+        app = await Application.load(application_id)
+        view = ApplicationPublishView(q, app)
+        reset_page_container(q, app, page_name='publish')
+        if q.args['create_package'] == True:
+            await view.show_create_dialog()
+        elif q.args.create_package_submit == True:
+            if not q.args.package_description or len(q.args.package_description) <= 3:
+                popup_error_msg(q, 'The description of package is too short. Create process abort.')
+            else:
+                await view.show_create_process_dialog()
+                await view.render()
+                await q.page.save()
+                try:
+                    await app.create_package(q.args.package_description)
+                except Exception as ex:
+                    popup_exception(q, ex)
+                await view.close_dialog()
+        elif q.args.publish_package == True:
+            await view.show_publish_dialog()
+        elif q.args.publish_package_submit == True:
+            if not q.args.version_selected:
+                popup_error_msg(q, 'A version must be selected to publish.\n If no package yet, create it first.')
+            else:
+                await view.show_publish_process_dialog()
+                await view.render()
+                await q.page.save()
+                try:
+                    await app.publish_package(q.args.version_selected)
+                except Exception as ex:
+                    popup_exception(q, ex)
+                await view.close_dialog()
+
+        await view.render()
         await q.page.save()
 
 class ClientKeysView:
