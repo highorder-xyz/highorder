@@ -152,15 +152,11 @@ class ApplicationFolder:
 
     @classmethod
     def get_content_url_root(cls, app_id, host_url):
-        server_mode = settings.server.get("mode", "single")
         host_url = host_url.strip("/")
-        if server_mode == "multi":
-            root_url = settings.server.get("content_url", "").strip("/")
-            if not root_url:
-                root_url = host_url
-            return f"{root_url}/static/APP_{app_id}/content"
-        else:
-            return f"{host_url}/static/content"
+        root_url = settings.server.get("content_url", "").strip("/")
+        if not root_url:
+            root_url = host_url
+        return f"{root_url}/static/APP_{app_id}/content"
 
 
 class ConfigLoader:

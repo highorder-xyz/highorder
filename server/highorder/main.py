@@ -20,7 +20,6 @@ from .boot import boot_components
 
 app = CallPy('highorder')
 
-server_mode = settings.server.get('mode', 'single')
 config_dir = os.path.abspath(settings.server.get('config_dir') or os.getcwd())
 
 webapp_root = settings.server.get('webapp_root', None)
@@ -48,10 +47,7 @@ if webapp_root:
 
 content_url = settings.server.get('content_url', None)
 if not content_url:
-    if server_mode == 'multi':
-        app.static('/static/<app_folder_name>/content', os.path.join(config_dir, '{app_folder_name}/content'))
-    else:
-        app.static('/static/content', os.path.join(config_dir, 'content'))
+    app.static('/static/<app_folder_name>/content', os.path.join(config_dir, '{app_folder_name}/content'))
 
 
 @app.before_start
