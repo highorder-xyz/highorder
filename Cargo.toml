@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "crates/*"]
+members = ["crates/*"]
 resolver = "2"
 
 [profile]
