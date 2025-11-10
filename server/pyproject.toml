@@ -19,7 +19,6 @@ dependencies = [
     "basepy>=0.5",
     "likepy>=0.3.0",
     "postmodel>=0.3.0",
-    "aiobotocore",
     "asyncpg",
     "httpx",
     "phonenumbers",
@@ -29,7 +28,6 @@ dependencies = [
     "html5lib==1.1",
     "aiofiles",
     "rich",
-    "redis",
     "highorder_editor",
 ]
 

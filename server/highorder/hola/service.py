@@ -80,7 +80,7 @@ import json
 
 import dataclass_factory
 from likepy import restrictedexpr, restrictedpy
-from highorder.base.instant import (
+from highorder.base.instant_db import (
     InstantDataStorageService,
     UserInstantDataStorageService,
 )

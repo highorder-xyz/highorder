@@ -5,7 +5,6 @@ from setuptools import find_namespace_packages,  setup
 
 install_requires = [
     'callpy>=0.4.0',
-    'aiobotocore',
     'asyncpg',
     'basepy>=0.5',
     'httpx',

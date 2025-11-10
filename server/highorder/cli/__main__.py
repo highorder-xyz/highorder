@@ -97,11 +97,7 @@ class AppCreator:
             "db_url": "postgres://postgres:postgres@127.0.0.1:5432/highorder?min_size=10&max_size=30",
             "debug": True,
             "port": 9000,
-            "redis_urls": ["redis://127.0.0.1:6379"],
-            "run_editor": True,
-            "setup_keys": [
-                {"client_key": client_key, "client_secret": client_secret}
-            ],
+            "run_editor": True
         }
         with open(os.path.join(folder, "editor.json"), "w") as f:
             f.write(json.dumps(editor_config, ensure_ascii=False, indent=4))

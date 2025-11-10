@@ -4,7 +4,6 @@ from highorder.base.utils import random_str, time_random_id, IDPrefix
 from highorder.base.model import DB_NAME
 from postmodel.transaction import in_transaction
 from dataclasses import dataclass
-from basepy.config import settings
 import httpx
 from postmodel.transaction import in_transaction
 from highorder.hola.extension import (
@@ -317,11 +316,11 @@ class WeiXinService:
     url_prefix = "https://api.weixin.qq.com/sns"
 
     @classmethod
-    async def access_token(cls, code):
+    async def access_token(cls, code, **kwargs):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/oauth2/access_token"
-            app_id = settings.get("weixin_app_id")
-            app_secret = settings.get("weixin_app_secret")
+            app_id = kwargs.get("weixin_app_id")
+            app_secret = kwargs.get("weixin_app_secret")
             params = {
                 "appid": app_id,
                 "secret": app_secret,
@@ -336,10 +335,10 @@ class WeiXinService:
                 return {"ok": True, "data": ret}
 
     @classmethod
-    async def refresh_token(cls, refresh_token):
+    async def refresh_token(cls, refresh_token, **kwargs):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/oauth2/refresh_token"
-            app_id = settings.get("weixin_app_id")
+            app_id = kwargs.get("weixin_app_id")
             params = {
                 "appid": app_id,
                 "refresh_token": refresh_token,
@@ -353,7 +352,7 @@ class WeiXinService:
                 return {"ok": True, "data": ret}
 
     @classmethod
-    async def auth(cls, access_token, open_id):
+    async def auth(cls, access_token, open_id, **kwargs):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/auth"
             params = {"access_token": access_token, "openid": open_id}
@@ -365,7 +364,7 @@ class WeiXinService:
                 return {"ok": True, "data": ret}
 
     @classmethod
-    async def userinfo(cls, access_token, open_id):
+    async def userinfo(cls, access_token, open_id, **kwargs):
         async with httpx.AsyncClient() as client:
             url = f"{cls.url_prefix}/userinfo"
             params = {"access_token": access_token, "openid": open_id}
@@ -380,10 +379,12 @@ class WeiXinService:
 class SocialAccountService:
     @classmethod
     async def login_weixin(cls, app_id, user_id, code):
-        ret = await WeiXinService.access_token(code)
+        weixin_app_id = ""
+        weixin_app_secret = ""
+        ret = await WeiXinService.access_token(code, weixin_app_id=weixin_app_id, weixin_app_secret=weixin_app_secret)
         if ret["ok"] == False:
             return ret
-        refresh_ret = await WeiXinService.refresh_token(ret["data"]["refresh_token"])
+        refresh_ret = await WeiXinService.refresh_token(ret["data"]["refresh_token"], weixin_app_id=weixin_app_id)
         if not refresh_ret["ok"]:
             return refresh_ret
         open_id = ret["data"]["openid"]
@@ -391,7 +392,7 @@ class SocialAccountService:
         access_token = refresh_ret["data"]["access_token"]
         auth_info = refresh_ret["data"]
         auth_info["access_token"] = access_token
-        platform_app = settings.weixin_app_id
+        platform_app = weixin_app_id
         social_id = f"wx:{platform_app}:{open_id}"
         model = await SocialAccount.load(app_id=app_id, social_id=social_id)
         if not model:
