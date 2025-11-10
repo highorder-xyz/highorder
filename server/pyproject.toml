@@ -53,7 +53,7 @@ highorder-editor = "highorder_editor.__main__:main"
 [tool.uv]
 
 [tool.uv.workspace]
-members = [".", "packages/*", "../editor"]
+members = [".", "packages/*"]
 
 [tool.uv.sources]
 basepy = {workspace = true}
