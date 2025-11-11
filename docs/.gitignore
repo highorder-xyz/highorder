@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-*/.vitepress/cache
-*/.vitepress/dist
+# Docusaurus
+.docusaurus
+build
