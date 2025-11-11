@@ -44,21 +44,9 @@ async fn validate_main(headers: &HeaderMap, body: &[u8], state: &AppState) -> Re
 }
 
 async fn validate_setup(headers: &HeaderMap, body: &[u8], state: &AppState) -> Result<String, Response> {
-    let app_id = header_str(headers, "X-HighOrder-Application-Id").ok_or_else(|| error::client_invalid("sign not correct."))?;
-    let sign = header_str(headers, "X-HighOrder-Sign").ok_or_else(|| error::client_invalid("sign not correct."))?;
-    let parts: Vec<&str> = sign.splitn(3, ',').collect();
-    if parts.len() != 3 { return Err(error::client_invalid("sign not correct.")); }
-    let hex_sign = parts[0];
-    let timestamp = parts[1];
-    let client_key = parts[2];
-
-    let setup_keys = state.settings.setup_keys.clone().unwrap_or_default();
-    let client_secret = setup_keys.into_iter().find(|k| k.client_key == client_key).map(|k| k.client_secret)
-        .ok_or_else(|| error::client_invalid("sign not correct."))?;
-
-    let calc = calc_sign_hex(&client_secret, app_id, timestamp, body);
-    if calc != hex_sign { return Err(error::client_invalid("sign not correct.")); }
-    Ok(app_id.to_string())
+    // Reuse the same signature validation as main; returns app_id on success.
+    let (app_id, _session_token) = validate_main(headers, body, state).await?;
+    Ok(app_id)
 }
 
 pub async fn hola_main(Extension(state): Extension<AppState>, headers: HeaderMap, body: axum::body::Bytes) -> Response {

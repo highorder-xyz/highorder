@@ -1,4 +1,4 @@
-use sea_orm::{Database, DatabaseConnection, DbErr};
+use sea_orm::{Database, DatabaseConnection, DbErr, ConnectOptions};
 use sea_orm_migration::prelude::*;
 use postgresql_embedded::{PostgreSQL as EmbeddedPostgres, Settings as EmbeddedSettings};
 use std::process::Command;
@@ -22,12 +22,16 @@ pub async fn create_db_connection() -> Result<DatabaseConnection, DbErr> {
         tracing::info!("Preparing SQLite database file: {}", database_url);
     }
     prepare_sqlite_if_needed(&database_url).map_err(|e| DbErr::Custom(format!("sqlite prepare error: {}", e)))?;
-    // Create connection
-    Database::connect(database_url).await
+    // Create connection (limit to single connection for sqlite memory)
+    let mut opt = ConnectOptions::new(database_url.clone());
+    if database_url.to_lowercase().contains(":memory:") {
+        opt.max_connections(1);
+    }
+    Database::connect(opt).await
 }
 
 async fn start_embedded_postgres(settings: &Settings) -> anyhow::Result<(EmbeddedPostgres, String)> {
-    let mut data_dir = std::path::PathBuf::from(settings.embedded_pg_data_dir());
+    let mut data_dir = std::path::PathBuf::from(settings.localdb_data_dir());
     tracing::info!("Starting embedded Postgres: data_dir={}", data_dir.to_string_lossy());
 
     // If the configured data_dir exists and is non-empty but not an initialized cluster (no PG_VERSION),
@@ -46,7 +50,7 @@ async fn start_embedded_postgres(settings: &Settings) -> anyhow::Result<(Embedde
     let mut es = EmbeddedSettings::default();
     es.data_dir = data_dir.clone();
     es.host = "127.0.0.1".to_string();
-    es.port = settings.embedded_pg_port(); // 0 => random available port
+    es.port = settings.localdb_port(); // 0 => random available port
     es.username = "postgres".to_string();
     es.password = "postgres".to_string();
     es.temporary = false; // preserve data directory across stops
@@ -108,7 +112,11 @@ async fn start_embedded_postgres(settings: &Settings) -> anyhow::Result<(Embedde
 pub async fn create_db_connection_with_url(url: Option<String>) -> Result<DatabaseConnection, DbErr> {
     if let Some(u) = url {
         prepare_sqlite_if_needed(&u).map_err(|e| DbErr::Custom(format!("sqlite prepare error: {}", e)))?;
-        return Database::connect(u).await;
+        let mut opt = ConnectOptions::new(u.clone());
+        if u.to_lowercase().contains(":memory:") {
+            opt.max_connections(1);
+        }
+        return Database::connect(opt).await;
     }
     create_db_connection().await
 }
@@ -135,28 +143,61 @@ pub async fn init_db_with_url(url: Option<String>) -> Result<DatabaseConnection,
 /// Initializes the database using loaded settings. If use_embedded_postgres is enabled,
 /// starts an embedded PostgreSQL instance and connects to it; otherwise falls back to db_url logic.
 pub async fn init_db_with_settings(settings: &Settings) -> Result<(DatabaseConnection, Option<EmbeddedPostgres>), DbErr> {
-    if settings.use_embedded_postgres() {
-        // Ensure no residual postgres process is using this data_dir; kill if found
-        let data_dir = std::path::PathBuf::from(settings.embedded_pg_data_dir());
-        if let Err(e) = ensure_postgres_not_running(&data_dir).await {
-            tracing::warn!("ensure_postgres_not_running warning: {}", e);
+    match settings.storage().as_str() {
+        "localdb" => {
+            // Embedded Postgres
+            let data_dir = std::path::PathBuf::from(settings.localdb_data_dir());
+            if let Err(e) = ensure_postgres_not_running(&data_dir).await {
+                tracing::warn!("ensure_postgres_not_running warning: {}", e);
+            }
+            let (pg, dsn) = start_embedded_postgres(settings)
+                .await
+                .map_err(|e| DbErr::Custom(format!("embedded pg error: {}", e)))?;
+            let conn = Database::connect(dsn).await?;
+            run_migrations(&conn).await?;
+            println!("Database initialized with migrations applied");
+            Ok((conn, Some(pg)))
         }
-
-        // Start embedded Postgres
-        let (pg, dsn) = start_embedded_postgres(settings).await.map_err(|e| DbErr::Custom(format!("embedded pg error: {}", e)))?;
-        let conn = Database::connect(dsn).await?;
-        run_migrations(&conn).await?;
-        println!("Database initialized with migrations applied");
-        return Ok((conn, Some(pg)));
+        "memory" => {
+            // SQLite in-memory, single connection
+            let dsn = "sqlite::memory:".to_string();
+            let mut opt = ConnectOptions::new(dsn);
+            opt.max_connections(1);
+            let conn = Database::connect(opt).await?;
+            run_migrations(&conn).await?;
+            println!("Database initialized with migrations applied");
+            Ok((conn, None))
+        }
+        "litedb" => {
+            // SQLite file
+            let dsn = settings.db_url();
+            prepare_sqlite_if_needed(&dsn).map_err(|e| DbErr::Custom(format!("sqlite prepare error: {}", e)))?;
+            let conn = Database::connect(dsn).await?;
+            run_migrations(&conn).await?;
+            println!("Database initialized with migrations applied");
+            Ok((conn, None))
+        }
+        "db" => {
+            // External database (expected Postgres)
+            let dsn = settings.db_url();
+            let conn = Database::connect(dsn).await?;
+            run_migrations(&conn).await?;
+            println!("Database initialized with migrations applied");
+            Ok((conn, None))
+        }
+        other => {
+            // Fallback: derive from db_url like before
+            tracing::warn!("Unknown storage '{}', falling back to db_url handling", other);
+            let dsn = settings.db_url();
+            prepare_sqlite_if_needed(&dsn).map_err(|e| DbErr::Custom(format!("sqlite prepare error: {}", e)))?;
+            let mut opt = ConnectOptions::new(dsn.clone());
+            if dsn.to_lowercase().contains(":memory:") { opt.max_connections(1); }
+            let conn = Database::connect(opt).await?;
+            run_migrations(&conn).await?;
+            println!("Database initialized with migrations applied");
+            Ok((conn, None))
+        }
     }
-
-    // Fallback to explicit db_url (or default SQLite)
-    let dsn = settings.db_url();
-    prepare_sqlite_if_needed(&dsn).map_err(|e| DbErr::Custom(format!("sqlite prepare error: {}", e)))?;
-    let conn = Database::connect(dsn).await?;
-    run_migrations(&conn).await?;
-    println!("Database initialized with migrations applied");
-    Ok((conn, None))
 }
 
 /// Run database migrations

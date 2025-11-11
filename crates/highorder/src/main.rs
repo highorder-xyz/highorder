@@ -46,11 +46,11 @@ async fn main() {
 
     let settings = Settings::load().unwrap_or_default();
     tracing::info!(
-        "Program start: debug={}, host={}, port={}, embedded_pg={}",
+        "Program start: debug={}, host={}, port={}, storage={}",
         settings.debug(),
         settings.host(),
         settings.port(),
-        settings.use_embedded_postgres()
+        settings.storage()
     );
 
     // Initialize database connection (use embedded Postgres when enabled; otherwise use db_url)
