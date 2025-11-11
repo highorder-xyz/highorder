@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use clap::Parser;
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct SetupKey {
@@ -23,13 +24,54 @@ pub struct Settings {
     pub embedded_pg_port: Option<u16>,
 }
 
+#[derive(Debug, Clone, Parser)]
+#[command(name = "highorder")] 
+struct CliArgs {
+    #[arg(long)]
+    debug: Option<bool>,
+    #[arg(long)]
+    host: Option<String>,
+    #[arg(long)]
+    port: Option<u16>,
+    #[arg(long)]
+    run_editor: Option<bool>,
+    #[arg(long)]
+    db_url: Option<String>,
+    #[arg(long)]
+    data_dir: Option<String>,
+    #[arg(long)]
+    content_url: Option<String>,
+    #[arg(long)]
+    webapp_root: Option<String>,
+    #[arg(long)]
+    use_embedded_postgres: Option<bool>,
+    #[arg(long)]
+    embedded_pg_data_dir: Option<String>,
+    #[arg(long)]
+    embedded_pg_port: Option<u16>,
+}
+
 impl Settings {
     pub fn load() -> anyhow::Result<Self> {
+        let cli = CliArgs::parse();
         let mut builder = config::Config::builder();
         builder = builder.add_source(config::File::with_name("settings").required(false));
         builder = builder.add_source(config::Environment::with_prefix("HIGHORDER").separator("__"));
         let cfg = builder.build()?;
-        let settings: Settings = cfg.try_deserialize()?;
+        let mut settings: Settings = cfg.try_deserialize()?;
+
+        if let Some(v) = cli.debug { settings.debug = Some(v); }
+        if let Some(v) = cli.host { settings.host = Some(v); }
+        if let Some(v) = cli.port { settings.port = Some(v); }
+        if let Some(v) = cli.run_editor { settings.run_editor = Some(v); }
+        if let Some(v) = cli.db_url { settings.db_url = Some(v); }
+        if let Some(v) = cli.data_dir { settings.data_dir = Some(v); }
+        if let Some(v) = cli.content_url { settings.content_url = Some(v); }
+        if let Some(v) = cli.webapp_root { settings.webapp_root = Some(v); }
+        if let Some(v) = cli.use_embedded_postgres { settings.use_embedded_postgres = Some(v); }
+        if let Some(v) = cli.embedded_pg_data_dir { settings.embedded_pg_data_dir = Some(v); }
+        if let Some(v) = cli.embedded_pg_port { settings.embedded_pg_port = Some(v); }
+
         Ok(settings)
     }
 

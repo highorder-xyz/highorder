@@ -65,6 +65,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
+                    .if_not_exists()
                     .name("uq_user_app_username")
                     .table(User::Table)
                     .col(User::AppId)
@@ -101,6 +102,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
+                    .if_not_exists()
                     .name("idx_user_auth_app_user")
                     .table(UserAuth::Table)
                     .col(UserAuth::AppId)
@@ -140,6 +142,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
+                    .if_not_exists()
                     .name("idx_social_account_app_user")
                     .table(SocialAccount::Table)
                     .col(SocialAccount::AppId)
@@ -248,6 +251,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
+                    .if_not_exists()
                     .name("idx_hola_object_app_name")
                     .table(HolaObject::Table)
                     .col(HolaObject::AppId)
@@ -533,6 +537,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
+                    .if_not_exists()
                     .name("idx_hola_thing_app_device")
                     .table(HolaThing::Table)
                     .col(HolaThing::AppId)

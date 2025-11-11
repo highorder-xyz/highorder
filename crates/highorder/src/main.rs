@@ -9,7 +9,7 @@ use axum::Extension;
 use serde::Deserialize;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use tower_http::trace::TraceLayer;
-use tower::make::Shared;
+use tokio::signal;
 
 mod base;
 mod db;
@@ -45,9 +45,16 @@ async fn main() {
         .init();
 
     let settings = Settings::load().unwrap_or_default();
+    tracing::info!(
+        "Program start: debug={}, host={}, port={}, embedded_pg={}",
+        settings.debug(),
+        settings.host(),
+        settings.port(),
+        settings.use_embedded_postgres()
+    );
 
     // Initialize database connection (use embedded Postgres when enabled; otherwise use db_url)
-    let (db_conn, _embedded_pg_guard) = match db::init_db_with_settings(&settings).await {
+    let (db_conn, mut embedded_pg_guard) = match db::init_db_with_settings(&settings).await {
         Ok((conn, guard)) => {
             tracing::info!("Database connection established");
             (conn, guard)
@@ -101,10 +108,20 @@ async fn main() {
         .expect("invalid host/port");
     tracing::info!("Server listening on {}", addr);
     let app = app.with_state(());
-    axum::Server::bind(&addr)
+    let server = axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .with_graceful_shutdown(async move {
+            let _ = signal::ctrl_c().await;
+        });
+
+    if let Err(e) = server.await {
+        tracing::error!("server error: {}", e);
+    }
+
+    // On shutdown, if we started an embedded Postgres, stop it gracefully
+    if let Some(pg) = embedded_pg_guard.take() {
+        let _ = pg.stop().await;
+    }
 }
 
 async fn index(Extension(state): Extension<AppState>, Query(q): Query<IndexQuery>) -> Response {
