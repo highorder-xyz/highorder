@@ -3,6 +3,30 @@ use async_trait::async_trait;
 
 pub struct Migration;
 
+macro_rules! json_col {
+    ($is:expr, $col:expr) => {{
+        let mut c = ColumnDef::new($col);
+        if $is { c.text(); } else { c.json_binary(); }
+        c
+    }};
+}
+
+macro_rules! ts_col {
+    ($is:expr, $col:expr) => {{
+        let mut c = ColumnDef::new($col);
+        if $is { c.date_time(); } else { c.timestamp_with_time_zone(); }
+        c
+    }};
+}
+
+macro_rules! str_col {
+    ($is:expr, $col:expr, $len:expr) => {{
+        let mut c = ColumnDef::new($col);
+        if $is { c.string(); } else { c.string_len($len); }
+        c
+    }};
+}
+
 impl MigrationName for Migration {
     fn name(&self) -> &str {
         "m0001_init"
@@ -12,34 +36,40 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let is_sqlite = manager.get_database_backend() == sea_orm::DatabaseBackend::Sqlite;
         // user
         manager
             .create_table(
                 Table::create()
                     .table(User::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(User::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(User::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(User::UserName).string_len(256).not_null())
+                    .col(str_col!(is_sqlite, User::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, User::UserId, 256).not_null())
+                    .col(str_col!(is_sqlite, User::UserName, 256).not_null())
                     .col(ColumnDef::new(User::Deactive).boolean().not_null().default(false))
                     .col(ColumnDef::new(User::IsFrozen).boolean().not_null().default(false))
-                    .col(ColumnDef::new(User::Sessions).json_binary().not_null())
-                    .col(ColumnDef::new(User::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(User::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(json_col!(is_sqlite, User::Sessions).not_null())
+                    .col(ts_col!(is_sqlite, User::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, User::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(User::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_user")
                             .col(User::AppId)
                             .col(User::UserId),
                     )
-                    .index(
-                        Index::create()
-                            .name("uq_user_app_username")
-                            .col(User::AppId)
-                            .col(User::UserName)
-                            .unique(),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // user unique index (app_id, user_name)
+        manager
+            .create_index(
+                Index::create()
+                    .name("uq_user_app_username")
+                    .table(User::Table)
+                    .col(User::AppId)
+                    .col(User::UserName)
+                    .unique()
                     .to_owned(),
             )
             .await?;
@@ -50,26 +80,31 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(UserAuth::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(UserAuth::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(UserAuth::Email).string_len(128).not_null())
-                    .col(ColumnDef::new(UserAuth::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(UserAuth::Salt).string_len(32).not_null())
-                    .col(ColumnDef::new(UserAuth::PasswordHash).string_len(2048))
-                    .col(ColumnDef::new(UserAuth::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(UserAuth::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, UserAuth::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, UserAuth::Email, 128).not_null())
+                    .col(str_col!(is_sqlite, UserAuth::UserId, 256).not_null())
+                    .col(str_col!(is_sqlite, UserAuth::Salt, 32).not_null())
+                    .col(str_col!(is_sqlite, UserAuth::PasswordHash, 2048).null())
+                    .col(ts_col!(is_sqlite, UserAuth::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, UserAuth::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(UserAuth::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_user_auth")
                             .col(UserAuth::AppId)
                             .col(UserAuth::Email),
                     )
-                    .index(
-                        Index::create()
-                            .name("idx_user_auth_app_user")
-                            .col(UserAuth::AppId)
-                            .col(UserAuth::UserId),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // user_auth index (app_id, user_id)
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_user_auth_app_user")
+                    .table(UserAuth::Table)
+                    .col(UserAuth::AppId)
+                    .col(UserAuth::UserId)
                     .to_owned(),
             )
             .await?;
@@ -80,30 +115,35 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(SocialAccount::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(SocialAccount::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(SocialAccount::SocialId).string_len(512).not_null())
-                    .col(ColumnDef::new(SocialAccount::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(SocialAccount::Platform).string_len(64).not_null())
-                    .col(ColumnDef::new(SocialAccount::PlatformApp).string_len(256).not_null())
-                    .col(ColumnDef::new(SocialAccount::OpenId).string_len(256).not_null())
-                    .col(ColumnDef::new(SocialAccount::UnionId).string_len(256).not_null())
-                    .col(ColumnDef::new(SocialAccount::AuthInfo).json_binary().not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::SocialId, 512).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::UserId, 256).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::Platform, 64).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::PlatformApp, 256).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::OpenId, 256).not_null())
+                    .col(str_col!(is_sqlite, SocialAccount::UnionId, 256).not_null())
+                    .col(json_col!(is_sqlite, SocialAccount::AuthInfo).not_null())
                     .col(ColumnDef::new(SocialAccount::LinkStatus).boolean().not_null().default(false))
-                    .col(ColumnDef::new(SocialAccount::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(SocialAccount::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, SocialAccount::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, SocialAccount::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(SocialAccount::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_social_account")
                             .col(SocialAccount::AppId)
                             .col(SocialAccount::SocialId),
                     )
-                    .index(
-                        Index::create()
-                            .name("idx_social_account_app_user")
-                            .col(SocialAccount::AppId)
-                            .col(SocialAccount::UserId),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // social_account index (app_id, user_id)
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_social_account_app_user")
+                    .table(SocialAccount::Table)
+                    .col(SocialAccount::AppId)
+                    .col(SocialAccount::UserId)
                     .to_owned(),
             )
             .await?;
@@ -114,22 +154,21 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Session::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Session::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(Session::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(Session::UserId).string_len(256))
-                    .col(ColumnDef::new(Session::ExpireTime).timestamp_with_time_zone())
-                    .col(ColumnDef::new(Session::SessionType).string_len(32).not_null())
-                    .col(ColumnDef::new(Session::SessionData).json_binary().not_null())
-                    .col(ColumnDef::new(Session::DeviceInfo).json_binary().not_null())
-                    .col(ColumnDef::new(Session::CountryCode).string_len(32))
-                    .col(ColumnDef::new(Session::Ip).string_len(128))
+                    .col(str_col!(is_sqlite, Session::SessionToken, 256).not_null())
+                    .col(str_col!(is_sqlite, Session::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, Session::UserId, 256).null())
+                    .col(ts_col!(is_sqlite, Session::ExpireTime).null())
+                    .col(str_col!(is_sqlite, Session::SessionType, 32).not_null())
+                    .col(json_col!(is_sqlite, Session::SessionData).not_null())
+                    .col(json_col!(is_sqlite, Session::DeviceInfo).not_null())
+                    .col(str_col!(is_sqlite, Session::CountryCode, 32).null())
+                    .col(str_col!(is_sqlite, Session::Ip, 128).null())
                     .col(ColumnDef::new(Session::IsValid).boolean().default(true))
-                    .col(ColumnDef::new(Session::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(Session::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, Session::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, Session::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(Session::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_session")
                             .col(Session::AppId)
                             .col(Session::SessionToken),
                     )
@@ -143,16 +182,15 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(InstantKvPack::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(InstantKvPack::Prefix).string_len(128).not_null())
-                    .col(ColumnDef::new(InstantKvPack::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(InstantKvPack::Data).json_binary().not_null())
-                    .col(ColumnDef::new(InstantKvPack::ExpireAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(InstantKvPack::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(InstantKvPack::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, InstantKvPack::Prefix, 128).not_null())
+                    .col(str_col!(is_sqlite, InstantKvPack::Name, 256).not_null())
+                    .col(json_col!(is_sqlite, InstantKvPack::Data).not_null())
+                    .col(ts_col!(is_sqlite, InstantKvPack::ExpireAt).null())
+                    .col(ts_col!(is_sqlite, InstantKvPack::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, InstantKvPack::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(InstantKvPack::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_instant_kv_pack")
                             .col(InstantKvPack::Prefix)
                             .col(InstantKvPack::Name),
                     )
@@ -166,17 +204,16 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(InstantKv::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(InstantKv::Prefix).string_len(128).not_null())
-                    .col(ColumnDef::new(InstantKv::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(InstantKv::Field).string_len(256).not_null())
+                    .col(str_col!(is_sqlite, InstantKv::Prefix, 128).not_null())
+                    .col(str_col!(is_sqlite, InstantKv::Name, 256).not_null())
+                    .col(str_col!(is_sqlite, InstantKv::Field, 256).not_null())
                     .col(ColumnDef::new(InstantKv::Value).text().not_null())
-                    .col(ColumnDef::new(InstantKv::ExpireAt).timestamp_with_time_zone())
-                    .col(ColumnDef::new(InstantKv::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(InstantKv::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, InstantKv::ExpireAt).null())
+                    .col(ts_col!(is_sqlite, InstantKv::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, InstantKv::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(InstantKv::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_instant_kv")
                             .col(InstantKv::Prefix)
                             .col(InstantKv::Name)
                             .col(InstantKv::Field),
@@ -191,25 +228,30 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaObject::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaObject::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaObject::ObjectName).string_len(512).not_null())
-                    .col(ColumnDef::new(HolaObject::ObjectId).string_len(512).not_null())
-                    .col(ColumnDef::new(HolaObject::Value).json_binary().not_null())
-                    .col(ColumnDef::new(HolaObject::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaObject::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaObject::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaObject::ObjectName, 512).not_null())
+                    .col(str_col!(is_sqlite, HolaObject::ObjectId, 512).not_null())
+                    .col(json_col!(is_sqlite, HolaObject::Value).not_null())
+                    .col(ts_col!(is_sqlite, HolaObject::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaObject::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaObject::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_object")
                             .col(HolaObject::AppId)
                             .col(HolaObject::ObjectId),
                     )
-                    .index(
-                        Index::create()
-                            .name("idx_hola_object_app_name")
-                            .col(HolaObject::AppId)
-                            .col(HolaObject::ObjectName),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // hola_object index (app_id, object_name)
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_hola_object_app_name")
+                    .table(HolaObject::Table)
+                    .col(HolaObject::AppId)
+                    .col(HolaObject::ObjectName)
                     .to_owned(),
             )
             .await?;
@@ -220,16 +262,15 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaResource::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaResource::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaResource::ResName).string_len(512).not_null())
-                    .col(ColumnDef::new(HolaResource::ResKey).string_len(512).not_null())
-                    .col(ColumnDef::new(HolaResource::Allocation).json_binary().not_null())
-                    .col(ColumnDef::new(HolaResource::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaResource::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaResource::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaResource::ResName, 512).not_null())
+                    .col(str_col!(is_sqlite, HolaResource::ResKey, 512).not_null())
+                    .col(json_col!(is_sqlite, HolaResource::Allocation).not_null())
+                    .col(ts_col!(is_sqlite, HolaResource::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaResource::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaResource::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_resource")
                             .col(HolaResource::AppId)
                             .col(HolaResource::ResName)
                             .col(HolaResource::ResKey),
@@ -244,15 +285,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaVariable::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaVariable::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaVariable::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaVariable::Variable).json_binary().not_null())
-                    .col(ColumnDef::new(HolaVariable::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaVariable::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaVariable::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaVariable::UserId, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaVariable::Variable).not_null())
+                    .col(ts_col!(is_sqlite, HolaVariable::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaVariable::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaVariable::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_variable")
                             .col(HolaVariable::AppId)
                             .col(HolaVariable::UserId),
                     )
@@ -266,15 +306,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaSessionVariable::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaSessionVariable::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaSessionVariable::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionVariable::Variable).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionVariable::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaSessionVariable::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaSessionVariable::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionVariable::SessionToken, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionVariable::Variable).not_null())
+                    .col(ts_col!(is_sqlite, HolaSessionVariable::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaSessionVariable::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaSessionVariable::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_session_variable")
                             .col(HolaSessionVariable::AppId)
                             .col(HolaSessionVariable::SessionToken),
                     )
@@ -288,15 +327,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaPageState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaPageState::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaPageState::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPageState::PageState).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPageState::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaPageState::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaPageState::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaPageState::UserId, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaPageState::PageState).not_null())
+                    .col(ts_col!(is_sqlite, HolaPageState::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaPageState::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaPageState::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_page_state")
                             .col(HolaPageState::AppId)
                             .col(HolaPageState::UserId),
                     )
@@ -310,15 +348,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaSessionPageState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaSessionPageState::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaSessionPageState::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPageState::PageState).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPageState::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaSessionPageState::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaSessionPageState::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPageState::SessionToken, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPageState::PageState).not_null())
+                    .col(ts_col!(is_sqlite, HolaSessionPageState::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaSessionPageState::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaSessionPageState::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_session_page_state")
                             .col(HolaSessionPageState::AppId)
                             .col(HolaSessionPageState::SessionToken),
                     )
@@ -332,15 +369,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaPlayableState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaPlayableState::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaPlayableState::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPlayableState::PlayableState).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayableState::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaPlayableState::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaPlayableState::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaPlayableState::UserId, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayableState::PlayableState).not_null())
+                    .col(ts_col!(is_sqlite, HolaPlayableState::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaPlayableState::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaPlayableState::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_playable_state")
                             .col(HolaPlayableState::AppId)
                             .col(HolaPlayableState::UserId),
                     )
@@ -354,15 +390,14 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaSessionPlayableState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaSessionPlayableState::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayableState::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayableState::PlayableState).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayableState::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaSessionPlayableState::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaSessionPlayableState::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPlayableState::SessionToken, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayableState::PlayableState).not_null())
+                    .col(ts_col!(is_sqlite, HolaSessionPlayableState::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaSessionPlayableState::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaSessionPlayableState::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_session_playable_state")
                             .col(HolaSessionPlayableState::AppId)
                             .col(HolaSessionPlayableState::SessionToken),
                     )
@@ -376,19 +411,18 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaPlayer::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaPlayer::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaPlayer::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPlayer::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPlayer::State).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayer::Profile).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayer::Attribute).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayer::Currency).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayer::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaPlayer::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaPlayer::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaPlayer::UserId, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaPlayer::Name, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayer::State).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayer::Profile).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayer::Attribute).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayer::Currency).not_null())
+                    .col(ts_col!(is_sqlite, HolaPlayer::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaPlayer::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaPlayer::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_player")
                             .col(HolaPlayer::AppId)
                             .col(HolaPlayer::UserId),
                     )
@@ -402,19 +436,18 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaSessionPlayer::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaSessionPlayer::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::State).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::Profile).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::Attribute).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::Currency).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayer::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaSessionPlayer::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaSessionPlayer::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPlayer::SessionToken, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPlayer::Name, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayer::State).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayer::Profile).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayer::Attribute).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayer::Currency).not_null())
+                    .col(ts_col!(is_sqlite, HolaSessionPlayer::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaSessionPlayer::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaSessionPlayer::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_session_player")
                             .col(HolaSessionPlayer::AppId)
                             .col(HolaSessionPlayer::SessionToken),
                     )
@@ -428,17 +461,16 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaPlayerItembox::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaPlayerItembox::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaPlayerItembox::UserId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPlayerItembox::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaPlayerItembox::Attrs).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayerItembox::Detail).json_binary().not_null())
-                    .col(ColumnDef::new(HolaPlayerItembox::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaPlayerItembox::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaPlayerItembox::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaPlayerItembox::UserId, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaPlayerItembox::Name, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayerItembox::Attrs).not_null())
+                    .col(json_col!(is_sqlite, HolaPlayerItembox::Detail).not_null())
+                    .col(ts_col!(is_sqlite, HolaPlayerItembox::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaPlayerItembox::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaPlayerItembox::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_player_itembox")
                             .col(HolaPlayerItembox::AppId)
                             .col(HolaPlayerItembox::UserId)
                             .col(HolaPlayerItembox::Name),
@@ -453,17 +485,16 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaSessionPlayerItembox::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::SessionToken).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::Name).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::Attrs).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::Detail).json_binary().not_null())
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaSessionPlayerItembox::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaSessionPlayerItembox::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPlayerItembox::SessionToken, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaSessionPlayerItembox::Name, 256).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayerItembox::Attrs).not_null())
+                    .col(json_col!(is_sqlite, HolaSessionPlayerItembox::Detail).not_null())
+                    .col(ts_col!(is_sqlite, HolaSessionPlayerItembox::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaSessionPlayerItembox::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaSessionPlayerItembox::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_session_player_itembox")
                             .col(HolaSessionPlayerItembox::AppId)
                             .col(HolaSessionPlayerItembox::SessionToken)
                             .col(HolaSessionPlayerItembox::Name),
@@ -478,29 +509,34 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(HolaThing::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HolaThing::AppId).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaThing::ThingId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaThing::DeviceId).string_len(256).not_null())
-                    .col(ColumnDef::new(HolaThing::DeviceType).string_len(128).not_null())
-                    .col(ColumnDef::new(HolaThing::DeviceInfo).json_binary().not_null())
-                    .col(ColumnDef::new(HolaThing::BindTo).json_binary().not_null())
-                    .col(ColumnDef::new(HolaThing::HomeUrl).string_len(1024))
-                    .col(ColumnDef::new(HolaThing::Related).json_binary().not_null())
-                    .col(ColumnDef::new(HolaThing::Created).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
-                    .col(ColumnDef::new(HolaThing::Updated).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(str_col!(is_sqlite, HolaThing::AppId, 128).not_null())
+                    .col(str_col!(is_sqlite, HolaThing::ThingId, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaThing::DeviceId, 256).not_null())
+                    .col(str_col!(is_sqlite, HolaThing::DeviceType, 128).not_null())
+                    .col(json_col!(is_sqlite, HolaThing::DeviceInfo).not_null())
+                    .col(json_col!(is_sqlite, HolaThing::BindTo).not_null())
+                    .col(str_col!(is_sqlite, HolaThing::HomeUrl, 1024).null())
+                    .col(json_col!(is_sqlite, HolaThing::Related).not_null())
+                    .col(ts_col!(is_sqlite, HolaThing::Created).not_null().default(Expr::current_timestamp()))
+                    .col(ts_col!(is_sqlite, HolaThing::Updated).not_null().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(HolaThing::DataVer).big_integer().not_null().default(0))
                     .primary_key(
                         Index::create()
-                            .name("pk_hola_thing")
                             .col(HolaThing::AppId)
                             .col(HolaThing::ThingId),
                     )
-                    .index(
-                        Index::create()
-                            .name("idx_hola_thing_app_device")
-                            .col(HolaThing::AppId)
-                            .col(HolaThing::DeviceId),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        // hola_thing index (app_id, device_id)
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_hola_thing_app_device")
+                    .table(HolaThing::Table)
+                    .col(HolaThing::AppId)
+                    .col(HolaThing::DeviceId)
                     .to_owned(),
             )
             .await?;

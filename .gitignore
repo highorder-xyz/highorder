@@ -166,3 +166,7 @@ pkg/
 wasm-pack.log
 .wasm-pack/
 target/
+highorder.db
+highorder.db-journal
+highorder.db-shm
+.pg-data

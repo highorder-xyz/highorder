@@ -17,6 +17,10 @@ pub struct Settings {
     pub content_url: Option<String>,
     pub webapp_root: Option<String>,
     pub setup_keys: Option<Vec<SetupKey>>,
+    // Embedded Postgres options
+    pub use_embedded_postgres: Option<bool>,
+    pub embedded_pg_data_dir: Option<String>,
+    pub embedded_pg_port: Option<u16>,
 }
 
 impl Settings {
@@ -33,4 +37,28 @@ impl Settings {
     pub fn host(&self) -> String { self.host.clone().unwrap_or_else(|| "0.0.0.0".to_string()) }
     pub fn port(&self) -> u16 { self.port.unwrap_or(9000) }
     pub fn run_editor(&self) -> bool { self.run_editor.unwrap_or(false) }
+    pub fn db_url(&self) -> String {
+        self.db_url
+            .clone()
+            .unwrap_or_else(|| "sqlite://./highorder.db?mode=rwc".to_string())
+    }
+
+    // Whether to use embedded Postgres. If explicitly set, honor it.
+    // Otherwise, default to true when db_url is not provided.
+    pub fn use_embedded_postgres(&self) -> bool {
+        match self.use_embedded_postgres {
+            Some(b) => b,
+            None => self.db_url.is_none(),
+        }
+    }
+
+    pub fn embedded_pg_data_dir(&self) -> String {
+        self.embedded_pg_data_dir
+            .clone()
+            .unwrap_or_else(|| "./.pg-data".to_string())
+    }
+
+    pub fn embedded_pg_port(&self) -> u16 {
+        self.embedded_pg_port.unwrap_or(0)
+    }
 }

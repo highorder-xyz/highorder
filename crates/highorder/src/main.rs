@@ -46,13 +46,11 @@ async fn main() {
 
     let settings = Settings::load().unwrap_or_default();
 
-    // Initialize database connection (respect db_url in settings)
-    let db_conn = match db::init_db_with_url(settings.db_url.clone())
-        .await
-    {
-        Ok(conn) => {
+    // Initialize database connection (use embedded Postgres when enabled; otherwise use db_url)
+    let (db_conn, _embedded_pg_guard) = match db::init_db_with_settings(&settings).await {
+        Ok((conn, guard)) => {
             tracing::info!("Database connection established");
-            conn
+            (conn, guard)
         }
         Err(e) => {
             tracing::error!("Failed to connect to database: {}", e);
