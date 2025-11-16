@@ -1,0 +1,11 @@
+{
+  "objects": [
+    {
+      "type": "Page",
+      "properties": {
+        "title": "Hello"
+      },
+      "children": []
+    }
+  ]
+}

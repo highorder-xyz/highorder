@@ -1,0 +1,4 @@
+View {
+    width: {{ screen.width / 2 }}
+    visible: {{ user.isAdmin }}
+}

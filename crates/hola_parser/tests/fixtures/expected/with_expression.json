@@ -1,0 +1,12 @@
+{
+  "objects": [
+    {
+      "type": "View",
+      "properties": {
+        "width": {"$expr": "Binary(Get(Variable(\"screen\"), \"width\"), Divide, Literal(Number(Int(2))))"},
+        "visible": {"$expr": "Get(Variable(\"user\"), \"isAdmin\")"}
+      },
+      "children": []
+    }
+  ]
+}

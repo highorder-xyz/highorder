@@ -1,0 +1,11 @@
+{
+  "objects": [
+    {
+      "type": "ListView",
+      "properties": {
+        "items": [1, null, 3, null]
+      },
+      "children": []
+    }
+  ]
+}
