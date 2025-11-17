@@ -16,6 +16,7 @@ enum Precedence {
     Factor,     // * /
     Unary,      // ! -
     Call,       // . ()
+    Index,      // []
     Primary,
 }
 
@@ -52,6 +53,9 @@ impl<'a> ExpressionParser<'a> {
                 TokenKind::LParen => {
                     expr = self.parse_call_expression(expr)?;
                 }
+                TokenKind::LBracket => {
+                    expr = self.parse_list_get(expr)?;
+                }
                 _ => {
                     expr = self.parse_infix(expr)?;
                 }
@@ -87,7 +91,11 @@ impl<'a> ExpressionParser<'a> {
             TokenKind::LParen => {
                 let expr = self.parse_precedence(Precedence::Assignment)?;
                 self.consume(TokenKind::RParen, "Expect ')' after expression.")?;
-                Ok(expr)
+                Ok(Expr::Grouping(Box::new(expr)))
+            }
+            TokenKind::LBracket => {
+                self.cursor -= 1; // Step back to re-process the bracket
+                self.parse_list()
             }
             _ => Err(format!("Unexpected token for prefix expression: {:?}", token.kind)),
         }
@@ -125,6 +133,7 @@ impl<'a> ExpressionParser<'a> {
             TokenKind::AndAnd => Precedence::And,
             TokenKind::OrOr => Precedence::Or,
             TokenKind::Dot | TokenKind::LParen => Precedence::Call,
+            TokenKind::LBracket => Precedence::Index,
             _ => Precedence::None,
         }
     }
@@ -196,5 +205,51 @@ impl<'a> ExpressionParser<'a> {
             }
         }
         Ok(Expr::Call(Box::new(callee), args))
+    }
+
+    fn parse_list(&mut self) -> Result<Expr, String> {
+        self.advance(); // consume '['
+        let mut items: Vec<Expr> = Vec::new();
+        
+        // Handle empty list
+        if self.peek().kind == TokenKind::RBracket {
+            self.advance(); // consume ']'
+            return Ok(Expr::List(items));
+        }
+        
+        // Parse list items
+        loop {
+            let item = self.parse_precedence(Precedence::Assignment)?;
+            items.push(item);
+            
+            if self.cursor >= self.tokens.len() {
+                return Err("Unterminated list, missing ']".to_string());
+            }
+            
+            match self.peek().kind {
+                TokenKind::Comma => { 
+                    self.advance(); 
+                    // Allow trailing comma
+                    if self.peek().kind == TokenKind::RBracket {
+                        self.advance(); // consume ']'
+                        return Ok(Expr::List(items));
+                    }
+                }
+                TokenKind::RBracket => { 
+                    self.advance(); // consume ']'
+                    break; 
+                }
+                _ => return Err("Expected ',' or ']' in list".to_string()),
+            }
+        }
+        
+        Ok(Expr::List(items))
+    }
+
+    fn parse_list_get(&mut self, left: Expr) -> Result<Expr, String> {
+        self.advance(); // consume '['
+        let index = self.parse_precedence(Precedence::Assignment)?;
+        self.consume(TokenKind::RBracket, "Expect ']' after index.")?;
+        Ok(Expr::ListGet(Box::new(left), Box::new(index)))
     }
 }

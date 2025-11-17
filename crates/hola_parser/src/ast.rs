@@ -52,6 +52,9 @@ pub enum Expr {
     Call(Box<Expr>, Vec<Expr>), // e.g., function(arg1, arg2)
     Get(Box<Expr>, String),    // e.g., user.name
     Literal(LiteralKind),
+    Grouping(Box<Expr>),       // For grouping with parentheses (expr)
+    List(Vec<Expr>),           // For list literals [item1, item2, ...]
+    ListGet(Box<Expr>, Box<Expr>), // For list access list[index]
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
