@@ -42,3 +42,31 @@ fn fixtures_list_empty_slots() {
     let exp = load_expected("list_empty_slots");
     assert_eq!(got, exp);
 }
+
+#[test]
+fn fixtures_nested_objects() {
+    let got = compile_object("nested_objects");
+    let exp = load_expected("nested_objects");
+    assert_eq!(got, exp);
+}
+
+#[test]
+fn fixtures_primitive_values() {
+    let got = compile_object("primitive_values");
+    let exp = load_expected("primitive_values");
+    assert_eq!(got, exp);
+}
+
+#[test]
+fn fixtures_complex_expressions() {
+    let got = compile_object("complex_expressions");
+    let exp = load_expected("complex_expressions");
+    assert_eq!(got, exp);
+}
+
+#[test]
+fn fixtures_anonymous_objects() {
+    let got = compile_object("anonymous_objects");
+    let exp = load_expected("anonymous_objects");
+    assert_eq!(got, exp);
+}

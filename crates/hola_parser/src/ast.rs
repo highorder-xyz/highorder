@@ -46,6 +46,7 @@ pub enum NumberValue {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
+    Logical(Box<Expr>, LogicalOperator, Box<Expr>),
     Unary(UnaryOperator, Box<Expr>),
     Variable(String),
     Call(Box<Expr>, Vec<Expr>), // e.g., function(arg1, arg2)
@@ -65,12 +66,16 @@ pub enum BinaryOperator {
     LessEqual, // <=
     Greater,  // >
     GreaterEqual, // >=
-    And,      // &&
-    Or,       // ||
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum UnaryOperator {
     Not,   // !
     Negate, // -
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum LogicalOperator {
+    And,      // &&
+    Or,       // ||
 }

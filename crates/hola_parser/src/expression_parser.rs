@@ -1,4 +1,4 @@
-use crate::ast::{Expr, LiteralKind, BinaryOperator, UnaryOperator};
+use crate::ast::{Expr, LiteralKind, BinaryOperator, UnaryOperator, LogicalOperator};
 use crate::tokenizer::{Token, TokenKind};
 
 // Pratt parser implementation for expressions.
@@ -96,12 +96,24 @@ impl<'a> ExpressionParser<'a> {
     fn parse_infix(&mut self, left: Expr) -> Result<Expr, String> {
         let token = self.peek();
         let precedence = self.get_precedence(token.kind);
-        let operator = self.get_binary_operator(token.kind)?;
 
         self.advance(); // Consume operator
 
         let right = self.parse_precedence(precedence)?;
-        Ok(Expr::Binary(Box::new(left), operator, Box::new(right)))
+
+        // Check if this is a logical operator
+        match token.kind {
+            TokenKind::AndAnd => {
+                Ok(Expr::Logical(Box::new(left), LogicalOperator::And, Box::new(right)))
+            }
+            TokenKind::OrOr => {
+                Ok(Expr::Logical(Box::new(left), LogicalOperator::Or, Box::new(right)))
+            }
+            _ => {
+                let operator = self.get_binary_operator(token.kind)?;
+                Ok(Expr::Binary(Box::new(left), operator, Box::new(right)))
+            }
+        }
     }
 
     fn get_precedence(&self, kind: TokenKind) -> Precedence {
@@ -129,8 +141,6 @@ impl<'a> ExpressionParser<'a> {
             TokenKind::LessEqual => Ok(BinaryOperator::LessEqual),
             TokenKind::Greater => Ok(BinaryOperator::Greater),
             TokenKind::GreaterEqual => Ok(BinaryOperator::GreaterEqual),
-            TokenKind::AndAnd => Ok(BinaryOperator::And),
-            TokenKind::OrOr => Ok(BinaryOperator::Or),
             _ => Err(format!("Not a binary operator: {:?}", kind)),
         }
     }

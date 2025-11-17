@@ -1,0 +1,16 @@
+{
+  "objects": [
+    {
+      "type": "Data",
+      "properties": {
+        "integer": 42,
+        "float": 3.14,
+        "boolean_true": true,
+        "boolean_false": false,
+        "null_value": null,
+        "string": "text"
+      },
+      "children": []
+    }
+  ]
+}

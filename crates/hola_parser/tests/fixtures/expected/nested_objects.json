@@ -1,0 +1,33 @@
+{
+  "objects": [
+    {
+      "type": "Container",
+      "properties": {
+        "child": {
+          "type": "Child",
+          "properties": {
+            "value": "nested"
+          },
+          "children": []
+        },
+        "children": [
+          {
+            "type": "Child",
+            "properties": {
+              "value": "first"
+            },
+            "children": []
+          },
+          {
+            "type": "Child",
+            "properties": {
+              "value": "second"
+            },
+            "children": []
+          }
+        ]
+      },
+      "children": []
+    }
+  ]
+}

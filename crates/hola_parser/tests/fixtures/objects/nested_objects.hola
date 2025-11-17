@@ -1,0 +1,9 @@
+Container {
+    child: Child {
+        value: "nested"
+    }
+    children: [
+        Child { value: "first" },
+        Child { value: "second" }
+    ]
+}

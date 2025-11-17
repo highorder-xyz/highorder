@@ -1,0 +1,20 @@
+{
+  "objects": [
+    {
+      "type": "Calculator",
+      "properties": {
+        "sum": {"$expr": "Binary(Variable(\"a\"), Add, Variable(\"b\"))"},
+        "condition": {
+          "type": "Logical",
+          "operator": "&&",
+          "left": {"$expr": "Binary(Variable(\"x\"), Greater, Literal(Number(Int(10))))"},
+          "right": {"$expr": "Binary(Variable(\"y\"), Less, Literal(Number(Int(20))))"}
+        },
+        "method_call": {"$expr": "Call(Get(Variable(\"user\"), \"getProfile\"), [])"},
+        "nested_property": {"$expr": "Get(Get(Variable(\"app\"), \"settings\"), \"theme\")"},
+        "negation": {"$expr": "Unary(Not, Variable(\"isActive\"))"}
+      },
+      "children": []
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+Calculator {
+    sum: {{ a + b }}
+    condition: {{ x > 10 && y < 20 }}
+    method_call: {{ user.getProfile() }}
+    nested_property: {{ app.settings.theme }}
+    negation: {{ !isActive }}
+}

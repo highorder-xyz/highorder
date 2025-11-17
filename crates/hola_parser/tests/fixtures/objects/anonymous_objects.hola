@@ -1,0 +1,10 @@
+Parent {
+    child: {
+        type: "Anonymous"
+        value: "no name"
+    }
+    items: [
+        { id: 1, text: "first" },
+        { id: 2, text: "second" }
+    ]
+}

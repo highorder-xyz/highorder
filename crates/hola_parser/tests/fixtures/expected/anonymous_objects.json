@@ -1,0 +1,36 @@
+{
+  "objects": [
+    {
+      "type": "Parent",
+      "properties": {
+        "child": {
+          "type": "",
+          "properties": {
+            "type": "Anonymous",
+            "value": "no name"
+          },
+          "children": []
+        },
+        "items": [
+          {
+            "type": "",
+            "properties": {
+              "id": 1,
+              "text": "first"
+            },
+            "children": []
+          },
+          {
+            "type": "",
+            "properties": {
+              "id": 2,
+              "text": "second"
+            },
+            "children": []
+          }
+        ]
+      },
+      "children": []
+    }
+  ]
+}

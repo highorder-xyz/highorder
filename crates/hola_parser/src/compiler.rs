@@ -1,5 +1,5 @@
 use serde_json::{Value, Map, Number};
-use crate::ast::{AstRoot, ObjectNode, PropertyValue, LiteralKind, Expr};
+use crate::ast::{AstRoot, ObjectNode, PropertyValue, LiteralKind, Expr, LogicalOperator};
 
 pub struct Compiler {}
 
@@ -64,7 +64,21 @@ impl Compiler {
         let mut expr_map = Map::new();
         // We serialize the expression into a string format that a runtime could potentially evaluate.
         // This is a placeholder; a real implementation would be more robust.
-        expr_map.insert("$expr".to_string(), Value::String(format!("{:?}", expr)));
+        match expr {
+            Expr::Logical(left, op, right) => {
+                let op_str = match op {
+                    LogicalOperator::And => "&&",
+                    LogicalOperator::Or => "||",
+                };
+                expr_map.insert("type".to_string(), Value::String("Logical".to_string()));
+                expr_map.insert("operator".to_string(), Value::String(op_str.to_string()));
+                expr_map.insert("left".to_string(), self.compile_expression(left));
+                expr_map.insert("right".to_string(), self.compile_expression(right));
+            }
+            _ => {
+                expr_map.insert("$expr".to_string(), Value::String(format!("{:?}", expr)));
+            }
+        }
         Value::Object(expr_map)
     }
 }
