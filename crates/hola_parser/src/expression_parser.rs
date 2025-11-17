@@ -80,6 +80,7 @@ impl<'a> ExpressionParser<'a> {
                 Ok(Expr::Literal(num))
             }
             TokenKind::StringLiteral => Ok(Expr::Literal(LiteralKind::String(token.value.clone()))),
+            TokenKind::ColorLiteral => Ok(Expr::Literal(LiteralKind::Color(token.value.clone()))),
             TokenKind::BoolLiteral => Ok(Expr::Literal(LiteralKind::Bool(token.value.parse().unwrap()))),
             TokenKind::NullLiteral => Ok(Expr::Literal(LiteralKind::Null)),
             TokenKind::Identifier => Ok(Expr::Variable(token.value.clone())),

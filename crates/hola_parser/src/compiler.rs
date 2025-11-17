@@ -55,6 +55,7 @@ impl Compiler {
             }
             LiteralKind::Bool(b) => Value::Bool(*b),
             LiteralKind::Null => Value::Null,
+            LiteralKind::Color(c) => Value::String(c.clone()),
         }
     }
 

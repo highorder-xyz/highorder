@@ -110,7 +110,7 @@ pub struct LineOffsets {
 ///
 /// # Examples
 /// ```
-/// use hola_parser::position::{LineOffsets, BytePos};
+/// use hola_expr::position::{LineOffsets, BytePos};
 /// let offsets = LineOffsets::new("abc\ndef");
 /// assert_eq!(offsets.line(BytePos(0)), 1);
 /// assert_eq!(offsets.line(BytePos(1)), 1);

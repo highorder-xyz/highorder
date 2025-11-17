@@ -16,6 +16,7 @@ pub enum TokenKind {
     PropertyName,   // name
     StringLiteral,  // "hello"
     NumberLiteral,  // 123
+    ColorLiteral,   // #FF0000, #abc, rgb(255,0,0)
     BoolLiteral,    // true, false
     NullLiteral,    // null
     LBrace,         // {
@@ -133,13 +134,15 @@ impl<'a> Tokenizer<'a> {
             ':' => Some(self.make_token(TokenKind::Colon, ":".to_string(), start_pos)),
             ',' => Some(self.make_token(TokenKind::Comma, ",".to_string(), start_pos)),
             '\n' => Some(self.make_token(TokenKind::LineBreak, "\n".to_string(), start_pos)),
-            '/' => {
+           '/' => {
                 if self.peek_char() == Some(&'/') {
                     self.read_comment(start_pos)
                 } else {
-                    Some(self.make_token(TokenKind::Unknown, "/".to_string(), start_pos))
+                    // Division operator in default mode
+                    Some(self.make_token(TokenKind::Slash, "/".to_string(), start_pos))
                 }
             }
+            '#' => self.read_color(start_pos),
             '"' | '\'' => self.read_string(ch, start_pos),
             c if c.is_ascii_alphabetic() || c == '_' => self.read_identifier(c, start_pos),
             c if c.is_ascii_digit() => self.read_number(c, start_pos),
@@ -192,6 +195,7 @@ impl<'a> Tokenizer<'a> {
                     Some(self.make_token(TokenKind::Unknown, "|".to_string(), start_pos))
                 }
             },
+            '#' => self.read_color(start_pos),
             '"' | '\'' => self.read_string(ch, start_pos),
             c if c.is_ascii_alphabetic() || c == '_' => self.read_identifier(c, start_pos),
             c if c.is_ascii_digit() => self.read_number(c, start_pos),
@@ -296,6 +300,29 @@ impl<'a> Tokenizer<'a> {
             value.push(self.advance_char().unwrap());
         }
         Some(self.make_token(TokenKind::Comment, value, start_pos))
+    }
+
+    fn read_color(&mut self, start_pos: BytePos) -> Option<Token> {
+        let mut value = String::new();
+        value.push('#'); // Already consumed '#'
+        
+        // Check if it's a hex color: #RGB or #RRGGBB or #RRGGBBAA
+        while let Some(&c) = self.peek_char() {
+            if c.is_ascii_hexdigit() {
+                value.push(self.advance_char().unwrap());
+            } else {
+                break;
+            }
+        }
+        
+        // Valid hex color lengths: 3, 4, 6, 8
+        let hex_len = value.len() - 1; // -1 for '#'
+        if hex_len == 3 || hex_len == 4 || hex_len == 6 || hex_len == 8 {
+            return Some(self.make_token(TokenKind::ColorLiteral, value, start_pos));
+        }
+        
+        // If not a valid hex color, return as unknown
+        Some(self.make_token(TokenKind::Unknown, value, start_pos))
     }
 
     fn one_or_two_char(&mut self, next_char: char, two_kind: TokenKind, one_kind: TokenKind, start_pos: BytePos) -> Option<Token> {

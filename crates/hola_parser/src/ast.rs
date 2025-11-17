@@ -31,6 +31,7 @@ pub enum LiteralKind {
     Number(NumberValue),
     Bool(bool),
     Null,
+    Color(String),  // Color literal like #FF0000, #123, rgb(255,0,0)
 }
 
 #[derive(Debug, PartialEq, Clone)]

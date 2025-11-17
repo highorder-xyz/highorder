@@ -98,6 +98,10 @@ impl<'a> Parser<'a> {
                 };
                 Ok(PropertyValue::Literal(num))
             }
+            TokenKind::ColorLiteral => {
+                let token = self.tokens.next().unwrap();
+                Ok(PropertyValue::Literal(LiteralKind::Color(token.value)))
+            }
             TokenKind::BoolLiteral => {
                 let token = self.tokens.next().unwrap();
                 Ok(PropertyValue::Literal(LiteralKind::Bool(token.value.parse().unwrap())))
@@ -191,8 +195,12 @@ impl<'a> Parser<'a> {
     }
 
     fn consume_breaks(&mut self) {
-        while self.peek_if(TokenKind::LineBreak).is_some() {
-            self.tokens.next();
+        while let Some(token) = self.tokens.peek() {
+            if token.kind == TokenKind::LineBreak || token.kind == TokenKind::Comment {
+                self.tokens.next();
+            } else {
+                break;
+            }
         }
     }
 
@@ -208,7 +216,7 @@ impl<'a> Parser<'a> {
     
     fn consume_separators(&mut self) {
         while let Some(token) = self.tokens.peek() {
-            if token.kind == TokenKind::LineBreak || token.kind == TokenKind::Comma {
+            if token.kind == TokenKind::LineBreak || token.kind == TokenKind::Comma || token.kind == TokenKind::Comment {
                 self.tokens.next();
             } else {
                 break;

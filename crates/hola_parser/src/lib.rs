@@ -5,6 +5,9 @@ pub mod parser;
 pub mod expression_parser;
 pub mod compiler;
 pub mod position;
+pub mod token_stream;
+pub mod error;
+pub mod name_transform;
 
 use serde_json::Value;
 use crate::parser::Parser;
