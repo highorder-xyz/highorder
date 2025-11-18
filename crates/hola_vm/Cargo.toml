@@ -1,0 +1,10 @@
+[package]
+name = "hola_vm"
+version = "0.1.0"
+edition = "2021"
+authors = ["HighOrder Team"]
+description = "HOLA Virtual Machine Implementation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/highorder/hola_vm"
+
+[dependencies]
