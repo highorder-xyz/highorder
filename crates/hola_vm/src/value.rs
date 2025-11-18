@@ -18,6 +18,14 @@ pub enum Value {
     Array(Vec<Value>),
     /// 对象类型（哈希表）
     Object(HashMap<String, Value>),
+    /// 元组类型
+    Tuple(Vec<Value>),
+    /// 范围类型（起始值，结束值，是否包含结束值）
+    Range(Option<i64>, Option<i64>, bool),
+    /// 函数引用
+    Function(u64),
+    /// 异常值（异常类型，消息）
+    Exception(String, String),
     /// 空值
     Null,
 }
@@ -33,6 +41,10 @@ impl Value {
             Value::String(s) => !s.is_empty(),
             Value::Array(a) => !a.is_empty(),
             Value::Object(o) => !o.is_empty(),
+            Value::Tuple(t) => !t.is_empty(),
+            Value::Range(_, _, _) => true,
+            Value::Function(_) => true,
+            Value::Exception(_, _) => false,
         }
     }
 
@@ -84,6 +96,30 @@ impl Value {
             _ => None,
         }
     }
+
+    /// 尝试转换为元组
+    pub fn as_tuple(&self) -> Option<&Vec<Value>> {
+        match self {
+            Value::Tuple(t) => Some(t),
+            _ => None,
+        }
+    }
+
+    /// 尝试转换为可变元组
+    pub fn as_tuple_mut(&mut self) -> Option<&mut Vec<Value>> {
+        match self {
+            Value::Tuple(t) => Some(t),
+            _ => None,
+        }
+    }
+
+    /// 尝试转换为函数
+    pub fn as_function(&self) -> Option<u64> {
+        match self {
+            Value::Function(hash) => Some(*hash),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -113,6 +149,38 @@ impl fmt::Display for Value {
                 }
                 write!(f, "}}")
             }
+            Value::Tuple(t) => {
+                write!(f, "(")?;
+                for (i, v) in t.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", v)?;
+                }
+                write!(f, ")")
+            }
+            Value::Range(start, end, inclusive) => {
+                match (start, end) {
+                    (Some(s), Some(e)) => {
+                        if *inclusive {
+                            write!(f, "{}..={}", s, e)
+                        } else {
+                            write!(f, "{}..{}", s, e)
+                        }
+                    }
+                    (Some(s), None) => write!(f, "{}..", s),
+                    (None, Some(e)) => {
+                        if *inclusive {
+                            write!(f, "..={}", e)
+                        } else {
+                            write!(f, "..<{}", e)
+                        }
+                    }
+                    (None, None) => write!(f, ".."),
+                }
+            }
+            Value::Function(hash) => write!(f, "fn({:x})", hash),
+            Value::Exception(exc_type, msg) => write!(f, "Exception[{}]: {}", exc_type, msg),
             Value::Null => write!(f, "null"),
         }
     }
