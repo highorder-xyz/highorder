@@ -37,8 +37,10 @@ pub mod opcode;
 pub mod value;
 pub mod stack;
 pub mod vm_core;
+pub mod formatter;
 
 pub use opcode::{Address, OpCode, Output};
 pub use value::Value;
 pub use stack::Stack;
 pub use vm_core::{Program, Vm, VmError};
+pub use formatter::{FormatError, Formatter};
