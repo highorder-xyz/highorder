@@ -1,0 +1,57 @@
+(* Hola namespace examples *)
+
+(* Single type name *)
+String {
+    value: "hello world"
+    length: 11
+}
+
+(* Two-part namespace *)
+System.String {
+    value: "example"
+    length: 7
+}
+
+(* Three-part namespace *)
+System.Collections.Generic.List {
+    items: ["item1", "item2", "item3"]
+    count: 3
+}
+
+(* Four-part namespace *)
+Microsoft.AspNetCore.Mvc.Controller {
+    name: "HomeController"
+    actions: ["Index", "About", "Contact"]
+}
+
+(* Complex namespace with properties *)
+MyApp.Models.User {
+    id: 1
+    name: "John Doe"
+    email: "john@example.com"
+    profile: {
+        firstName: "John"
+        lastName: "Doe"
+        age: 30
+    }
+}
+
+(* Nested objects with namespaces *)
+MyApp.Services.AuthService {
+    provider: "OAuth2"
+    config: {
+        clientId: "abc123"
+        redirectUri: "https://example.com/callback"
+        scopes: ["openid", "profile", "email"]
+    }
+    providers: {
+        Google: {
+            enabled: true
+            clientId: "google-client-id"
+        }
+        Microsoft: {
+            enabled: true
+            clientId: "microsoft-client-id"
+        }
+    }
+}

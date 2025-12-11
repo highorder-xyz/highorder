@@ -1,0 +1,217 @@
+(* Hola language grammar in PEG *)
+
+(* ---------- 1. Syntax level ---------- *)
+
+holaFile        = *lineBreak object *( *lineBreak object ) *lineBreak ;
+
+object          = typeName? lBrace objectBody? rBrace ;
+
+(* TypeName supports namespace with dot-separated parts:
+   - Single identifier: String
+   - Two parts: System.String  
+   - Multiple parts: System.Collections.Generic.List *)
+typeName        = upperIdent *( dot upperIdent ) ;
+
+objectBody      = item *( separator item ) separator? ;
+
+item            = property / subObject ;
+
+subObject       = object ;
+
+property        = propertyKey colon value ;
+
+propertyKey     = propertyName / stringLiteral ;
+
+value           = nullLiteral
+                / boolLiteral
+                / numberLiteral
+                / stringLiteral
+                / list
+                / object
+                / expressionBlock ;
+
+list            = lBracket listElements? rBracket ;
+
+listElements    = value? *( separator value? ) ;
+
+separator       = comma / lineBreak ;
+
+expressionBlock = lBraceLBrace expression rBraceRBrace ;
+
+
+(* ---------- 1.1 Expression grammar ---------- *)
+
+expression              = logicalOrExpression ;
+
+logicalOrExpression     = logicalAndExpression *( orOperator logicalAndExpression ) ;
+
+orOperator              = orOr ;           (* || *)
+
+logicalAndExpression    = equalityExpression *( andOperator equalityExpression ) ;
+
+andOperator             = andAnd ;         (* && *)
+
+equalityExpression      = relationalExpression *( equalityOperator relationalExpression ) ;
+
+equalityOperator        = equalEqual       (* == *)
+                        / bangEqual ;      (* != *)
+
+relationalExpression    = additiveExpression *( relationalOperator additiveExpression ) ;
+
+relationalOperator      = less             (* < *)
+                        / lessEqual        (* <= *)
+                        / greater          (* > *)
+                        / greaterEqual     (* >= *)
+                        / inKeyword ;      (* in *)
+
+additiveExpression      = multiplicativeExpression *( additiveOperator multiplicativeExpression ) ;
+
+additiveOperator        = plus             (* + *)
+                        / minus ;          (* - *)
+
+multiplicativeExpression = unaryExpression *( multiplicativeOperator unaryExpression ) ;
+
+multiplicativeOperator  = star             (* *)
+                        / slash ;          (* / *)
+
+unaryExpression         = unaryOperator unaryExpression
+                        / postfixExpression ;
+
+unaryOperator           = bang             (* ! *)
+                        / minus ;          (* - *)
+
+postfixExpression       = memberExpression ;
+
+memberExpression        = primaryExpression *memberSuffix ;
+
+memberSuffix            = dot identifier                     (* obj.prop *)
+                        / lParen argumentList? rParen        (* call(...) *)
+                        / lBracket expression rBracket ;     (* list[index] or obj[propExpr] *)
+
+primaryExpression       = literal
+                        / identifier
+                        / lParen expression rParen
+                        / listLiteral ;
+
+literal                 = stringLiteral
+                        / numberLiteral
+                        / boolLiteral
+                        / nullLiteral
+                        / colorLiteral ;
+
+listLiteral             = lBracket expressionList? rBracket ;
+
+expressionList          = expression *( comma expression ) ;
+
+argumentList            = expression *( comma expression ) ;
+
+
+(* ---------- 2. Lexical level (tokens) ---------- *)
+
+letter          = [A-Z] / [a-z] / "_" ;
+
+digit           = [0-9] ;
+
+identifier      = letter *( letter / digit ) ;
+
+upperIdent      = [A-Z_] *( letter / digit ) ;
+
+lowerIdent      = [a-z] *( letter / digit ) ;
+
+propertyName    = lowerIdent - ("true" / "false" / "null") ;
+
+nullLiteral     = "null" ;
+
+boolLiteral     = "true" / "false" ;
+
+numberLiteral   = digit *( digit / "_" )
+                  ( "." digit *( digit / "_" ) )? ;
+
+stringLiteral   = "\"" *stringChar "\""
+                / "'" *stringChar "'" ;
+
+stringChar      = ( anyChar - lineBreak - "\"" - "'" )
+                / escapeSequence ;
+
+escapeSequence  = "\\" ( "n" / "r" / "t" / "v" / "b" / "f" / "a" / anyChar ) ;
+
+lBrace          = "{" ;
+
+rBrace          = "}" ;
+
+lBraceLBrace    = "{{" ;
+
+rBraceRBrace    = "}}" ;
+
+lBracket        = "[" ;
+
+rBracket        = "]" ;
+
+colon           = ":" ;
+
+comma           = "," ;
+
+semicolon       = ";" ;
+
+plus            = "+" ;
+
+minus           = "-" ;
+
+star            = "*" ;
+
+slash           = "/" ;
+
+bang            = "!" ;
+
+equal           = "=" ;
+
+lParen          = "(" ;
+
+rParen          = ")" ;
+
+dot             = "." ;
+
+equalEqual      = "==" ;
+
+bangEqual       = "!=" ;
+
+greater         = ">" ;
+
+greaterEqual    = ">=" ;
+
+less            = "<" ;
+
+lessEqual       = "<=" ;
+
+andAnd          = "&&" ;
+
+orOr            = "||" ;
+
+inKeyword       = "in" ;
+
+lineBreak       = "\n" ;
+
+whiteSpace      = " " / "\t" / "\r" ;
+
+(* whiteSpace is ignored by the tokenizer and does not appear as a token. *)
+
+
+(* ---------- 3. Comment token (lexical; parser currently does not skip it) ---------- *)
+
+comment         = "/" "/" *notLineBreak ;
+
+notLineBreak    = anyChar - lineBreak ;
+
+anyChar         = ? any single Unicode character ? ;
+
+(* Color literal: '#' followed by 3/4/6/8 hexadecimal digits,
+   matching the Rust tokenizer's read_color implementation. *)
+
+hexDigit        = [0-9A-Fa-f] ;
+
+colorLiteral    = "#" (
+                      hexDigit hexDigit hexDigit
+                    / hexDigit hexDigit hexDigit hexDigit
+                    / hexDigit hexDigit hexDigit hexDigit hexDigit hexDigit
+                    / hexDigit hexDigit hexDigit hexDigit hexDigit hexDigit hexDigit hexDigit
+                  ) ;

@@ -9,7 +9,11 @@ holaFile        = { lineBreak } ,
 
 object          = [ typeName ] , lBrace , [ objectBody ] , rBrace ;
 
-typeName        = upperIdent ;
+(* TypeName supports namespace with dot-separated parts:
+   - Single identifier: String
+   - Two parts: System.String  
+   - Multiple parts: System.Collections.Generic.List *)
+typeName        = upperIdent , { dot , upperIdent } ;
 
 objectBody      = item , { separator , item } , [ separator ] ;
 
