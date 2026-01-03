@@ -30,8 +30,22 @@ impl<'a> Parser<'a> {
 
     fn parse_object(&mut self) -> Result<ObjectNode, String> {
         let name = if let Some(token) = self.peek_if(TokenKind::Identifier) {
-            self.tokens.next(); // consume identifier
-            token.value
+            self.tokens.next(); // consume first identifier
+            let mut name = token.value;
+            while let Some(token) = self.tokens.peek() {
+                if token.kind != TokenKind::Dot {
+                    break;
+                }
+                self.tokens.next(); // consume '.'
+                let next = self.tokens.peek().ok_or("Expect identifier after '.' in type name.")?;
+                if next.kind != TokenKind::Identifier {
+                    return Err(format!("Expect identifier after '.' in type name, found {:?}", next.kind));
+                }
+                let next = self.tokens.next().unwrap();
+                name.push('.');
+                name.push_str(&next.value);
+            }
+            name
         } else {
             String::new() // Anonymous object
         };

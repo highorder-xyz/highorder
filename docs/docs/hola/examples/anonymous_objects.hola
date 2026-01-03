@@ -1,0 +1,21 @@
+// 匿名对象（{ ... }）作为属性值示例
+
+Modal {
+    name: "anonymous-object-demo"
+    title: "Anonymous Object"
+
+    // 属性值是匿名对象
+    confirm: {
+        text: "OK"
+        trigger: false
+    }
+
+    // 对象内再嵌套匿名对象
+    style: {
+        justify: "center"
+        padding: {
+            left: 12
+            right: 12
+        }
+    }
+}

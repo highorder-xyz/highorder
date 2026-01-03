@@ -1,0 +1,21 @@
+// 注释示例：支持 // 单行注释
+
+// 一个 Hola 文件可以包含多个顶层对象
+Modal {
+    name: "comment-demo"
+    title: "Comments"
+
+    // 行尾注释
+    confirm: { text: "OK" } // 点击 OK 关闭
+
+    // 列表里的注释
+    tags: [
+        "a", // tag a
+        "b", // tag b
+        "c"
+    ]
+}
+
+Page {
+    route: "/comments"
+}

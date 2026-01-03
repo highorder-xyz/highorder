@@ -1,0 +1,26 @@
+// 列表（List）示例
+
+Object {
+    // 逗号分隔
+    values_inline: [1, 2, 3]
+
+    // 换行分隔（编译器将换行视作分隔符）
+    values_multiline: [
+        10
+        20
+        30
+    ]
+
+    // 混合类型
+    mixed: [
+        null,
+        true,
+        "text",
+        3.14,
+        { a: 1, b: 2 },
+        Object { name: "child" }
+    ]
+
+    // 空位：连续逗号会被视作 null 元素
+    with_holes: [1,,3, ,5]
+}

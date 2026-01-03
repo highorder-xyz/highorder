@@ -23,7 +23,8 @@ export const TokenKind = Object.freeze({
     Plus: 23,
     Minus: 24,
     Equal: 25,
-    Semicolon: 26
+    Semicolon: 26,
+    Dot: 27
 });
 
 
@@ -168,6 +169,14 @@ export class Tokenizer {
                 tokens.push(new Token(
                     TokenKind.RBracket,
                     "]",
+                    new CharPosition(pos.index, pos.line, pos.column),
+                    new CharPosition(pos.index, pos.line, pos.column)
+                ));
+                pos.move(1);
+            } else if (ch === ".") {
+                tokens.push(new Token(
+                    TokenKind.Dot,
+                    ".",
                     new CharPosition(pos.index, pos.line, pos.column),
                     new CharPosition(pos.index, pos.line, pos.column)
                 ));
@@ -326,18 +335,58 @@ export class Tokenizer {
             end_pos
         );
     }
-    tokenize_comment_or_division(pos, code) {
+    tokenize_block_comment(pos, code) {
+        // pos is currently at '/', next char is '*'
         let chars = [];
-        let index = pos.index + 1;
-        if ((index < code.length && code[index] !== "/") || (index === code.length)) {
-            pos.move(1);
-            return new Token(
-                TokenKind.Division,
-                "/",
-                new CharPosition(pos.index, pos.line, pos.column),
-                new CharPosition(pos.index, pos.line, pos.column)
-            );
+        let tmp_pos = new CharPosition(pos.index, pos.line, pos.column);
+        const start_pos = tmp_pos.clone();
+
+        // consume '/*'
+        tmp_pos.move(2);
+
+        while (tmp_pos.index < code.length) {
+            const ch = code[tmp_pos.index];
+            const next = tmp_pos.index + 1 < code.length ? code[tmp_pos.index + 1] : null;
+            if (ch === "*" && next === "/") {
+                tmp_pos.move(2);
+                break;
+            }
+            if (ch === "\n") {
+                chars.push(ch);
+                tmp_pos.newline();
+                continue;
+            }
+            chars.push(ch);
+            tmp_pos.move(1);
         }
+
+        let end_pos = tmp_pos.clone();
+        end_pos.move(-1);
+        pos.moveto(tmp_pos);
+        return new Token(TokenKind.Comment, chars.join(""), start_pos, end_pos);
+    }
+    tokenize_comment_or_division(pos, code) {
+        let index = pos.index + 1;
+        if (index >= code.length) {
+            let start_pos = new CharPosition(pos.index, pos.line, pos.column);
+            pos.move(1);
+            return new Token(TokenKind.Division, "/", start_pos, start_pos);
+        }
+
+        // block comment: /* ... */
+        if (code[index] === "*") {
+            return this.tokenize_block_comment(pos, code);
+        }
+
+        // division
+        if (code[index] !== "/") {
+            let start_pos = new CharPosition(pos.index, pos.line, pos.column);
+            pos.move(1);
+            return new Token(TokenKind.Division, "/", start_pos, start_pos);
+        }
+
+        // line comment: // ... (until newline)
+        let chars = [];
         index += 1;
         while (index < code.length) {
             let ch = code[index];
@@ -353,12 +402,7 @@ export class Tokenizer {
         pos.move(count);
         let end_pos = new CharPosition(pos.index, pos.line, pos.column);
         pos.move(1);
-        return new Token(
-            TokenKind.Comment,
-            chars.join(""),
-            start_pos,
-            end_pos
-        );
+        return new Token(TokenKind.Comment, chars.join(""), start_pos, end_pos);
     }
 }
 
@@ -447,16 +491,14 @@ class HolaSyntaxError extends Error {
 
 class HolaSyntaxExpectError extends Error {
     constructor(expect, found) {
-        this.pos = found.start_pos;
-        if (!Array.isArray(expect)) {
-            this.expect = [expect];
-        } else {
-            this.expect = expect;
-        }
-        this.found = found;
-        let expect_str = this.expect.map(x => JSON.stringify(x)).join(", ");
-        let message = `Expect ${expect_str}, But ${this.found.kind} Found.`;
+        const pos = found.start_pos;
+        const expect_list = Array.isArray(expect) ? expect : [expect];
+        const expect_str = expect_list.map(x => JSON.stringify(x)).join(", ");
+        const message = `Expect ${expect_str}, But ${found.kind} Found.`;
         super(message);
+        this.pos = pos;
+        this.expect = expect_list;
+        this.found = found;
         this.name = "HolaSyntaxExpectError";
     }
 }
@@ -475,20 +517,34 @@ export class Parser {
             {},
             []
         );
-        tokens.consume(TokenKind.LineBreak);
+        tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
         while (!tokens.eof()) {
             const node = this.parse_object(tokens);
             root.children.push(node);
-            tokens.consume(TokenKind.LineBreak);
+            tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
         }
         return root;
     }
     parse_object(tokens) {
+        tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
         const token = tokens.peek();
         let name = "";
         if (token.kind === TokenKind.Identifier) {
             name = token.value;
             tokens.next();
+            while (true) {
+                const dot = tokens.peek();
+                const next = tokens.peek_next(1);
+                if (!dot || dot.kind !== TokenKind.Dot) {
+                    break;
+                }
+                if (!next || next.kind !== TokenKind.Identifier) {
+                    break;
+                }
+                tokens.next();
+                tokens.next();
+                name = `${name}.${next.value}`;
+            }
         } else if (token.kind === TokenKind.LBrace) {
             // pass
         } else {
@@ -503,9 +559,14 @@ export class Parser {
             []
         );
         tokens.expect(TokenKind.LBrace);
-        tokens.consume([TokenKind.Comma, TokenKind.LineBreak]);
+        tokens.consume([TokenKind.Comma, TokenKind.LineBreak, TokenKind.Comment]);
         while (!tokens.eof()) {
             const token = tokens.peek();
+            if (token.kind === TokenKind.Comment) {
+                tokens.next();
+                tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
+                continue;
+            }
             if (token.kind === TokenKind.RBrace) {
                 break;
             }
@@ -526,9 +587,9 @@ export class Parser {
                 );
             }
             const next_token = tokens.peek();
-            if ([TokenKind.Comma, TokenKind.LineBreak].includes(next_token.kind)) {
+            if ([TokenKind.Comma, TokenKind.LineBreak, TokenKind.Comment].includes(next_token.kind)) {
                 tokens.next();
-                tokens.consume(TokenKind.LineBreak);
+                tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
                 continue;
             }
         }
@@ -601,11 +662,15 @@ export class Parser {
             []
         );
         tokens.expect(TokenKind.LBracket);
-        tokens.consume(TokenKind.LineBreak);
+        tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
         while (!tokens.eof()) {
             const token = tokens.peek();
             if (token.kind === TokenKind.RBracket) {
                 break;
+            } else if (token.kind === TokenKind.Comment) {
+                tokens.next();
+                tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
+                continue;
             } else if (token.kind === TokenKind.Comma) {
                 node.children.push(
                     new SyntaxNode(
@@ -617,15 +682,16 @@ export class Parser {
                         []
                     )
                 );
-                tokens.consume(TokenKind.LineBreak);
+                tokens.next();
+                tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
                 continue;
             } else {
                 const sub_node = this.parse_value(tokens);
                 node.children.push(sub_node);
                 const next_token = tokens.peek();
-                if ([TokenKind.Comma, TokenKind.LineBreak].includes(next_token.kind)) {
+                if ([TokenKind.Comma, TokenKind.LineBreak, TokenKind.Comment].includes(next_token.kind)) {
                     tokens.next();
-                    tokens.consume(TokenKind.LineBreak);
+                    tokens.consume([TokenKind.LineBreak, TokenKind.Comment]);
                     continue;
                 }
                 continue;

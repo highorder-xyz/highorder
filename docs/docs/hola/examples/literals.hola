@@ -1,0 +1,16 @@
+// 基础字面量（null / bool / string / number）示例
+
+Object {
+    null_value: null
+    bool_true: true
+    bool_false: false
+
+    // 字符串：双引号 / 单引号 / 转义
+    title: "Hello Hola"
+    subtitle: 'Hola supports \\n newline and \\t tab'
+
+    // 数字：整数 / 小数 / 下划线分隔
+    count: 100
+    price: 99.9
+    big_number: 1_000_000
+}

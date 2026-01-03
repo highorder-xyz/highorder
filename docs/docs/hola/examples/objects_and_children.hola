@@ -1,0 +1,18 @@
+// 对象与子对象（children）示例
+
+Page {
+    route: "/demo"
+
+    Column {
+        PlainText {
+            text: "Hello"
+        }
+
+        Button {
+            text: "Click"
+            events: {
+                click: ShowModal { name: "hello-world" }
+            }
+        }
+    }
+}

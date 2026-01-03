@@ -1,0 +1,12 @@
+/* multi-line comment
+   outside expression is allowed
+*/
+
+Page {
+    route: "/block-comments"
+
+    Column {
+        /* comment inside object */
+        PlainText { text: "ok" }
+    }
+}

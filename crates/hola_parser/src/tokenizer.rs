@@ -134,12 +134,15 @@ impl<'a> Tokenizer<'a> {
             ':' => Some(self.make_token(TokenKind::Colon, ":".to_string(), start_pos)),
             ',' => Some(self.make_token(TokenKind::Comma, ",".to_string(), start_pos)),
             '\n' => Some(self.make_token(TokenKind::LineBreak, "\n".to_string(), start_pos)),
+            '.' => Some(self.make_token(TokenKind::Dot, ".".to_string(), start_pos)),
            '/' => {
-                if self.peek_char() == Some(&'/') {
-                    self.read_comment(start_pos)
-                } else {
-                    // Division operator in default mode
-                    Some(self.make_token(TokenKind::Slash, "/".to_string(), start_pos))
+                match self.peek_char() {
+                    Some('/') => self.read_comment(start_pos),
+                    Some('*') => self.read_block_comment(start_pos),
+                    _ => {
+                        // Division operator in default mode
+                        Some(self.make_token(TokenKind::Slash, "/".to_string(), start_pos))
+                    }
                 }
             }
             '#' => self.read_color(start_pos),
@@ -299,6 +302,27 @@ impl<'a> Tokenizer<'a> {
             }
             value.push(self.advance_char().unwrap());
         }
+        Some(self.make_token(TokenKind::Comment, value, start_pos))
+    }
+
+    fn read_block_comment(&mut self, start_pos: BytePos) -> Option<Token> {
+        let mut value = String::new();
+        self.advance_char(); // consume '*', now we've consumed '/*'
+
+        while let Some(&c) = self.peek_char() {
+            if c == '*' {
+                self.advance_char(); // consume '*'
+                if self.peek_char() == Some(&'/') {
+                    self.advance_char(); // consume '/'
+                    break;
+                } else {
+                    value.push('*');
+                    continue;
+                }
+            }
+            value.push(self.advance_char().unwrap());
+        }
+
         Some(self.make_token(TokenKind::Comment, value, start_pos))
     }
 

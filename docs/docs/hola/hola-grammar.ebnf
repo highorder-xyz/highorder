@@ -209,7 +209,15 @@ whiteSpace      = " " | "\t" | "\r" ;
 
 (* ---------- 3. Comment token (lexical; parser currently does not skip it) ---------- *)
 
-comment         = "/" , "/" , { notLineBreak } ;
+(* Note: blockComment (/* */) is only supported in default mode, NOT inside expression blocks {{ ... }}. *)
+
+comment         = lineComment | blockComment ;
+
+lineComment     = "/" , "/" , { notLineBreak } ;
+
+blockComment    = "/" , "*" , { blockCommentChar } , "*" , "/" ;
+
+blockCommentChar = ? any single Unicode character, with the restriction that the sequence "*/" terminates the block comment ? ;
 
 notLineBreak    = anyChar - lineBreak ;
 
