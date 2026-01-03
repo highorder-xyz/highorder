@@ -69,7 +69,7 @@ impl Settings {
     pub fn db_url(&self) -> String {
         self.db_url
             .clone()
-            .unwrap_or_else(|| "sqlite://./highorder.db?mode=rwc".to_string())
+            .unwrap_or_else(|| "polodb://./highorder.polo".to_string())
     }
 
     pub fn storage(&self) -> String {
@@ -78,13 +78,13 @@ impl Settings {
         }
         if let Some(u) = &self.db_url {
             let ul = u.to_lowercase();
-            if ul.starts_with("sqlite:") {
-                if ul.contains(":memory:") { return "memory".to_string(); }
-                return "litedb".to_string();
+            if ul.starts_with("mongodb://") || ul.starts_with("mongodb+srv://") {
+                return "mongodb".to_string();
             }
-            return "db".to_string();
+            // Prefer polodb by default
+            return "polodb".to_string();
         }
-        "memory".to_string()
+        "polodb".to_string()
     }
 
     pub fn localdb_data_dir(&self) -> String {

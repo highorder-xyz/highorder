@@ -7,25 +7,34 @@ use axum::{
 };
 use axum::Extension;
 use serde::Deserialize;
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{net::SocketAddr, path::PathBuf};
 use tower_http::trace::TraceLayer;
 use tokio::signal;
 
+#[cfg(feature = "mongodb")]
+use mongodb::Client as MongoClient;
+
+#[cfg(feature = "polodb")]
+use polodb_core::Database as PoloDatabase;
+
+#[cfg(feature = "polodb")]
+use std::sync::Arc;
+
 mod base;
 mod db;
-// mod models; // will be added when SeaORM entities are ready
-mod migration;
 mod config;
 mod error;
 mod loader;
 mod hola;
 
 use config::Settings;
-use sea_orm::DatabaseConnection;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<DatabaseConnection>,
+    #[cfg(feature = "polodb")]
+    pub polodb: Option<Arc<PoloDatabase>>,
+    #[cfg(feature = "mongodb")]
+    pub mongo: Option<MongoClient>,
     pub settings: Settings,
     pub webapp_root: Option<PathBuf>,
     pub data_dir: PathBuf,
@@ -53,14 +62,14 @@ async fn main() {
         settings.storage()
     );
 
-    // Initialize database connection (use embedded Postgres when enabled; otherwise use db_url)
-    let (db_conn, mut embedded_pg_guard) = match db::init_db_with_settings(&settings).await {
-        Ok((conn, guard)) => {
-            tracing::info!("Database connection established");
-            (conn, guard)
+    // Initialize database connections
+    let db_handles = match db::init_db_with_settings(&settings).await {
+        Ok(handles) => {
+            tracing::info!("Database connection(s) established");
+            handles
         }
         Err(e) => {
-            tracing::error!("Failed to connect to database: {}", e);
+            tracing::error!("Failed to initialize database: {}", e);
             std::process::exit(1);
         }
     };
@@ -74,7 +83,10 @@ async fn main() {
     let webapp_root = settings.webapp_root.clone().map(PathBuf::from);
 
     let state = AppState {
-        db: Arc::new(db_conn),
+        #[cfg(feature = "polodb")]
+        polodb: db_handles.polodb,
+        #[cfg(feature = "mongodb")]
+        mongo: db_handles.mongo,
         settings: settings.clone(),
         webapp_root,
         data_dir,
@@ -118,10 +130,7 @@ async fn main() {
         tracing::error!("server error: {}", e);
     }
 
-    // On shutdown, if we started an embedded Postgres, stop it gracefully
-    if let Some(pg) = embedded_pg_guard.take() {
-        let _ = pg.stop().await;
-    }
+    // no-op for now
 }
 
 async fn index(Extension(state): Extension<AppState>, Query(q): Query<IndexQuery>) -> Response {
