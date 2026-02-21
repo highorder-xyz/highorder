@@ -11,14 +11,7 @@ use std::{net::SocketAddr, path::PathBuf};
 use tower_http::trace::TraceLayer;
 use tokio::signal;
 
-#[cfg(feature = "mongodb")]
-use mongodb::Client as MongoClient;
-
-#[cfg(feature = "polodb")]
-use polodb_core::Database as PoloDatabase;
-
-#[cfg(feature = "polodb")]
-use std::sync::Arc;
+use sqlx::SqlitePool;
 
 mod base;
 mod db;
@@ -31,10 +24,7 @@ use config::Settings;
 
 #[derive(Clone)]
 pub struct AppState {
-    #[cfg(feature = "polodb")]
-    pub polodb: Option<Arc<PoloDatabase>>,
-    #[cfg(feature = "mongodb")]
-    pub mongo: Option<MongoClient>,
+    pub sqlite: Option<SqlitePool>,
     pub settings: Settings,
     pub webapp_root: Option<PathBuf>,
     pub data_dir: PathBuf,
@@ -83,10 +73,7 @@ async fn main() {
     let webapp_root = settings.webapp_root.clone().map(PathBuf::from);
 
     let state = AppState {
-        #[cfg(feature = "polodb")]
-        polodb: db_handles.polodb,
-        #[cfg(feature = "mongodb")]
-        mongo: db_handles.mongo,
+        sqlite: db_handles.sqlite,
         settings: settings.clone(),
         webapp_root,
         data_dir,

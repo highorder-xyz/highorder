@@ -69,22 +69,14 @@ impl Settings {
     pub fn db_url(&self) -> String {
         self.db_url
             .clone()
-            .unwrap_or_else(|| "polodb://./highorder.polo".to_string())
+            .unwrap_or_else(|| "sqlite://./highorder.db".to_string())
     }
 
     pub fn storage(&self) -> String {
-        if let Some(s) = &self.storage {
-            return s.to_lowercase();
-        }
-        if let Some(u) = &self.db_url {
-            let ul = u.to_lowercase();
-            if ul.starts_with("mongodb://") || ul.starts_with("mongodb+srv://") {
-                return "mongodb".to_string();
-            }
-            // Prefer polodb by default
-            return "polodb".to_string();
-        }
-        "polodb".to_string()
+        self.storage
+            .as_ref()
+            .map(|s| s.to_lowercase())
+            .unwrap_or_else(|| "sqlite".to_string())
     }
 
     pub fn localdb_data_dir(&self) -> String {
