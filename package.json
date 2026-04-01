@@ -1,0 +1,9 @@
+{
+  "name": "highorder-workspace",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:webapp": "pnpm -C webapp dev",
+    "build:webapp": "pnpm -C webapp build"
+  }
+}

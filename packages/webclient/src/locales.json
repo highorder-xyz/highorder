@@ -1,0 +1,38 @@
+{
+  "en": {
+    "translation": {
+      "loading_and_wait": "Loading, please wait...",
+      "makesure_network_and_latest_version": "Please make sure network is OK and client is up to date.",
+      "retry_text": "Retry",
+      "agree": "Agree",
+      "disagree": "Disagree",
+      "privacy_html_summary": "Please review and agree to the privacy policy.",
+      "view_privacy_detail": "View privacy details",
+      "unable_connect_to_server": "Unable to connect to server.",
+      "retring_and_waiting": "Retrying, please wait...",
+      "fine_ok": "OK",
+      "check_network": "Please check your network.",
+      "server_upgrading": "Server error, please retry later.",
+      "check_client_version": "Please update your client.",
+      "client_version_ok": "OK"
+    }
+  },
+  "zh": {
+    "translation": {
+      "loading_and_wait": "加载中，请稍候…",
+      "makesure_network_and_latest_version": "请确认网络正常并更新到最新版本。",
+      "retry_text": "重试",
+      "agree": "同意",
+      "disagree": "不同意",
+      "privacy_html_summary": "请阅读并同意隐私政策。",
+      "view_privacy_detail": "查看隐私详情",
+      "unable_connect_to_server": "无法连接到服务器。",
+      "retring_and_waiting": "正在重试，请稍候…",
+      "fine_ok": "好的",
+      "check_network": "请检查网络连接。",
+      "server_upgrading": "服务器异常，请稍后重试。",
+      "check_client_version": "请更新客户端版本。",
+      "client_version_ok": "好的"
+    }
+  }
+}
